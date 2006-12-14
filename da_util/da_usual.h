@@ -4,7 +4,15 @@
 // Description : This file contains declarations that are needed in just about
 //               every source file written by Douglas Alan.
 // Author      : Douglas Alan <nessus@mit.edu>
+//
 // Copyright    (C) 1993-2005  Douglas Alan
+//
+//   This software is freely distributable under the open source MIT X11 License.
+//   See
+//
+//      http://www.opensource.org/licenses/mit-license.php
+//
+//   for details.
 
 
 #ifndef DA_USUAL_H

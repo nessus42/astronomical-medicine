@@ -1,22 +1,3 @@
-//===============================================================================
-//
-//   Program:   fits2itk
-//   Module:    fits2itk.cxx
-//   Language:  C++
-//   Author:    Douglas Alan <doug AT alum.mit.edu>
-//
-//   Copyright (c) 2006 Douglas Alan
-//
-//   This software is freely distributable under the open source MIT X11 License.
-//   See
-//
-//      http://www.opensource.org/licenses/mit-license.php
-//
-//   for details.
-//
-// ==============================================================================
-
-
 #if defined(_MSC_VER)
 #pragma warning ( disable : 4786 )
 #endif
@@ -29,7 +10,6 @@
 #include <itkImageFileWriter.h>
 #include <itkImage.h>
 #include <unistd.h>                        // For getopt()
-#include <libgen.h>			   // For basename()
 #include <assert.h>
 
 #include <itkFITSImageIOFactory.h>
@@ -50,20 +30,17 @@ using std::endl;
 local proc void
 usage()
 {
-  cerr << "\nVersion 0.1\n\n";
+  cerr << "fits2itk version 0.1dev.0pending\n\n";
   cerr << "usage: ";
-  if (daProgramName().size()) cerr << basename(daProgramName().c_str());
+  if (daProgramName().size()) cerr << daProgramName();
   else cerr << "fits2itk";
   cerr << 
-    " [-ASU] [-a axes-scale] [-D debug-level] [-r RA-scale] [-s pixel-scale]\n"
-    "    [-v velocity-scale] input-file output-file\n"
+    " [-ASU] [-s pixel-scale] [-v velocity-scale] \n"
+    "         input-file output-file\n"
     "\n"
     "  A: auto-scale velocity axis\n"
     "  S: coerce pixel values to shorts\n"
     "  U: coerce pixel values to unsigned shorts\n"
-    "\n"
-    "-a scales all the axes, while -v scales only the velocity axis.  If both\n"
-    "are used, then both scaling factors will be applied.\n"
     ;
   exit(EXIT_FAILURE);
 }
@@ -117,10 +94,7 @@ main(const int argc, const char* const argv[])
   // Parse command line options:
   ::opterr = true;
   char optionChar;
-  const char options[] = "Aa:D:fRr:Ss:Uv:";
-  char** const null = 0;
-  const int base = 10;
-
+  const char options[] = "ASUv:s:";
   while ((optionChar = ::getopt(argc, const_cast<char**>(argv), options))
          != -1)
     {
@@ -130,29 +104,12 @@ main(const int argc, const char* const argv[])
         itk::FITSImageIO::SetAutoScaleVelocityAxis(true);
         break;
 
-      case 'a':
-	itk::FITSImageIO::SetScaleAllAxes(strtod(optarg, null));
-	break;
-
-      case 'D':
-	itk::FITSImageIO::SetDebugLevel(strtol(optarg, null, base));
-	break;
-
-      case 'R':
-	// TODO: This isn't implemented yet.
-	itk::FITSImageIO::SetRotateSky(strtod(optarg, null));
-	break;
-
-      case 'r':
-	itk::FITSImageIO::SetScaleRA(strtod(optarg, null));
-	break;
-
       case 'S':
         coerceToShorts = true;
         break;
 
       case 's':
-        itk::FITSImageIO::SetScaleVoxelValues(strtod(optarg, null));
+        itk::FITSImageIO::SetScaleVoxelValues(strtod(optarg, 0));
         break;
 
       case 'U':
@@ -162,8 +119,10 @@ main(const int argc, const char* const argv[])
       case 'v':
         // TODO: Make the following (and other similar code here) more
         // robust:
-        itk::FITSImageIO::SetScaleVelocityAxis(strtod(optarg, null));
+        itk::FITSImageIO::SetScaleVelocityAxis(strtod(optarg, 0));
         break;
+
+
 
       case '?': usage();
 
@@ -196,61 +155,21 @@ main(const int argc, const char* const argv[])
 }
 
 
-//=============================================================================
+//-----------------------------------------------------------------------------
 // Change Log
-//=============================================================================
+//-----------------------------------------------------------------------------
 
 // See http://wiki.iic.harvard.edu/AstroMed/Software_Version_Numbers for
 // documentation on how these version numbers work.
 
-
-//---------------------------
-// Version 0.1dev.0
-//---------------------------
+//------------------------
+// Version 0.1dev.0pending
+//------------------------
 
 // *** Tue Dec  5, 2006 ***
 
 // Added version number to usage output and a change log comments section.
 
-// Changed autoscaling of velocity axis to be average of raPerI and decPerI,
-// rather than just raPerI.
-
-// RA/DEC/V were getting mapped to L/P/S rather than to L/P/S.  Fixed this.
-
-// Added option to turn on debugging messages and turned them off by default.
-// They were all getting output all the time prior to this change.
-
-// Note this version not checked into subversion due to repository being down.
-
-//---------------------------
-// Version 0.1dev1
-//---------------------------
-
-// *** Thu Dec  7, 2006 ***
-
-// Added option to scale all axes and removed hack that automatically scaled
-// all axes by 1000.
-
-// Implemented a better method of autoscaling the velocity axis by
-// fitting it maximally into cube.
-
-// Completely reworked the change-of-basis matrix stuff to be clearer
-// and to actually work correctly.
-
-// *** Fri Dec  8, 2006 ***
-
-// Added option to scale RA axis.  The most important purpose for this option
-// is the scale RA by -1 so that it will display properly in Slicer.
-
-//---------------------------
-// Version 0.1
-//---------------------------
-
-// *** Tue Dec 12, 2006 ***
-
-// Changed version to "0.1".  Could not check it into the NA-MIC sandbox due to
-// the corruption of their repository.  So started my own Mercurial repository.
-
-//----------------------------------------------------------------------
-// *** Changes described above this line are checked in to Mercurial ***
-//----------------------------------------------------------------------
+//-------------------------------------------------
+// Changes described above this line are checked in
+//-------------------------------------------------

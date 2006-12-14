@@ -1,20 +1,23 @@
-//===============================================================================
-//
-//   Program:   FITS Reader for ITK
-//   Module:    itkFITSImageIO.cxx
-//   Language:  C++
-//   Author:    Douglas Alan <doug AT alum.mit.edu>
-//
-//   Copyright (c) 2006 Douglas Alan
-//
-//   This software is freely distributable under the open source MIT X11 License.
-//   See
-//
-//      http://www.opensource.org/licenses/mit-license.php
-//
-//   for details.
-//
-// ==============================================================================
+/*=========================================================================
+
+  Program:   Insight Segmentation & Registration Toolkit
+  Module:    $RCSfile: itkFITSImageIO.cxx,v $
+  Language:  C++
+  Date:      $Date: 2005/10/10 19:33:50 $
+  Version:   $Revision: 1.19 $  
+
+  Copyright (c) Insight Software Consortium. All rights reserved.
+  See ITKCopyright.txt or http://www.itk.org/HTML/Copyright.htm for details.
+
+     This software is distributed WITHOUT ANY WARRANTY; without even 
+     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR 
+     PURPOSE.  See the above copyright notices for more information.
+
+=========================================================================*/
+
+// TODO: Fix the above copyright, which maybe should be IIC, and the RCS stuff,
+// which is not right for Subversion.
+
 
 #include <iostream>
 #include <list>
@@ -48,16 +51,6 @@ using std::vector;
 //*****************************************************************************
 
 //-----------------------------------------------------------------------------
-// debugPrint(): local macro
-//-----------------------------------------------------------------------------
-
-#define debugPrint(message) \
-   { if (_cv_debugLevel) { \
-        cerr << message << endl; \
-     } \
-   }
-
-//-----------------------------------------------------------------------------
 // Freer: local class
 //-----------------------------------------------------------------------------
 
@@ -77,17 +70,6 @@ public:
 
 
 //-----------------------------------------------------------------------------
-// max(): local proc
-//-----------------------------------------------------------------------------
-
-/*local proc*/ template <class T> T
-max(T a, T b) {
-  if (a > b) return a;
-  else return b;
-}
-
-
-//-----------------------------------------------------------------------------
 // toLower(): local proc
 //-----------------------------------------------------------------------------
 
@@ -100,6 +82,7 @@ toLower(string& s)
      *p = tolower(*p);
    }
 }
+
 
 //-----------------------------------------------------------------------------
 // endMatchesP(): local proc
@@ -193,7 +176,6 @@ double FITSImageIO::_cv_scaleVoxelValues = 1;
 double FITSImageIO::_cv_scaleRA = 1;
 double FITSImageIO::_cv_scaleDec = 1;
 double FITSImageIO::_cv_scaleVelocityAxis = 1;
-double FITSImageIO::_cv_scaleAllAxes = 1;
 bool   FITSImageIO::_cv_autoScaleVelocityAxis = false;                  
 double FITSImageIO::_cv_rotateSky = 0;
 double FITSImageIO::_cv_rotateDecIntoVelocityAxis = 0;
@@ -247,13 +229,13 @@ FITSImageIO::CanReadFile(const char* const filepath)
   // ITK will and won't allow us to read:
   return true;  //d
 
-  debugPrint("Entering FITSImageIO::CanReadFile().")
+  cerr << "DEBUG: Entering FITSImageIO::CanReadFile()." << endl; //d
 
   if (!filepath or *filepath == 0) {
     itkDebugMacro(<< "No filename specified.");
     return false;
   } else if (::checkExtension(filepath)) {
-    debugPrint("Exiting FITSImageIO::CanReadFile() with true.");
+    cerr << "DEBUG: Exiting FITSImageIO::CanReadFile() with true." << endl; //d
     return true;
   } else {
     itkDebugMacro(<<"The filename extension is not recognized");
@@ -319,7 +301,7 @@ FITSImageIO::ReadImageInformation()
                       << ::getAllFitsErrorMessages(status) << '.');
   }
 
-  debugPrint("Entering FITSImageIO::ReadImageInformation().");
+  cerr << "DEBUG: Entering FITSImageIO::ReadImageInformation()." << endl; //d
 
   // Get the dimensions and type of the FITS Primary Array:
   int numOfAxes;
@@ -333,16 +315,13 @@ FITSImageIO::ReadImageInformation()
                       << this->GetFileName() << "\":"
                       << ::getAllFitsErrorMessages(status) << '.');
   }
-
-  debugPrint("NAXIS=" << numOfAxes);
-  if (_cv_debugLevel) {
-    cerr << "DIMS=";
-    for (long i = 0; i < numOfAxes; ++i) {
-      cerr << " " << lengthOfAxisInPixels[i];
-    }
-    cerr << endl;
+  cerr << "NAXIS=" << numOfAxes << endl; //d
+  cerr << "DIMS="; //d
+  for (long i = 0; i < numOfAxes; ++i) {  //d
+    cerr << " " << lengthOfAxisInPixels[i]; //d
   }
-  debugPrint("BPP= " << bitsPerPixel);
+  cerr << endl;
+  cerr << "BPP= " << bitsPerPixel << endl;
 
   if (numOfAxes != 3) {
     itkExceptionMacro("FITSImageIO cannot handle FITS Primary Arrays that are"
@@ -363,9 +342,10 @@ FITSImageIO::ReadImageInformation()
   double upperLeftRA, upperLeftDec;
   pix2wcs(wcs, 1, lengthOfAxisInPixels[1], &upperLeftRA, &upperLeftDec);
 
-  debugPrint("LL: RA=" << lowerLeftRA << ' ' << "Dec=" << lowerLeftDec);
-  debugPrint("UL: RA=" << upperLeftRA << ' ' << "Dec=" << upperLeftDec);
-  debugPrint("LR: RA=" << lowerRightRA << ' ' << "Dec=" << lowerRightDec);
+  cerr << "LL: RA=" << lowerLeftRA << ' ' << "Dec=" << lowerLeftDec << endl; //d
+  cerr << "UL: RA=" << upperLeftRA << ' ' << "Dec=" << upperLeftDec << endl; //d
+  cerr << "LR: RA=" << lowerRightRA << ' ' << "Dec=" << lowerRightDec << endl; //d
+
 
   // Make some RAs negative (by substracting 360 degrees) if the image crosses
   // the equinox.  Otherwise, we will incorrectly think that we are
@@ -378,9 +358,10 @@ FITSImageIO::ReadImageInformation()
   if (yRaDiff > 180.0) upperLeftRA -= 360.0;
   else if (yRaDiff < -180.0) lowerLeftRA -= 360.0;
 
-  debugPrint("LL: RA=" << lowerLeftRA << ' ' << "Dec=" << lowerLeftDec);
-  debugPrint("UL: RA=" << upperLeftRA << ' ' << "Dec=" << upperLeftDec);
-  debugPrint("LR: RA=" << lowerRightRA << ' ' << "Dec=" << lowerRightDec);
+  cerr << "LL: RA=" << lowerLeftRA << ' ' << "Dec=" << lowerLeftDec << endl; //d
+  cerr << "UL: RA=" << upperLeftRA << ' ' << "Dec=" << upperLeftDec << endl; //d
+  cerr << "LR: RA=" << lowerRightRA << ' ' << "Dec=" << lowerRightDec << endl; //d
+
 
   // TODO: The above method for removing an RA discontinuity should be improved
   // for large areas of the sky or for areas near the poles (in the unlikely
@@ -403,8 +384,8 @@ FITSImageIO::ReadImageInformation()
   // 1. The coordinates in B corresponding to the origin in A.  Let's call
   // these coordinates in B, "o".
 
-  // 2. A change-of-basis matrix that transforms the unit basis vectors for A
-  // into (unnormalized) basis vectors for B.  Let's call this change-of-basis
+  // 2. A change of basis matrix that transforms the unit basis vectors for A
+  // into (unnormalized) basis vectors for B.  Let's call this change of basis
   // matrix, "C".
 
   // Knowing C and o, one can then transform the coordinates in A for any given
@@ -426,142 +407,50 @@ FITSImageIO::ReadImageInformation()
   // have to work with the facilities that 3D Slicer provides us, and so this
   // is the best that we can do for right now.
 
-  // BEGIN Calculate the change-of-basis matrix, "C":
-  const double raPerI = (lowerRightRA - lowerLeftRA)/(lengthOfAxisInPixels[0]-1);
-  const double decPerI =
-    (lowerRightDec - lowerLeftDec)/(lengthOfAxisInPixels[0]-1);
-  const double raPerJ = (upperLeftRA - lowerLeftRA)/(lengthOfAxisInPixels[1]-1);
-  const double decPerJ = 
-    (upperLeftDec - lowerLeftDec)/(lengthOfAxisInPixels[1]-1);
+  // Calculate the change of basis matrix:
+  double raPerI = (lowerRightRA - lowerLeftRA)/(lengthOfAxisInPixels[0]-1);
+  double decPerI = (lowerRightDec - lowerLeftDec)/(lengthOfAxisInPixels[0]-1);
+  double raPerJ = (upperLeftRA - lowerLeftRA)/(lengthOfAxisInPixels[1]-1);
+  double decPerJ = (upperLeftDec - lowerLeftDec)/(lengthOfAxisInPixels[1]-1);
 
-  debugPrint("raPerI=" << raPerI);
-  debugPrint("decPerI=" <<  decPerI);
-  debugPrint("raPerJ=" << raPerJ);
-  debugPrint("decPerJ=" << decPerJ);
-
-  // TODO: DELETE THE FOLLOWING COMMENTED OUT CODE
-
-  // const double lengthOfRaPerVoxelVector = sqrt(square(raPerI) + square(raPerJ));
-  // const double lengthOfDecPerVoxelVector = sqrt(square(decPerI) + square(decPerJ));
-  
-  double velocityPerK;
-
-  if (_cv_autoScaleVelocityAxis) {
-
-    // Calculate length of each side of the sky rectangle in RA/Dec
-    // coordinates:
-    const double rectWidth = sqrt(square(lowerRightRA - lowerLeftRA) +
-				  square(lowerRightDec - lowerLeftDec));
-    const double rectHeight = sqrt(square(upperLeftRA - lowerRightRA) +
-				   square(upperLeftDec - lowerRightDec));
-    debugPrint("rectWidth= " << rectWidth);
-    debugPrint("rectHeight= " << rectHeight);
-
-    velocityPerK = max(rectWidth, rectHeight) / lengthOfAxisInPixels[2]
-      * _cv_scaleVelocityAxis;
-
-  } else {
-
-    // TODO: This is not the right value at all!  It really needs to be
-    // determinded from the FITS headers (and then scaled by
-    // _cv_scaleVelocityAxis):
-    velocityPerK = _cv_scaleVelocityAxis;
-  }
-
-  debugPrint("velocityPerK=" << velocityPerK);
+  cerr << "raPerI=" << raPerI << endl;   //d
+  cerr << "decPerI=" <<  decPerI << endl; //d
+  cerr << "raPerJ=" << raPerJ << endl; //d
+  cerr << "decPerJ=" << decPerJ << endl; //d
 
   // TODO: Extend the following to more than three dimensions.
 
-  // YOU ARE HERE: trying to figure out how RA/DEC/V should map onto LPS space.
-
-  // TODO: We need to extract velocity information using a WCS library of some
-  // sort.  Is there one that does this?  At the moment, I just set velocity to
-  // nonsensical things, like 0 for the image origin, immediately below.
-
-  // Create the origin vector (what we called "o" in the exposition above):
-  const double origin[3] = { lowerLeftRA, 0, lowerLeftDec };
-
-  // Create the change-of-basis matrix (what we called "C" in the exposition
-  // above):
   vector<double> changeOfBasisMatrix[3];
-  for (int axis = 0; axis < 3; ++axis) {
-    changeOfBasisMatrix[axis].resize(3);
-  }
+  for (int axis = 0; axis < 3; ++axis) changeOfBasisMatrix[axis].resize(3);
+  changeOfBasisMatrix[0][0] = raPerI;
+  changeOfBasisMatrix[0][1] = decPerI;
+  changeOfBasisMatrix[0][2] = 0;
 
-  // Each column of the matrix represents a vector that transform a
-  // unit vector in i, j, k space to RA, V, DEC (a.k.a. LPS) space:
+  changeOfBasisMatrix[1][0] = raPerJ;
+  changeOfBasisMatrix[1][1] = decPerJ;
+  changeOfBasisMatrix[1][2] = 0;
 
-  const int ra  = 0;
-  const int vel = 1;
-  const int dec = 2;
-
-  const int i   = 0;
-  const int j   = 1;
-  const int k   = 2;
-
-  changeOfBasisMatrix[ra] [i] = raPerI * _cv_scaleRA;
-  changeOfBasisMatrix[vel][i] = 0;
-  changeOfBasisMatrix[dec][i] = decPerI;
-
-  changeOfBasisMatrix[ra] [j] = raPerJ * _cv_scaleRA;
-  changeOfBasisMatrix[vel][j] = 0;
-  changeOfBasisMatrix[dec][j] = decPerJ;
-
-  changeOfBasisMatrix[ra] [k] = 0;
-  changeOfBasisMatrix[vel][k] = velocityPerK;
-  changeOfBasisMatrix[dec][k] = 0;
-
-
-  // END Calculate the change-of-basis matrix.
-
-  if (_cv_debugLevel) {
-    cerr << "Change-of-basis matrix:\n";
-    for (int row = 0; row < 3; ++row) {
-      for (int col = 0; col < 3; ++col) {
-	cerr << "    " << changeOfBasisMatrix[row][col];
-      }
-      cerr << endl;
-    }
-  }
+  changeOfBasisMatrix[2][0] = 0;
+  changeOfBasisMatrix[2][1] = 0;
+  changeOfBasisMatrix[2][2] = _cv_autoScaleVelocityAxis ? raPerI
+                                 : _cv_scaleVelocityAxis;
 
   // TODO: Extract the dimensions for the velocity spectrum from the FITS 
   // file rather than punting and just setting it to 1 as we have done above.
 
-  // Create a direction cosine matrix and spacing vector from the
-  // change-of-basis matrix.  The direction cosines are calculated by
-  // normalizing the direction vectors contained in the change-of-basis matrix
-  // (i.e., dividing their values by , while also populating the spacing
-  // vector:
+  // Normalize the direction vectors into direction cosines, while also
+  // populating the spacing vector:
   double spacing[3];
   vector<double> directionCosines[3];
-
-//   for (int i = 0; i < 3; ++i) {
-//     directionCosines[i].resize(3);
-//     spacing[i] = sqrt(square(changeOfBasisMatrix[i][0]) + 
-//                       square(changeOfBasisMatrix[i][1]) +
-//                       square(changeOfBasisMatrix[i][2]));
-//     for (int j = 0; j < 3; ++j) {
-//       directionCosines[i][j] = changeOfBasisMatrix[i][j] / spacing[i];
-//     }
-//   }
-
-
-  for (int indexAxis = 0; indexAxis < 3; ++indexAxis) {
-    directionCosines[indexAxis].resize(3);
-    spacing[indexAxis] = sqrt(square(changeOfBasisMatrix[0][indexAxis]) + 
-			      square(changeOfBasisMatrix[1][indexAxis]) +
-			      square(changeOfBasisMatrix[2][indexAxis]));
-  }
-  for (int indexAxis = 0; indexAxis < 3; ++indexAxis) {
-    for (int physicalAxis = 0; physicalAxis < 3; ++physicalAxis) {
-      directionCosines[indexAxis][physicalAxis] =
-	changeOfBasisMatrix[physicalAxis][indexAxis] / spacing[indexAxis];
+  for (int i = 0; i < 3; ++i) {
+    directionCosines[i].resize(3);
+    spacing[i] = sqrt(square(changeOfBasisMatrix[i][0]) + 
+                      square(changeOfBasisMatrix[i][1]) +
+                      square(changeOfBasisMatrix[i][2]));
+    for (int j = 0; j < 3; ++j) {
+      directionCosines[i][j] = changeOfBasisMatrix[i][j] / spacing[i];
     }
   }
-
-  // TODO: Adapt the following code to do rotations, using the -R
-  // option, which you already partially implemented the command-line
-  // parsing for.
 
 //   For testing purposes the following code rotates the image by 30 degrees,
 //   to make sure that the direction cosines are being interpreted properly:
@@ -576,38 +465,42 @@ FITSImageIO::ReadImageInformation()
 //    spacing[2] = 1; //d
 
 
+  // TODO: The following is a gross hack.  The problem with not doing this hack
+  // is that the velocity spectrum dimension is likely to have a completely
+  // different scale than the other two dimensions, and Slicer isn't clever
+  // enough yet to handle such an issue in any reasonable way.  It will either
+  // show the dimension as completely scrunched up, or it will be elongated
+  // (and then clipped) to the point of uselessness.  So for now, we just set
+  // the spacing to be the same as it is for Right Ascension:
+  // spacing[2] = spacing[0];  //d
+
   // TODO: Remove this gross hack.  (Actually, we should put this in as a
   // command line option.) We scale the physical values by 1,000 so that they
   // are easier to use with Slicer:
-  // for (int i = 0; i < 3; ++i) spacing[i] *= 1000; //d
+  for (int i = 0; i < 3; ++i) spacing[i] *= 1000; //d
 
-  for (int indexAxis = 0; indexAxis < 3; ++indexAxis) {
-    spacing[indexAxis] *= _cv_scaleAllAxes;
-  }
+  // Make the origin vector (what we called "o" in the exposition above:
+  const double origin[3] = { lowerLeftRA, lowerLeftDec, 0 };
 
   // Set up the ITK image:
   this->SetNumberOfComponents(1);
   this->SetPixelType(SCALAR);
   this->SetComponentType(FLOAT);
   this->SetNumberOfDimensions(numOfAxes);
-  for (int indexAxis = 0; indexAxis < numOfAxes; ++indexAxis) {
-    this->SetDimensions(indexAxis, lengthOfAxisInPixels[indexAxis]);
-    this->SetOrigin(indexAxis, origin[indexAxis]);
-    this->SetSpacing(indexAxis, spacing[indexAxis]);
-    this->SetDirection(indexAxis, directionCosines[indexAxis]);
-
-    // Write debugging output if debug output option is set:
-    if (_cv_debugLevel) {
-      cerr << "spacing=" << indexAxis << "," << spacing[indexAxis] << " ";
-      cerr << "directions=";
-      for (int physicalAxis = 0; physicalAxis < 3; ++physicalAxis) {
-	cerr << directionCosines[indexAxis][physicalAxis] << " ";
-      }
-      cerr << endl;
-    }
+  for (int axis = 0; axis < numOfAxes; ++axis) {
+    this->SetDimensions(axis, lengthOfAxisInPixels[axis]);
+    this->SetOrigin(axis, origin[axis]);
+    this->SetSpacing(axis, spacing[axis]);
+    cerr << "spacing=" << axis << "," << spacing[axis] << " "; //d
+    cerr << "directions="; //d
+    for (int j = 0; j < 3; ++j) { //d
+      cerr << directionCosines[axis][j] << " "; //d
+    } //d
+    this->SetDirection(axis, directionCosines[axis]);
   }
+  cerr << endl; //d
 
-
+  
   // Put the FITS Primary Array Header into the ITK MetaDataDictionary as one
   // big string:
   MetaDataDictionary& dict = this->GetMetaDataDictionary();
@@ -728,7 +621,7 @@ FITSImageIO::Read(void* const buffer)
   }
                 
 
-  // Scale the voxel values by the voxel value scaling factor:
+  // Scale the voxels by the voxel scaling factor:
   if (_cv_scaleVoxelValues != 1) {
     const float* const lastPixel = bufferAsFloats + nPixels;
     for (float* pixelPtr = bufferAsFloats; pixelPtr < lastPixel; ++pixelPtr) {
