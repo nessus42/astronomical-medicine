@@ -1,0 +1,298 @@
+<?xml version="1.0" encoding="utf-8"?>
+<wc-entries
+   xmlns="svn:">
+<entry
+   name=""
+   url="http://www.na-mic.org:8000/svn/NAMICSandBox/trunk/FITSImageIO/libwcs"
+   kind="dir"
+   schedule="add"
+   revision="0"/>
+<entry
+   name="wcs.h"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="imutil.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="sdssread.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="platefit.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="ctgread.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="ty2read.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="agascread.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="Readme"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="imhfile.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="imgetwcs.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="imrotate.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="platepos.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="iraf2fits.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="sph.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="NEWS"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="Makefile"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="imsetwcs.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="tabread.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="binread.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="catutil.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="fitsfile.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="gscread.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="webread.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="proj.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="fitsfile.h"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="fileutil.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="wcsinit.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="sortstar.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="libwcs.a"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="gausspix2.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="distort.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="wcscon.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="imio.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="shrink.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="imio.h"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="fortcat.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="ubcread.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="worldpos.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="ujcread.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="caphot.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="CMakeFiles"
+   kind="dir"
+   schedule="add"/>
+<entry
+   name="wcstrig.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="matchstar.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="fortwcs.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="hget.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="tnxpos.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="CMakeLists.txt"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="Makefile.dist"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="daoread.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="cel.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="actread.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="uacread.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="cmake_install.cmake"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="ucacread.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="findstar.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="gaussian.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="dsspos.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="dateutil.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="lwcs.h"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="tmcread.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="hput.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="Files"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="lin.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="fitswcs.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="wcslib.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="iget.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="wcslib.h"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="wcscat.h"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="gsc2read.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="wcs.c"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="fitshead.h"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="polfit.c"
+   kind="file"
+   schedule="add"/>
+</wc-entries>

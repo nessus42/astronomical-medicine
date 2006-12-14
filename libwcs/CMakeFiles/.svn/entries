@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<wc-entries
+   xmlns="svn:">
+<entry
+   name=""
+   url="http://www.na-mic.org:8000/svn/NAMICSandBox/trunk/FITSImageIO/libwcs/CMakeFiles"
+   kind="dir"
+   schedule="add"
+   revision="0"/>
+<entry
+   name="itkwcs.dir"
+   kind="dir"
+   schedule="add"/>
+<entry
+   name="CMakeDirectoryInformation.cmake"
+   kind="file"
+   schedule="add"/>
+</wc-entries>
