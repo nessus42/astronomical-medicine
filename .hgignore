@@ -3,6 +3,7 @@ syntax: glob
 *.rej
 *~
 *.o
+.gdb_history
 
 syntax: regexp
 .*\#.*\#$

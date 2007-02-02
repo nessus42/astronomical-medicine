@@ -50,7 +50,7 @@ using std::endl;
 local proc void
 usage()
 {
-  cerr << "\nVersion 0.1\n\n";
+  cerr << "\nVersion 0.2dev.0\n\n";
   cerr << "usage: ";
   if (daProgramName().size()) cerr << basename(daProgramName().c_str());
   else cerr << "fits2itk";
@@ -223,7 +223,7 @@ main(const int argc, const char* const argv[])
 // Note this version not checked into subversion due to repository being down.
 
 //---------------------------
-// Version 0.1dev1
+// Version 0.1dev.1
 //---------------------------
 
 // *** Thu Dec  7, 2006 ***
@@ -250,6 +250,33 @@ main(const int argc, const char* const argv[])
 
 // Changed version to "0.1".  Could not check it into the NA-MIC sandbox due to
 // the corruption of their repository.  So started my own Mercurial repository.
+
+//---------------------------
+// Version 0.2dev.0
+//---------------------------
+
+// *** Wed Dec 31, 2007 ***
+
+// itkFITSImageIO.cxx: Fixed bug that caused core dump when filename extention
+// test was longer than actual filename.
+
+// cfitsio/CMakeLists.txt: Modified to set the correct "-D" options to gcc.
+// (At least for OS X.)
+
+// libwcs/fitshead.h: Added a #define for "dec2str" and "str2dec" because
+// functions were conflicting with functions of the same name somewhere in
+// Carbon.
+
+// Recompiled with ITK 3.0.1 so as to get turn off preemptive denial of reading
+// non-existant files.  (This is needed to support cfitsio's extended file
+// syntax, which allows you to specify "filenames" that indicate more than just
+// the filename.
+
+// *** Thu Feb  1, 2007 ***
+
+// itkFITSImageIO.cxx: Modified checkExtension() to use a complicated regular
+// expression, rather than just doing a string compare on the end of the
+// string.
 
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***

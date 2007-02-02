@@ -26,7 +26,7 @@
 #include <itkExceptionObject.h>
 #include <itkByteSwapper.h>
 #include <itkMetaDataObject.h>
-#include <itksys/SystemTools.hxx>
+#include <itksys/RegularExpression.hxx>
 
 #include <wcs.h>
 
@@ -87,38 +87,37 @@ max(T a, T b) {
 }
 
 
-//-----------------------------------------------------------------------------
-// toLower(): local proc
-//-----------------------------------------------------------------------------
+// //--------------------------------------------------------------------------
+// // toLower(): local proc
+// //--------------------------------------------------------------------------
 
-// Converts \a s to lowercase.
+// // Converts \a s to lowercase.
 
-/*local proc*/ void
-toLower(string& s)
-{
-   for (string::iterator p = s.begin(); p != s.end( ); ++p) {
-     *p = tolower(*p);
-   }
-}
+// /*local proc*/ void
+// toLower(string& s)
+// {
+//    for (string::iterator p = s.begin(); p != s.end( ); ++p) {
+//      *p = tolower(*p);
+//    }
+// }
 
-//-----------------------------------------------------------------------------
-// endMatchesP(): local proc
-//-----------------------------------------------------------------------------
+// //--------------------------------------------------------------------------
+// // endMatchesP(): local proc
+// //--------------------------------------------------------------------------
 
-// Returns true iff \a extension is on the end of \a filepath.
+// // Returns true iff \a extension is on the end of \a filepath.
 
-/*local proc*/ static bool
-endMatchesP(const string& filepath, const string& extension)
-{
-  typedef string::size_type StrLen;
-  const StrLen extensionLength = extension.length();
-  const StrLen filepathLength = filepath.length();
-  string filepathEnd = filepath.substr(filepathLength - extensionLength);
-  if (filepathEnd == extension) {
-    return true;
-  }
-  else return false;
-}
+// /*local proc*/ static bool
+// endMatchesP(const string& filepath, const string& extension)
+// {
+//   typedef string::size_type StrLen;
+//   const StrLen extensionLength = extension.length();
+//   const StrLen filepathLength = filepath.length();
+//   if (extensionLength >= filepathLength) return false;
+//   string filepathEnd = filepath.substr(filepathLength - extensionLength);
+//   if (filepathEnd == extension) return true;
+//   else return false;
+// }
 
 
 //-----------------------------------------------------------------------------
@@ -131,20 +130,29 @@ endMatchesP(const string& filepath, const string& extension)
 /*local proc*/ static bool
 checkExtension(const string& filepath)
 {
-  // TODO: Extend this to deal CFITSIO's "Extended File Name Syntax".
+  static itksys::RegularExpression fitsRE =
+    "^.+\\.(fits?|imh)(.(gz|Z))?"
+    "(\\([^()]+\\))?((\\[[^][]+\\])*|\\+[0-9]+)$";
 
-  string loweredFilepath = filepath;
-  toLower(loweredFilepath);
-  if (endMatchesP(loweredFilepath, ".fits")    or
-      endMatchesP(loweredFilepath, ".fits.gz") or
-      endMatchesP(loweredFilepath, ".fit")     or
-      endMatchesP(loweredFilepath, ".fit.gz")  or
-      endMatchesP(loweredFilepath, ".fits.Z")  or
-      endMatchesP(loweredFilepath, ".fit.Z"))
-    {
-      return true;
-    }
-  else return false;
+  static itksys::RegularExpression rawRE = 
+    "^.+\\.dat\\[[^][]+\\]$";
+
+  return fitsRE.find(filepath) or rawRE.find(filepath);
+
+// TODO: Remove the following commented-out code:
+
+//   // TODO: Extend this to deal CFITSIO's "Extended File Name Syntax".
+
+//   if (endMatchesP(loweredFilepath, ".fits")    or
+//       endMatchesP(loweredFilepath, ".fits.gz") or
+//       endMatchesP(loweredFilepath, ".fit")     or
+//       endMatchesP(loweredFilepath, ".fit.gz")  or
+//       endMatchesP(loweredFilepath, ".fits.Z")  or
+//       endMatchesP(loweredFilepath, ".fit.Z"))
+//     {
+//       return true;
+//     }
+//   else return false;
 }
 
 
@@ -243,10 +251,6 @@ FITSImageIO::getFitsHeader()
 /*method*/ bool
 FITSImageIO::CanReadFile(const char* const filepath) 
 { 
-  // This is set this way merely for the purpose of trying to see what
-  // ITK will and won't allow us to read:
-  return true;  //d
-
   debugPrint("Entering FITSImageIO::CanReadFile().")
 
   if (!filepath or *filepath == 0) {

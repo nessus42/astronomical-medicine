@@ -34,6 +34,9 @@
 
 #include <sys/types.h>
 
+#define dec2str declination2str
+#define str2dec str2declination
+
 #ifdef __cplusplus /* C++ prototypes */
 extern "C" {
 
