@@ -1,4 +1,4 @@
-//===============================================================================
+//=============================================================================
 //
 //   Program:   FITS Reader for ITK
 //   Module:    itkFITSImageIO.cxx
@@ -7,14 +7,17 @@
 //
 //   Copyright (c) 2006 Douglas Alan
 //
-//   This software is freely distributable under the open source MIT X11 License.
+//   This software is freely distributable under the open source MIT X11
+//   License.
+//
 //   See
 //
 //      http://www.opensource.org/licenses/mit-license.php
 //
 //   for details.
 //
-// ==============================================================================
+//=============================================================================
+
 
 #include <iostream>
 #include <list>
@@ -197,15 +200,20 @@ square(double x)
 namespace itk {
 
 int FITSImageIO::_cv_debugLevel = 0;
+double FITSImageIO::_cv_nullValue = 0.0; // The default of 0.0 causes NaN's
+                                         // to be left as NaN's, rather than
+                                         // converted to 0.0, as one would
+                                         // naively expect.
+double FITSImageIO::_cv_rotateSky = 0;     
+double FITSImageIO::_cv_rotateDecIntoVelocityAxis = 0;
+double FITSImageIO::_cv_rotateRAIntoVelocityAxis = 0;
 double FITSImageIO::_cv_scaleVoxelValues = 1;
 double FITSImageIO::_cv_scaleRA = 1;
 double FITSImageIO::_cv_scaleDec = 1;
+bool   FITSImageIO::_cv_autoScaleVelocityAxis = false;
 double FITSImageIO::_cv_scaleVelocityAxis = 1;
 double FITSImageIO::_cv_scaleAllAxes = 1;
-bool   FITSImageIO::_cv_autoScaleVelocityAxis = false;                  
-double FITSImageIO::_cv_rotateSky = 0;
-double FITSImageIO::_cv_rotateDecIntoVelocityAxis = 0;
-double FITSImageIO::_cv_rotateRAIntoVelocityAxis = 0;
+
 
 
 //*****************************************************************************
@@ -431,23 +439,20 @@ FITSImageIO::ReadImageInformation()
   // is the best that we can do for right now.
 
   // BEGIN Calculate the change-of-basis matrix, "C":
-  const double raPerI = (lowerRightRA - lowerLeftRA)/(lengthOfAxisInPixels[0]-1);
+  const double raPerI =
+    (lowerRightRA - lowerLeftRA) / (lengthOfAxisInPixels[0] - 1);
   const double decPerI =
-    (lowerRightDec - lowerLeftDec)/(lengthOfAxisInPixels[0]-1);
-  const double raPerJ = (upperLeftRA - lowerLeftRA)/(lengthOfAxisInPixels[1]-1);
+    (lowerRightDec - lowerLeftDec)/(lengthOfAxisInPixels[0] - 1);
+  const double raPerJ =
+    (upperLeftRA - lowerLeftRA) / (lengthOfAxisInPixels[1] - 1);
   const double decPerJ = 
-    (upperLeftDec - lowerLeftDec)/(lengthOfAxisInPixels[1]-1);
+    (upperLeftDec - lowerLeftDec)/(lengthOfAxisInPixels[1] - 1);
 
   debugPrint("raPerI=" << raPerI);
   debugPrint("decPerI=" <<  decPerI);
   debugPrint("raPerJ=" << raPerJ);
   debugPrint("decPerJ=" << decPerJ);
 
-  // TODO: DELETE THE FOLLOWING COMMENTED OUT CODE
-
-  // const double lengthOfRaPerVoxelVector = sqrt(square(raPerI) + square(raPerJ));
-  // const double lengthOfDecPerVoxelVector = sqrt(square(decPerI) + square(decPerJ));
-  
   double velocityPerK;
 
   if (_cv_autoScaleVelocityAxis) {
@@ -580,11 +585,6 @@ FITSImageIO::ReadImageInformation()
 //    spacing[2] = 1; //d
 
 
-  // TODO: Remove this gross hack.  (Actually, we should put this in as a
-  // command line option.) We scale the physical values by 1,000 so that they
-  // are easier to use with Slicer:
-  // for (int i = 0; i < 3; ++i) spacing[i] *= 1000; //d
-
   for (int indexAxis = 0; indexAxis < 3; ++indexAxis) {
     spacing[indexAxis] *= _cv_scaleAllAxes;
   }
@@ -629,7 +629,9 @@ FITSImageIO::ReadImageInformation()
     char keyComment[FLEN_COMMENT];
     ::fits_read_keyn(m_fitsFile, keyIndex, keyName, keyValue, keyComment,
                      &status);
-    itk::EncapsulateMetaData<string>(dict, string("FITS.") + keyName, keyValue);
+    itk::EncapsulateMetaData<string>(dict,
+				     string("FITS.") + keyName,
+				     keyValue);
 
     // YOU ARE HERE: You need to put the comments and units somewhere too.
   }
@@ -722,8 +724,15 @@ FITSImageIO::Read(void* const buffer)
 
   // Read the FITS image into the ITK image buffer:
   int status = 0;
-  ::fits_read_pix(m_fitsFile, TFLOAT, origin, nPixels, NULL,
-                  bufferAsFloats, NULL, &status);
+  const float nullValue = _cv_nullValue;
+  const float* const nullValuePtr = &nullValue;
+  int anyNull = false;
+  ::fits_read_pix(m_fitsFile, TFLOAT, origin, nPixels, (void*) nullValuePtr,
+                  bufferAsFloats, &anyNull, &status);
+  if (nullValue != 0) {
+    debugPrint("Any null values? " << anyNull);
+    debugPrint("Null value will be fetched as: " << nullValue);
+  }
   if (status) {
     itkExceptionMacro("FITSImageIO::Read() could not read the primary data "
                       "array from FITS file \""

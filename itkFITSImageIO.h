@@ -57,6 +57,8 @@ public:
   // Class procedures:
   static void SetDebugLevel(int debugLevel)
                  { _cv_debugLevel = debugLevel; }
+  static void SetRotateSky(double degrees)
+                 { _cv_rotateSky = degrees; }
   static void SetScaleVelocityAxis(double scalingFactor)
                  { _cv_scaleVelocityAxis = scalingFactor; }
   static void SetAutoScaleVelocityAxis(bool flag)
@@ -67,8 +69,9 @@ public:
                  { _cv_scaleAllAxes = scalingFactor; }
   static void SetScaleRA(double scalingFactor)
                  { _cv_scaleRA = scalingFactor; }
-  static void SetRotateSky(double degrees)
-                 { _cv_rotateSky = degrees; }
+  static void SetNullValue(double nullValue)
+                 { _cv_nullValue = nullValue; }
+    
 
   // Virtual methods implementing pure virtual methods of ImageIOBase:
   virtual bool CanReadFile(const char* filename);
@@ -92,15 +95,16 @@ private:
 
   // Private class variables:   // TODO
   static int    _cv_debugLevel;
+  static double _cv_nullValue;
+  static double _cv_rotateSky;
+  static double _cv_rotateDecIntoVelocityAxis;
+  static double _cv_rotateRAIntoVelocityAxis;
   static double _cv_scaleVoxelValues;
   static double _cv_scaleRA;
   static double _cv_scaleDec;
   static double _cv_scaleVelocityAxis;
   static bool   _cv_autoScaleVelocityAxis;
   static double _cv_scaleAllAxes;
-  static double _cv_rotateSky;
-  static double _cv_rotateDecIntoVelocityAxis;
-  static double _cv_rotateRAIntoVelocityAxis;
 
   // Deactivate object copying:
   FITSImageIO(const Self&) { assert(false); }

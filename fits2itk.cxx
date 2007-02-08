@@ -50,13 +50,13 @@ using std::endl;
 local proc void
 usage()
 {
-  cerr << "\nVersion 0.2dev.0\n\n";
+  cerr << "\nVersion 0.2dev.1pending\n\n";
   cerr << "usage: ";
   if (daProgramName().size()) cerr << basename(daProgramName().c_str());
   else cerr << "fits2itk";
   cerr << 
-    " [-ASU] [-a axes-scale] [-D debug-level] [-r RA-scale] [-s pixel-scale]\n"
-    "    [-v velocity-scale] input-file output-file\n"
+    " [-ASU] [-a axes-scale] [-D debug-level] [-N null-value] [-r RA-scale]\n"
+    "    [-s pixel-scale] [-v velocity-scale] input-file output-file\n"
     "\n"
     "  A: auto-scale velocity axis\n"
     "  S: coerce pixel values to shorts\n"
@@ -117,9 +117,9 @@ main(const int argc, const char* const argv[])
   // Parse command line options:
   ::opterr = true;
   char optionChar;
-  const char options[] = "Aa:D:fRr:Ss:Uv:";
+  const char options[] = "Aa:D:fN:Rr:Ss:Uv:";
   char** const null = 0;
-  const int base = 10;
+  const int cBase10 = 10;
 
   while ((optionChar = ::getopt(argc, const_cast<char**>(argv), options))
          != -1)
@@ -135,7 +135,11 @@ main(const int argc, const char* const argv[])
 	break;
 
       case 'D':
-	itk::FITSImageIO::SetDebugLevel(strtol(optarg, null, base));
+	itk::FITSImageIO::SetDebugLevel(strtol(optarg, null, cBase10));
+	break;
+
+      case 'N':
+	itk::FITSImageIO::SetNullValue(strtod(optarg, null));;
 	break;
 
       case 'R':
@@ -281,3 +285,12 @@ main(const int argc, const char* const argv[])
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
 //----------------------------------------------------------------------
+
+//---------------------------
+// Version 0.2dev.1pending
+//---------------------------
+
+// *** Mon Feb  5, 2007 ***
+
+// Added a command line option to set the FITS null value for reading FITS
+// files.
