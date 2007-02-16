@@ -4,6 +4,7 @@
 //   Module:    itkFITSImageIO.cxx
 //   Language:  C++
 //   Author:    Douglas Alan <doug AT alum.mit.edu>
+//              Initiative in Innovative Computing at Harvard University
 //
 //   Copyright (c) 2006 Douglas Alan
 //
@@ -12,7 +13,7 @@
 //
 //   See
 //
-//      http://www.opensource.org/licenses/mit-license.php
+//      http://www.opensource.org/licenses/mit-license
 //
 //   for details.
 //
@@ -47,7 +48,7 @@ using std::vector;
 
 
 //*****************************************************************************
-//***              Local procedures and classes                             ***
+//*****              Local procedures and classes                         *****
 //*****************************************************************************
 
 //-----------------------------------------------------------------------------
@@ -102,8 +103,8 @@ max(T a, T b) {
 //    for (string::iterator p = s.begin(); p != s.end( ); ++p) {
 //      *p = tolower(*p);
 //    }
-// }
 
+// }
 // //--------------------------------------------------------------------------
 // // endMatchesP(): local proc
 // //--------------------------------------------------------------------------
@@ -183,7 +184,7 @@ getAllFitsErrorMessages(const int status)
 
 
 //-----------------------------------------------------------------------------
-// square() local inline proc
+// square(): local inline proc
 //-----------------------------------------------------------------------------
 
 /*local proc*/ inline double
@@ -194,10 +195,16 @@ square(double x)
 
 
 //*****************************************************************************
-//***                 Private Class Variables                               ***
+//*****                                                                   *****
+//*****         FITSImageIO: subclass of ImageIOBase                      *****
+//*****                                                                   *****
 //*****************************************************************************
 
 namespace itk {
+
+//-----------------------------------------------------------------------------
+// Private class variables
+//-----------------------------------------------------------------------------
 
 int FITSImageIO::_cv_debugLevel = 0;
 double FITSImageIO::_cv_nullValue = 0.0; // The default of 0.0 causes NaN's
@@ -215,10 +222,9 @@ double FITSImageIO::_cv_scaleVelocityAxis = 1;
 double FITSImageIO::_cv_scaleAllAxes = 1;
 
 
-
-//*****************************************************************************
-//***                     Private Methods                                   ***
-//*****************************************************************************
+//=============================================================================
+//                    Private methods                                   
+//=============================================================================
 
 //-----------------------------------------------------------------------------
 // getFitsHeader(): private method of FITSImageIO
@@ -247,13 +253,12 @@ FITSImageIO::getFitsHeader()
 }
 
 
-//*****************************************************************************
-//***                     Public Methods                                    ***
-//*****************************************************************************
+//=============================================================================
+//                    Public methods                                   
+//=============================================================================
 
 //-----------------------------------------------------------------------------
-// CanReadFile(): virtual method of FITSImageIO
-//   implements pure virtual method of ImageIOBase
+// CanReadFile(): inherited virtual method
 //-----------------------------------------------------------------------------
 
 /*method*/ bool
@@ -275,8 +280,7 @@ FITSImageIO::CanReadFile(const char* const filepath)
 
 
 //-----------------------------------------------------------------------------
-// CanWriteFile(): virtual method of FITSImageIO
-//   implements pure virtual method of ImageIOBase
+// CanWriteFile(): inherited virtual method
 //-----------------------------------------------------------------------------
 
 /*method*/ bool
@@ -310,12 +314,8 @@ FITSImageIO::CanWriteFile(const char* const name)
 
 
 //-----------------------------------------------------------------------------
-// ReadImageInformation(): virtual method of FITSImageIO
-//   implements pure virtual method of ImageIOBase
+// ReadImageInformation(): inherited virtual method
 //-----------------------------------------------------------------------------
-
-//! Read information about the FITS file and put the cursor of the
-//! stream just before the first data pixel.
 
 /*method*/ void
 FITSImageIO::ReadImageInformation()
@@ -694,8 +694,7 @@ FITSImageIO::ReadImageInformation()
 
 
 //-----------------------------------------------------------------------------
-// Read(): virtual method of FITSImageIO
-//   implements pure virtual method of ImageIOBase
+// Read(): inherited virtual method
 //-----------------------------------------------------------------------------
 
 /*method*/ void
@@ -761,23 +760,25 @@ FITSImageIO::Read(void* const buffer)
 
 
 //-----------------------------------------------------------------------------
-// WriteImageInformation(): virtual method of FITSImageIO
-//   implements pure virtual method of ImageIOBase
+// WriteImageInformation(): inherited virtual method
 //-----------------------------------------------------------------------------
+
+//! Not yet implemented.
 
 /*method*/ void 
 FITSImageIO::WriteImageInformation()
 {
   // TODO: Implement with help of cfitsio
+  itkExceptionMacro("FITSImageIO::WriteImageInformation() not implemented "
+		    "yet.");
 }
 
 
 //-----------------------------------------------------------------------------
-// Write(): virtual method of FITSImageIO
-//   implements pure virtual method of ImageIOBase
+// Write(): inherited virtual method
 //-----------------------------------------------------------------------------
 
-//! The Write() function is not yet implemented.
+//! Not yet implemented.
 
 /*method*/ void 
 FITSImageIO::Write(const void* const buffer) 
@@ -789,8 +790,7 @@ FITSImageIO::Write(const void* const buffer)
 
 
 //-----------------------------------------------------------------------------
-// PrintSelf(): virtual method of FITSImageIO
-//   overrides partially implement method of ImageIOBase
+// PrintSelf(): inherited virtual method
 //-----------------------------------------------------------------------------
 
 /*method*/ void
@@ -800,7 +800,4 @@ FITSImageIO::PrintSelf(ostream& os, const Indent indent) const
   os << indent << "PixelType " << m_PixelType << "\n";
 }
 
-
-//-----------------------------------------------------------------------------
-} // END namespace itk
-//-----------------------------------------------------------------------------
+} // namespace itk

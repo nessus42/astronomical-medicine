@@ -1,29 +1,23 @@
-//===============================================================================
+//=============================================================================
 //
 //   Program:   fits2itk
 //   Module:    fits2itk.cxx
 //   Language:  C++
 //   Author:    Douglas Alan <doug AT alum.mit.edu>
+//              Initiative in Innovative Computing at Harvard University
 //
 //   Copyright (c) 2006 Douglas Alan
 //
-//   This software is freely distributable under the open source MIT X11 License.
+//   This software is freely distributable under the open source MIT X11
+//   License.
+//
 //   See
 //
-//      http://www.opensource.org/licenses/mit-license.php
+//      http://www.opensource.org/licenses/mite-license
 //
 //   for details.
 //
-// ==============================================================================
-
-
-#if defined(_MSC_VER)
-#pragma warning ( disable : 4786 )
-#endif
-
-#ifdef __BORLANDC__
-#define ITK_LEAN_AND_MEAN
-#endif
+// ============================================================================
 
 #include <itkImageFileReader.h>
 #include <itkImageFileWriter.h>
@@ -34,11 +28,9 @@
 
 #include <itkFITSImageIOFactory.h>
 #include <itkFITSImageIO.h>
+#include <itkFITSWCSTransform.h>
+
 #include <da_sugar.h>
-
-using std::cerr;
-using std::endl;
-
 
 //-----------------------------------------------------------------------------
 // Local error procedures
@@ -50,20 +42,39 @@ using std::endl;
 local proc void
 usage()
 {
-  cerr << "\nVersion 0.2dev.1pending\n\n";
-  cerr << "usage: ";
-  if (daProgramName().size()) cerr << basename(daProgramName().c_str());
-  else cerr << "fits2itk";
+  cerr << "Version 0.2\n\n";
+  cerr << "usage:\n";
+
+//  if (daProgramName().size()) cerr << basename(daProgramName().c_str());
+//  else cerr << "fits2itk";
+
   cerr << 
-    " [-ASU] [-a axes-scale] [-D debug-level] [-N null-value] [-r RA-scale]\n"
-    "    [-s pixel-scale] [-v velocity-scale] input-file output-file\n"
-    "\n"
-    "  A: auto-scale velocity axis\n"
-    "  S: coerce pixel values to shorts\n"
-    "  U: coerce pixel values to unsigned shorts\n"
-    "\n"
-    "-a scales all the axes, while -v scales only the velocity axis.  If both\n"
-    "are used, then both scaling factors will be applied.\n"
+
+"  fits2itk [-ASU] [-a axes-scale] [-D debug-level] [-N null-value]\n"
+"           [-r RA-scale] [-s pixel-scale] [-v velocity-scale]\n"
+"           input-file output-file\n"
+"\n"
+"  A: auto-scale velocity axis\n"
+"  S: coerce pixel values to shorts\n"
+"  U: coerce pixel values to unsigned shorts\n"
+"\n"
+"-a scales all the axes, while -v scales only the velocity axis.  If both\n"
+"are used, then both scaling factors will be applied.\n"
+"\n"
+"fits2itk supports CFITSIO's \"extended filename syntax\", which allows\n"
+"all sorts of interesting things.  For example, if you have a data cube\n"
+"with an extra 1-voxel-thick fourth dimension, you can slice off the\n"
+"extra dimension like so:\n"
+"\n"
+"   fits2itk \"input.fits[*,*,*,1:1][col #NAXIS=3]\" output.nrrd\n"
+"\n"
+"You can also specify a URL, rather than a filename, for the input file\n"
+"and the input file will be automatically fetched via HTTP.\n"
+"For the complete manual on the extended filename syntax, see\n"
+"the CFITSIO User's Reference Guide chapter on it here:\n"
+"\n"
+"   http://heasarc.nasa.gov/docs/software/fitsio/c/c_user/node79.html\n"
+
     ;
   exit(EXIT_FAILURE);
 }
@@ -100,6 +111,19 @@ convertFitsFileToItkFile(const char* const inputFilepath,
 }
 
 
+local proc void
+testItkTransform()
+{
+  typedef itk::FITSWCSTransform<double, 3> Transform;
+  Transform::Pointer transform = Transform::New();
+  Transform::InputPointType point;
+  point[0] = 1;
+  point[1] = 2;
+  point[2] = 9;
+  cout << transform->TransformPoint(point) << endl;
+}
+
+
 //-----------------------------------------------------------------------------
 // main()
 //-----------------------------------------------------------------------------
@@ -113,6 +137,7 @@ main(const int argc, const char* const argv[])
   // Flags controllable from command line:
   bool coerceToShorts = false;
   bool coerceToUnsignedShorts = false;
+  int debugLevel = 0;
 
   // Parse command line options:
   ::opterr = true;
@@ -135,7 +160,8 @@ main(const int argc, const char* const argv[])
 	break;
 
       case 'D':
-	itk::FITSImageIO::SetDebugLevel(strtol(optarg, null, cBase10));
+	debugLevel = strtol(optarg, null, cBase10);
+	itk::FITSImageIO::SetDebugLevel(debugLevel);
 	break;
 
       case 'N':
@@ -183,10 +209,19 @@ main(const int argc, const char* const argv[])
   const char* inputFilepath = argv[::optind];
   const char* outputFilepath = argv[::optind + 1];
 
+
+  // Special debugging modes:
+  if (debugLevel == -1) {
+    testItkTransform();
+    return -1;
+  }
+
+
   // Register FITS one factory with the ImageIOFactory.
   itk::FITSImageIOFactory::RegisterOneFactory();
 
-  int status = -99;
+  int status = -666;   // If the following code is correct, this value will always
+                       // get overwritten.
   if (coerceToShorts) {
     status = convertFitsFileToItkFile<short>(inputFilepath, outputFilepath);
   } else if (coerceToUnsignedShorts) {
@@ -195,7 +230,6 @@ main(const int argc, const char* const argv[])
   } else {
     status = convertFitsFileToItkFile<float>(inputFilepath, outputFilepath);
   }
-  assert(status != -99);
   return status;
 }
 
@@ -282,15 +316,34 @@ main(const int argc, const char* const argv[])
 // expression, rather than just doing a string compare on the end of the
 // string.
 
-//----------------------------------------------------------------------
-// *** Changes described above this line are checked in to Mercurial ***
-//----------------------------------------------------------------------
-
 //---------------------------
-// Version 0.2dev.1pending
+// Version 0.2
 //---------------------------
 
 // *** Mon Feb  5, 2007 ***
 
 // Added a command line option to set the FITS null value for reading FITS
 // files.
+
+// *** Thu Feb  8, 2007 ***
+
+// Added support for debug level -1, which is for testing out my
+// itk::Transform.  The transform has been copied from
+// itk::TranslationTransform, but I haven't done anything to it yet.  I've just
+// made sure that it compiles.
+
+// *** Tue Feb 13, 2007 ***
+
+// Made itkFITSWCSTransform.h and itkFITSWCSTransform.txx and got them
+// to compile.  They don't do anything interesting yet.
+
+// Prettied up all the FITS Reader source files.
+
+// *** Thu Feb 15, 2007 ***
+
+// Added note to usage string telling how to slice off a useless forth
+// dimension.
+
+//----------------------------------------------------------------------
+// *** Changes described above this line are checked in to Mercurial ***
+//----------------------------------------------------------------------

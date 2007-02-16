@@ -1,19 +1,24 @@
-/*=========================================================================
+//=============================================================================
+//
+//   Program:   FITS Reader for ITK
+//   Module:    itkFITSImageIOFactory.h
+//   Language:  C++
+//   Author:    Douglas Alan <doug AT alum.mit.edu>
+//              Initiative in Innovative Computing at Harvard University
+//
+//   Copyright (c) 2006 Douglas Alan
+//
+//   This software is freely distributable under the open source MIT X11
+//   License.
+//
+//   See
+//
+//      http://www.opensource.org/licenses/mit-license
+//
+//   for details.
+//
+//=============================================================================
 
-  Program:   Insight Segmentation & Registration Toolkit
-  Module:    $RCSfile: itkFITSImageIOFactory.h,v $
-  Language:  C++
-  Date:      $Date: 2004/01/08 00:39:06 $
-  Version:   $Revision: 1.5 $
-
-  Copyright (c) Insight Software Consortium. All rights reserved.
-  See ITKCopyright.txt or http://www.itk.org/HTML/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even 
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR 
-     PURPOSE.  See the above copyright notices for more information.
-
-=========================================================================*/
 #ifndef __itkFITSImageIOFactory_h
 #define __itkFITSImageIOFactory_h
 
@@ -22,29 +27,30 @@
 
 namespace itk
 {
-/** \class FITSImageIOFactory
- * \brief Create instances of FITSImageIO objects using an object factory.
- */
+
+//! Create instances of FITSImageIO objects using an object factory.
+
 class ITK_EXPORT FITSImageIOFactory : public ObjectFactoryBase
 {
 public:  
-  /** Standard class typedefs. */
+
+  // Standard class typedefs:
   typedef FITSImageIOFactory   Self;
   typedef ObjectFactoryBase  Superclass;
   typedef SmartPointer<Self>  Pointer;
   typedef SmartPointer<const Self>  ConstPointer;
   
-  /** Class methods used to interface with the registered factories. */
+  // Class methods used to interface with the registered factories:
   virtual const char* GetITKSourceVersion(void) const;
   virtual const char* GetDescription(void) const;
   
-  /** Method for class instantiation. */
+  // Method for class instantiation:
   itkFactorylessNewMacro(Self);
 
-  /** Run-time type information (and related methods). */
+  // Run-time type information (and related methods):
   itkTypeMacro(FITSImageIOFactory, ObjectFactoryBase);
 
-  /** Register one factory of this type  */
+  // Register one factory of this type:
   static void RegisterOneFactory(void)
   {
     FITSImageIOFactory::Pointer FITSFactory = FITSImageIOFactory::New();
@@ -56,8 +62,8 @@ protected:
   ~FITSImageIOFactory();
 
 private:
-  FITSImageIOFactory(const Self&); //purposely not implemented
-  void operator=(const Self&); //purposely not implemented
+  FITSImageIOFactory(const Self&); // Purposely not implemented.
+  void operator=(const Self&);     // Purposely not implemented.
 
 };
   

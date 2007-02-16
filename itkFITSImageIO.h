@@ -1,25 +1,33 @@
-/*=========================================================================
+//=============================================================================
+//
+//   Program:   FITS Reader for ITK
+//   Module:    itkFITSImageIO.h
+//   Language:  C++
+//   Author:    Douglas Alan <doug AT alum.mit.edu>
+//              Initiative in Innovative Computing at Harvard University
+//
+//   Copyright (c) 2006 Douglas Alan
+//
+//   This software is freely distributable under the open source MIT X11
+//   License.
+//
+//   See
+//
+//      http://www.opensource.org/licenses/mit-license
+//
+//   for details.
+//
+//=============================================================================
 
-  Program:   Insight Segmentation & Registration Toolkit
-  Module:    $RCSfile: itkFITSImageIO.h,v $
-  Language:  C++
-  Date:      $Date: 2005/09/28 15:41:54 $
-  Version:   $1.0$
-
-  Copyright (c) Insight Software Consortium. All rights reserved.
-  See ITKCopyright.txt or http://www.itk.org/HTML/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even 
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR 
-     PURPOSE.  See the above copyright notices for more information.
-
-=========================================================================*/
 #ifndef __itkFITSImageIO_h
 #define __itkFITSImageIO_h
 
-#ifdef _MSC_VER
-#pragma warning ( disable : 4786 )
-#endif
+// TODO: Delete the following pragma.  I'm pretty sure that it's not
+// needed, as it's included in itkWin32Header.h:
+
+// #ifdef _MSC_VER
+// #pragma warning ( disable : 4786 )
+// #endif
 
 #include <fstream>
 #include <string>
@@ -31,13 +39,13 @@
 namespace itk
 {
   
-//! \class FITSImageIO
+//! @class FITSImageIO
 //!
-//! \brief Read FITS file format. 
+//! @brief Read FITS file format. 
 //!
 //! TODO: Add here a link to documentation...
 //!
-//! \ingroup IOFilters
+//! @ingroup IOFilters
 
 class ITK_EXPORT FITSImageIO : public ImageIOBase
 {

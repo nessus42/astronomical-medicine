@@ -1,24 +1,28 @@
-/*=========================================================================
+//=============================================================================
+//
+//   Program:   FITS Reader for ITK
+//   Module:    itkFITSImageIOFactory.cxx
+//   Language:  C++
+//   Author:    Douglas Alan <doug AT alum.mit.edu>
+//              Initiative in Innovative Computing at Harvard University
+//
+//   Copyright (c) 2006 Douglas Alan
+//
+//   This software is freely distributable under the open source MIT X11
+//   License.
+//
+//   See
+//
+//      http://www.opensource.org/licenses/mit-license
+//
+//   for details.
+//
+//=============================================================================
 
-  Program:   Insight Segmentation & Registration Toolkit
-  Module:    $RCSfile: itkFITSImageIOFactory.cxx,v $
-  Language:  C++
-  Date:      $Date: 2004/01/08 00:39:06 $
-  Version:   $Revision: 1.4 $
-
-  Copyright (c) Insight Software Consortium. All rights reserved.
-  See ITKCopyright.txt or http://www.itk.org/HTML/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even 
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR 
-     PURPOSE.  See the above copyright notices for more information.
-
-=========================================================================*/
 #include "itkFITSImageIOFactory.h"
 #include "itkCreateObjectFunction.h"
 #include "itkFITSImageIO.h"
 #include "itkVersion.h"
-
   
 namespace itk
 {
@@ -31,16 +35,20 @@ FITSImageIOFactory::FITSImageIOFactory()
                          1,
                          CreateObjectFunction<FITSImageIO>::New());
 }
-  
+
+
 FITSImageIOFactory::~FITSImageIOFactory()
 {
+  // Intentionally left blank.
 }
+
 
 const char* 
 FITSImageIOFactory::GetITKSourceVersion(void) const
 {
   return ITK_SOURCE_VERSION;
 }
+
 
 const char* 
 FITSImageIOFactory::GetDescription() const
@@ -49,4 +57,3 @@ FITSImageIOFactory::GetDescription() const
 }
 
 } // end namespace itk
-

@@ -33,7 +33,8 @@ LINK_DIRECTORIES(
 ADD_EXECUTABLE(fits2itk
   fits2itk.cxx 
   itkFITSImageIO.cxx
-  itkFITSImageIOFactory.cxx 
+  itkFITSImageIOFactory.cxx
+  itkFITSWCSTransform.cxx
   )
 
 TARGET_LINK_LIBRARIES(fits2itk da_util itkcfitsio itkwcs ITKIO ITKCommon)
