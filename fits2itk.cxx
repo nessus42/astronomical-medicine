@@ -28,9 +28,10 @@
 
 #include <itkFITSImageIOFactory.h>
 #include <itkFITSImageIO.h>
-#include <itkFITSWCSTransform.h>
 
 #include <da_sugar.h>
+
+static const char fits2itkVersion[] = "0.3dev.0pending";
 
 //-----------------------------------------------------------------------------
 // Local error procedures
@@ -42,8 +43,8 @@
 local proc void
 usage()
 {
-  cerr << "Version 0.2\n\n";
-  cerr << "usage:\n";
+  cerr << "Version " << fits2itkVersion;
+  cerr << "\n\nusage:\n";
 
 //  if (daProgramName().size()) cerr << basename(daProgramName().c_str());
 //  else cerr << "fits2itk";
@@ -111,17 +112,19 @@ convertFitsFileToItkFile(const char* const inputFilepath,
 }
 
 
-local proc void
-testItkTransform()
-{
-  typedef itk::FITSWCSTransform<double, 3> Transform;
-  Transform::Pointer transform = Transform::New();
-  Transform::InputPointType point;
-  point[0] = 1;
-  point[1] = 2;
-  point[2] = 9;
-  cout << transform->TransformPoint(point) << endl;
-}
+// TODO: Delete the following commented out code.
+
+// local proc void
+// testItkTransform()
+// {
+//   typedef itk::FITSWCSTransform<double, 3> Transform;
+//   Transform::Pointer transform = Transform::New();
+//   Transform::InputPointType point;
+//   point[0] = 1;
+//   point[1] = 2;
+//   point[2] = 9;
+//   cout << transform->TransformPoint(point) << endl;
+// }
 
 
 //-----------------------------------------------------------------------------
@@ -210,11 +213,12 @@ main(const int argc, const char* const argv[])
   const char* outputFilepath = argv[::optind + 1];
 
 
-  // Special debugging modes:
-  if (debugLevel == -1) {
-    testItkTransform();
-    return -1;
-  }
+  // TODO: Delete the following commented-out code:
+//   // Special debugging modes:
+//   if (debugLevel == -1) {
+//     testItkTransform();
+//     return -1;
+//   }
 
 
   // Register FITS one factory with the ImageIOFactory.
@@ -347,3 +351,11 @@ main(const int argc, const char* const argv[])
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
 //----------------------------------------------------------------------
+
+//---------------------------
+// Version 0.3dev.0pending
+//---------------------------
+
+// *** Tue Feb 20, 2007 ***
+
+// Added WorldCoor to FITSWCSTransform.

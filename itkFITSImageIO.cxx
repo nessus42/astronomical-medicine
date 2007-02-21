@@ -33,6 +33,7 @@
 #include <itksys/RegularExpression.hxx>
 
 #include <wcs.h>
+#include <da_usual.h>
 
 #include "itkFITSImageIO.h"
 #include <grparser.h> // for FITS NGP_MAX_ARRAY_DIM
@@ -60,25 +61,6 @@ using std::vector;
         cerr << message << endl; \
      } \
    }
-
-//-----------------------------------------------------------------------------
-// Freer: local class
-//-----------------------------------------------------------------------------
-
-// Frees a malloced object via RAII.
-
-class Freer {
-  void* _malloced_object;
-
-  // Disable copying:
-  Freer(const Freer&);           
-  void operator=(const Freer&);
-
-public:
-  Freer(void* malloced_object) : _malloced_object(malloced_object) {}
-  ~Freer() { free((char *)_malloced_object); }
-};
-
 
 //-----------------------------------------------------------------------------
 // max(): local proc
@@ -196,7 +178,7 @@ square(double x)
 
 //*****************************************************************************
 //*****                                                                   *****
-//*****         FITSImageIO: subclass of ImageIOBase                      *****
+//*****         FITSImageIO: leaf subclass of ImageIOBase                 *****
 //*****                                                                   *****
 //*****************************************************************************
 
@@ -241,7 +223,7 @@ FITSImageIO::getFitsHeader()
   int nKeysDummy;
   ::fits_hdr2str(m_fitsFile, !noComments, headersToExclude, nHeadersToExclude,
                  &retval1, &nKeysDummy, &status);
-  Freer freer (retval1);
+  DaFreer freer (retval1);
   if (status) {
     itkExceptionMacro("FITSImageIO could not get header from Primary Array of"
                       "FITS file: \""
@@ -365,9 +347,19 @@ FITSImageIO::ReadImageInformation()
 
   // BEGIN getting RA and Dec of border pixels.
 
+  typedef itk::FITSWCSTransform<double, 3> WCSTransform;
   string fitsHeader = getFitsHeader();
-  WorldCoor* const wcs = wcsinit(fitsHeader.c_str());
-  Freer freer (wcs);
+  m_transform = WCSTransform::New();
+  m_transform->SetWCS(wcsinit(fitsHeader.c_str()));
+  m_transform->Update();
+
+  // We won't be modifying 'wcs' -- we just need to cast away const in
+  // order to call pix2wcs() on it:
+  WorldCoor* const wcs = const_cast<WorldCoor*>(&m_transform->GetWCS());
+
+  // TODO: Delete this commented out code:
+//   Freer freer (wcs);
+
   double lowerLeftRA, lowerLeftDec;
   pix2wcs(wcs, 1, 1, &lowerLeftRA, &lowerLeftDec);
   double lowerRightRA, lowerRightDec;
@@ -375,9 +367,20 @@ FITSImageIO::ReadImageInformation()
   double upperLeftRA, upperLeftDec;
   pix2wcs(wcs, 1, lengthOfAxisInPixels[1], &upperLeftRA, &upperLeftDec);
 
+  debugPrint("Before correcting for equinox crossing:");
   debugPrint("LL: RA=" << lowerLeftRA << ' ' << "Dec=" << lowerLeftDec);
   debugPrint("UL: RA=" << upperLeftRA << ' ' << "Dec=" << upperLeftDec);
   debugPrint("LR: RA=" << lowerRightRA << ' ' << "Dec=" << lowerRightDec);
+
+  // If we are in debug output mode, then test out the FITSWCSTransform object:
+  if (_cv_debugLevel) {
+    WCSTransform::InputPointType ijkPoint;
+    ijkPoint[0] = 1;
+    ijkPoint[1] = lengthOfAxisInPixels[1];
+    const WCSTransform::OutputPointType wcsPoint =
+      m_transform->TransformPoint(ijkPoint);
+    cerr << "Value of transformed UL point: " << wcsPoint << endl;
+  }
 
   // Make some RAs negative (by substracting 360 degrees) if the image crosses
   // the equinox.  Otherwise, we will incorrectly think that we are
@@ -390,6 +393,7 @@ FITSImageIO::ReadImageInformation()
   if (yRaDiff > 180.0) upperLeftRA -= 360.0;
   else if (yRaDiff < -180.0) lowerLeftRA -= 360.0;
 
+  debugPrint("After correcting for equinox crossing:");
   debugPrint("LL: RA=" << lowerLeftRA << ' ' << "Dec=" << lowerLeftDec);
   debugPrint("UL: RA=" << upperLeftRA << ' ' << "Dec=" << upperLeftDec);
   debugPrint("LR: RA=" << lowerRightRA << ' ' << "Dec=" << lowerRightDec);

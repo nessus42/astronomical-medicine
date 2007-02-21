@@ -40,6 +40,26 @@ void            daWarning(const std::string& warning);
 
 
 //-----------------------------------------------------------------------------
+// Freer: concrete data type
+//-----------------------------------------------------------------------------
+
+//! Frees a malloced object via RAII.
+
+class DaFreer {
+
+  void* _malloced_object;
+
+  // Disable copying:
+  DaFreer(const DaFreer&);           
+  void operator=(const DaFreer&);
+
+public:
+  DaFreer(void* malloced_object) : _malloced_object(malloced_object) {}
+  ~DaFreer() { free((char *)_malloced_object); }
+};
+
+
+//-----------------------------------------------------------------------------
 // daNop(): global inline procedure
 //-----------------------------------------------------------------------------
 

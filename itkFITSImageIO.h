@@ -36,9 +36,17 @@
 #include <fitsio.h>
 #include <itkImageIOBase.h>
 
+#include <itkFITSWCSTransform.h>
+
 namespace itk
 {
   
+//*****************************************************************************
+//*****                                                                   *****
+//*****         FITSImageIO: leaf subclass of ImageIOBase                 *****
+//*****                                                                   *****
+//*****************************************************************************
+
 //! @class FITSImageIO
 //!
 //! @brief Read FITS file format. 
@@ -80,7 +88,6 @@ public:
   static void SetNullValue(double nullValue)
                  { _cv_nullValue = nullValue; }
     
-
   // Virtual methods implementing pure virtual methods of ImageIOBase:
   virtual bool CanReadFile(const char* filename);
   virtual void ReadImageInformation();
@@ -91,7 +98,8 @@ public:
 
 protected:
 
-  FITSImageIO() {}; // default ctor
+  // Constructors, etc:
+  FITSImageIO() {};
 
   // Virtual methods overriding partially implemented methods of ImageIOBase:
   virtual void PrintSelf(std::ostream& os, Indent indent) const;
@@ -99,7 +107,12 @@ protected:
 private:
 
   // Instance variables:
-  fitsfile* m_fitsFile;
+  fitsfile*                                      m_fitsFile;
+  FITSWCSTransform<double, 3>::Pointer           m_transform;
+
+				// Note: the memory for 'm_fitsFile' is managed
+				// by CFITSIO.  I.e., its memory is freed when
+				// when m_fitsFile is closed.
 
   // Private class variables:   // TODO
   static int    _cv_debugLevel;
@@ -115,8 +128,8 @@ private:
   static double _cv_scaleAllAxes;
 
   // Deactivate object copying:
-  FITSImageIO(const Self&) { assert(false); }
-  void operator=(const Self&) { assert(false); }
+  FITSImageIO(const Self&);      // Intentionally not implemented.
+  void operator=(const Self&);   // Intentionally not implemented.
 
   // Private methods:
   std::string getFitsHeader();

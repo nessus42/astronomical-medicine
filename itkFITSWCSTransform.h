@@ -24,8 +24,8 @@
 
 #include <iostream>
 #include "itkTransform.h"
-#include "itkExceptionObject.h"
-#include "itkMatrix.h"
+
+struct WorldCoor;
 
 namespace itk
 {
@@ -33,7 +33,7 @@ namespace itk
 //*****************************************************************************
 //*****                                                                   *****
 //*****         FITSWCSTransform<T, N>:                                   *****
-//*****              template subclass of Transform<T, N>                 *****
+//*****              leaf template subclass of Transform<T, N, N>         *****
 //*****                                                                   *****
 //*****************************************************************************
 
@@ -63,8 +63,8 @@ public:
   typedef SmartPointer<const Self>              ConstPointer;
 
   // Import typedefs from superclass:
-  typedef Superclass::InputPointType  InputPointType;
-  typedef Superclass::OutputPointType OutputPointType;
+  typedef Superclass::InputPointType            InputPointType;
+  typedef Superclass::OutputPointType           OutputPointType;
       
   // Standard ITK class declaration macro invocations:
   itkNewMacro(Self);
@@ -75,14 +75,22 @@ public:
   virtual bool        IsLinear() const { return false; }
 
   // Non-virtual methods inherited from Transform:
-  bool GetInverse(Self* inverse) const;
+  bool                GetInverse(Self* inverse) const;
 
+  //! Call when done setting or changing attributes.
+  void		      Update() { assert(m_wcs); }
+
+  // Setter methods:
+  void		      SetWCS(WorldCoor*);
+
+  // Accessor methods:
+  const WorldCoor&    GetWCS() const { assert(m_wcs); return *m_wcs; }
 
 protected:
 
   // Constructors, etc:
-  FITSWCSTransform();
-  // ~FITSWCSTransform() {};
+  FITSWCSTransform(): Superclass(3, 0), m_wcs(0) {};
+  ~FITSWCSTransform();
 
   // Protected virtual methods inherited from LightObject:
   void PrintSelf(std::ostream &os, Indent indent) const;
@@ -90,8 +98,11 @@ protected:
 private:
 
   // Deactivate copying:
-  FITSWCSTransform(const Self&); // Purposely not implemented.
-  void operator=(const Self&);   // Purposely not implemented.
+  FITSWCSTransform(const Self&); // Intentionally not implemented.
+  void operator=(const Self&);   // Intentionally not implemented.
+
+  // Instance variables:
+  WorldCoor*          m_wcs;
 
 
 }; // class FITSWCSTransform<double, 3>

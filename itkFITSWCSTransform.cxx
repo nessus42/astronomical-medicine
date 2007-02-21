@@ -19,6 +19,7 @@
 //
 //=============================================================================
 
+#include <wcs.h>
 #include "itkFITSWCSTransform.h"
 #include "da_sugar.h"
 
@@ -31,19 +32,34 @@ namespace itk
 
 //*****************************************************************************
 //*****                                                                   *****
-//*****         FITSWCSTransform<double, 3>:                              *****
-//*****              subclass of Transform<double, 3, 3 >                 *****
+//*****      FITSWCSTransform<double, 3>:                                 *****
+//*****         leaf subclass of Transform<double, 3, 3>                  *****
 //*****                                                                   *****
 //*****************************************************************************
 
 //----------------------------------------------------------------------------
-// Constructors
+// Destructor
 //----------------------------------------------------------------------------
 
-ctor
-FITSWCSTransform<double, 3>::FITSWCSTransform()
-: Superclass(0, 0)
-{}
+dtor
+FITSWCSTransform<double, 3>::~FITSWCSTransform()
+{
+  free(m_wcs);
+}
+
+
+//----------------------------------------------------------------------------
+// Setter methods
+//----------------------------------------------------------------------------
+
+//! A FITSWCSTransform object takes possession of the WorldCoor object
+//! that is passed to it.
+
+method void
+FITSWCSTransform<double, 3>::SetWCS(WorldCoor* wcs) {
+  assert(!m_wcs);
+  m_wcs = wcs;
+}
 
 
 //----------------------------------------------------------------------------
@@ -67,10 +83,12 @@ PrintSelf(std::ostream &os, Indent indent) const
 method FITSWCSTransform<double, 3>::OutputPointType
 FITSWCSTransform<double, 3>::TransformPoint(const InputPointType &point) const
 {
+
+  // YOU ARE HERE: Use libwcs to transform the coordinates.
+
   OutputPointType retval;
-  retval[0] = 5;
-  retval[1] = 6;
-  retval[2] = 55;
+  pix2wcs(m_wcs, point[0], point[1], &retval[0], &retval[1]);
+  retval[2] = 0;
   return retval;
 }
 
