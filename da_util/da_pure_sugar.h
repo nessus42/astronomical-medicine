@@ -12,6 +12,8 @@
 //# string.  They are used for declaring procedures and methods to make them
 //# easier to find with grep, etc:
 
+#include <iostream>
+
 #define proc
 #define method
 #define private_method

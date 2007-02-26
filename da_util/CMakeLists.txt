@@ -1,7 +1,8 @@
 project(da_util)
 
 set(da_util_source_files
-    da_usual.cxx)
+    da_usual.cxx
+    RcPointer.cxx)
 
 add_library(da_util ${da_util_source_files})
 

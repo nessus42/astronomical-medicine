@@ -1,8 +1,9 @@
+// -*- Mode: C++; fill-column: 79 -*-
 //=============================================================================
 //
 //   Program:   FITS Reader for ITK
 //   Module:    itkFITSImageIO.cxx
-//   Language:  C++
+//   Package: 	FITS IO
 //   Author:    Douglas Alan <doug AT alum.mit.edu>
 //              Initiative in Innovative Computing at Harvard University
 //
@@ -347,15 +348,17 @@ FITSImageIO::ReadImageInformation()
 
   // BEGIN getting RA and Dec of border pixels.
 
-  typedef itk::FITSWCSTransform<double, 3> WCSTransform;
-  string fitsHeader = getFitsHeader();
-  m_transform = WCSTransform::New();
-  m_transform->SetWCS(wcsinit(fitsHeader.c_str()));
-  m_transform->Update();
+  // TODO: Check to make sure that wcsinit copies the string handed to it by
+  // fitsHeader.c_str(), as I believe that the string returned by
+  // fitsHeader.c_str() will go stale as soon as fitsHeader goes out of scope.
 
-  // We won't be modifying 'wcs' -- we just need to cast away const in
-  // order to call pix2wcs() on it:
-  WorldCoor* const wcs = const_cast<WorldCoor*>(&m_transform->GetWCS());
+  string fitsHeader = getFitsHeader();
+  WorldCoor* wcs = wcsinit(fitsHeader.c_str());
+  const ConstRcMallocPointer<WorldCoor> wcsRcPtr = wcs;
+  typedef itk::FITSWCSTransform<double, 3> WCSTransform;
+  m_transform = WCSTransform::New();
+  m_transform->SetWCS(wcsRcPtr);
+  m_transform->Update();
 
   // TODO: Delete this commented out code:
 //   Freer freer (wcs);
@@ -374,12 +377,21 @@ FITSImageIO::ReadImageInformation()
 
   // If we are in debug output mode, then test out the FITSWCSTransform object:
   if (_cv_debugLevel) {
+    WCSTransform::Pointer inverseTransform = WCSTransform::New();
+    m_transform->GetInverse(inverseTransform);
     WCSTransform::InputPointType ijkPoint;
+    WCSTransform::OutputPointType wcsPoint;
     ijkPoint[0] = 1;
     ijkPoint[1] = lengthOfAxisInPixels[1];
-    const WCSTransform::OutputPointType wcsPoint =
-      m_transform->TransformPoint(ijkPoint);
+    wcsPoint = m_transform->TransformPoint(ijkPoint);
     cerr << "Value of transformed UL point: " << wcsPoint << endl;
+    ijkPoint[0] = -666;
+    ijkPoint[1] = -666;
+    ijkPoint[2] = -666;
+    ijkPoint = inverseTransform->TransformPoint(wcsPoint);
+    cerr << "Value of UL point tranformed back to ijk coordinates: "
+	 << ijkPoint << endl;    
+      
   }
 
   // Make some RAs negative (by substracting 360 degrees) if the image crosses
@@ -484,8 +496,6 @@ FITSImageIO::ReadImageInformation()
   debugPrint("velocityPerK=" << velocityPerK);
 
   // TODO: Extend the following to more than three dimensions.
-
-  // YOU ARE HERE: trying to figure out how RA/DEC/V should map onto LPS space.
 
   // TODO: We need to extract velocity information using a WCS library of some
   // sort.  Is there one that does this?  At the moment, I just set velocity to
@@ -637,10 +647,10 @@ FITSImageIO::ReadImageInformation()
 				     string("FITS.") + keyName,
 				     keyValue);
 
-    // YOU ARE HERE: You need to put the comments and units somewhere too.
+    // TODO: You need to put the comments and units somewhere too.
   }
 
-  // YOU ARE HERE: Check status and raise exception.
+  // TODO: Check status and raise exception.
   
 
   // TODO: Above we put the uninterpreted FITS Primary Array header into the

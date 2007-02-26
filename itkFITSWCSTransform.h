@@ -1,9 +1,11 @@
+// -*- Mode: C++; fill-column: 79 -*-
 //=============================================================================
 //
 //   Program:   FITS Reader for ITK
 //   Module:    itkFITSWCSTransform.h
-//   Language:  C++
-//   Author:    Douglas Alan <doug AT alum.mit.edu>
+//   Package: 	FITS IO
+//   Author:    Douglas Alan <douglas_alan AT harvard.edu>
+//                           <doug AT alum.mit.edu>
 //              Initiative in Innovative Computing at Harvard University
 //
 //   Copyright (c) 2007 Douglas Alan
@@ -23,7 +25,8 @@
 #define __itkFITSWCSTransform_h
 
 #include <iostream>
-#include "itkTransform.h"
+#include <itkTransform.h>
+#include <RcPointer.h>
 
 struct WorldCoor;
 
@@ -56,54 +59,61 @@ class ITK_EXPORT FITSWCSTransform<double, 3>:
 {
 public:
 
-  // Standard ITK class typedefs:
+  // ----- Standard ITK class typedefs -----
   typedef FITSWCSTransform                      Self;
   typedef Transform<double, 3, 3>               Superclass;
   typedef SmartPointer<Self>                    Pointer;
   typedef SmartPointer<const Self>              ConstPointer;
 
-  // Import typedefs from superclass:
+  // ----- Import typedefs from superclass -----
   typedef Superclass::InputPointType            InputPointType;
   typedef Superclass::OutputPointType           OutputPointType;
       
-  // Standard ITK class declaration macro invocations:
+  // ----- Standard ITK class declaration macro invocations -----
   itkNewMacro(Self);
   itkTypeMacro(FITSWCSTransform, Transform);
 
-  // Virtual methods inherited from Transform:
-  OutputPointType     TransformPoint(const InputPointType  &point ) const;
-  virtual bool        IsLinear() const { return false; }
-
-  // Non-virtual methods inherited from Transform:
-  bool                GetInverse(Self* inverse) const;
+  // ----- Constructors, etc -----
+  Self& 			operator=(const Self&);
+ 
+  // ----- Setter methods -----
+  void		  		SetWCS(const ConstRcMallocPointer<WorldCoor>&);
 
   //! Call when done setting or changing attributes.
-  void		      Update() { assert(m_wcs); }
+  void		      	      	Update() { assert(m_wcs); }
 
-  // Setter methods:
-  void		      SetWCS(WorldCoor*);
+  // ----- Accessor methods -----
+  ConstRcMallocPointer<WorldCoor>
+				GetWCS() const { assert(m_wcs);
+				                 return m_wcs; }
 
-  // Accessor methods:
-  const WorldCoor&    GetWCS() const { assert(m_wcs); return *m_wcs; }
+  // ----- Virtual methods inherited from Transform -----
+  OutputPointType     	      	TransformPoint(const InputPointType  &point )
+                                  const;
+  bool        	      		IsLinear() const { return false; }
+
+  // ----- Non-virtual methods -----
+  bool                	      	GetInverse(Self* inverse) const;
+  void				Invert();
+
 
 protected:
 
-  // Constructors, etc:
-  FITSWCSTransform(): Superclass(3, 0), m_wcs(0) {};
-  ~FITSWCSTransform();
+  // ----- Protected constructors, etc. -----
+  FITSWCSTransform(): Superclass(3, 0), m_wcs(0), m_isInverted(false) {};
 
-  // Protected virtual methods inherited from LightObject:
-  void PrintSelf(std::ostream &os, Indent indent) const;
+  // ----- Protected virtual methods inherited from LightObject -----
+  void 				PrintSelf(std::ostream &os, Indent indent)
+                                   const;
 
 private:
 
-  // Deactivate copying:
+  // Deactivate copy constructor:
   FITSWCSTransform(const Self&); // Intentionally not implemented.
-  void operator=(const Self&);   // Intentionally not implemented.
 
-  // Instance variables:
-  WorldCoor*          m_wcs;
-
+  // ----- Instance variables -----
+  ConstRcMallocPointer<WorldCoor>    m_wcs;
+  bool				     m_isInverted;
 
 }; // class FITSWCSTransform<double, 3>
 

@@ -1,8 +1,9 @@
+// -*- Mode: C++; fill-column: 79 -*-
 //=============================================================================
 //
 //   Program:   fits2itk
 //   Module:    fits2itk.cxx
-//   Language:  C++
+//   Package: 	FITS IO
 //   Author:    Douglas Alan <doug AT alum.mit.edu>
 //              Initiative in Innovative Computing at Harvard University
 //
@@ -31,7 +32,7 @@
 
 #include <da_sugar.h>
 
-static const char fits2itkVersion[] = "0.3dev.0pending";
+static const char fits2itkVersion[] = "0.3dev.0";
 
 //-----------------------------------------------------------------------------
 // Local error procedures
@@ -348,14 +349,19 @@ main(const int argc, const char* const argv[])
 // Added note to usage string telling how to slice off a useless forth
 // dimension.
 
-//----------------------------------------------------------------------
-// *** Changes described above this line are checked in to Mercurial ***
-//----------------------------------------------------------------------
-
 //---------------------------
-// Version 0.3dev.0pending
+// Version 0.3dev.0
 //---------------------------
 
 // *** Tue Feb 20, 2007 ***
 
 // Added WorldCoor to FITSWCSTransform.
+
+// *** Fri Feb 23, 2007
+
+// Got both forward and reverse transforms to work for FITSWCSTransform, and
+// made the debugging output prove this fact.
+
+//----------------------------------------------------------------------
+// *** Changes described above this line are checked in to Mercurial ***
+//----------------------------------------------------------------------

@@ -1,8 +1,9 @@
+// -*- Mode: C++; fill-column: 79 -*-
 //=============================================================================
 //
 //   Program:   FITS Reader for ITK
 //   Module:    itkFITSWCSTransform.cxx
-//   Language:  C++
+//   Package: 	FITS IO
 //   Author:    Douglas Alan <doug AT alum.mit.edu>
 //              Initiative in Innovative Computing at Harvard University
 //
@@ -20,12 +21,8 @@
 //=============================================================================
 
 #include <wcs.h>
-#include "itkFITSWCSTransform.h"
-#include "da_sugar.h"
-
-using std::cout;
-using std::cerr;
-using std::endl;
+#include <itkFITSWCSTransform.h>
+#include <da_sugar.h>
 
 namespace itk
 {
@@ -38,13 +35,18 @@ namespace itk
 //*****************************************************************************
 
 //----------------------------------------------------------------------------
-// Destructor
+// Constructors, etc.
 //----------------------------------------------------------------------------
 
-dtor
-FITSWCSTransform<double, 3>::~FITSWCSTransform()
+method FITSWCSTransform<double, 3>&
+FITSWCSTransform<double, 3>::
+operator=(const Self& orig)
 {
-  free(m_wcs);
+  if (this != &orig) {
+    m_wcs = orig.m_wcs;
+    m_isInverted = orig.m_isInverted;
+  }
+  return *this;
 }
 
 
@@ -52,11 +54,9 @@ FITSWCSTransform<double, 3>::~FITSWCSTransform()
 // Setter methods
 //----------------------------------------------------------------------------
 
-//! A FITSWCSTransform object takes possession of the WorldCoor object
-//! that is passed to it.
-
 method void
-FITSWCSTransform<double, 3>::SetWCS(WorldCoor* wcs) {
+FITSWCSTransform<double, 3>::
+SetWCS(const ConstRcMallocPointer<WorldCoor>& wcs) {
   assert(!m_wcs);
   m_wcs = wcs;
 }
@@ -84,11 +84,20 @@ method FITSWCSTransform<double, 3>::OutputPointType
 FITSWCSTransform<double, 3>::TransformPoint(const InputPointType &point) const
 {
 
-  // YOU ARE HERE: Use libwcs to transform the coordinates.
-
   OutputPointType retval;
-  pix2wcs(m_wcs, point[0], point[1], &retval[0], &retval[1]);
-  retval[2] = 0;
+   
+  // Don't worry -- we are not going to modify m_wcs.  We just need to
+  // cast away const so that pix2wcs will accept it: 
+  WorldCoor* wcs = const_cast<WorldCoor*>(m_wcs.rawPointer());
+
+  if (m_isInverted) {
+    int offscl;
+    wcs2pix(wcs, point[0], point[1], &retval[0], &retval[1], &offscl);
+    retval[2] = 0;
+  } else {
+    pix2wcs(wcs, point[0], point[1], &retval[0], &retval[1]);
+    retval[2] = 0;
+  }
   return retval;
 }
 
@@ -100,11 +109,21 @@ FITSWCSTransform<double, 3>::TransformPoint(const InputPointType &point) const
 method bool
 FITSWCSTransform<double, 3>::GetInverse(Self* inverse) const
 {
-  if (!inverse) {
-    return false;
-  }
-  itkExceptionMacro("FITSWCSTransform<...>::GetInverse() is not yet "
-		    "implemented");
+  assert(inverse);
+  *inverse = *this;
+  inverse->Invert();
+  return true;
+}
+
+
+//----------------------------------------------------------------------------
+// Invert(): non-virtual method
+//----------------------------------------------------------------------------
+
+method void
+FITSWCSTransform<double, 3>::Invert()
+{
+  m_isInverted = !m_isInverted;
 }
 
 } // namespace itk

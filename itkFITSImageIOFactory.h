@@ -1,9 +1,11 @@
+// -*- Mode: C++; fill-column: 79 -*-
 //=============================================================================
 //
 //   Program:   FITS Reader for ITK
 //   Module:    itkFITSImageIOFactory.h
-//   Language:  C++
-//   Author:    Douglas Alan <doug AT alum.mit.edu>
+//   Package: 	FITS IO
+//   Author:    Douglas Alan <douglas_alan AT harvard.edu>
+//                           <doug AT alum.mit.edu>
 //              Initiative in Innovative Computing at Harvard University
 //
 //   Copyright (c) 2006 Douglas Alan
