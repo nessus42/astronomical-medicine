@@ -80,7 +80,7 @@ public:
   void		  		SetWCS(const ConstRcMallocPointer<WorldCoor>&);
 
   //! Call when done setting or changing attributes.
-  void		      	      	Update() { assert(m_wcs); }
+  void		      	      	ApplySettings() { assert(m_wcs); }
 
   // ----- Accessor methods -----
   ConstRcMallocPointer<WorldCoor>

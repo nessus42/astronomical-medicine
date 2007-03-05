@@ -358,7 +358,7 @@ FITSImageIO::ReadImageInformation()
   typedef itk::FITSWCSTransform<double, 3> WCSTransform;
   m_transform = WCSTransform::New();
   m_transform->SetWCS(wcsRcPtr);
-  m_transform->Update();
+  m_transform->ApplySettings();
 
   // TODO: Delete this commented out code:
 //   Freer freer (wcs);

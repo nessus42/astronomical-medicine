@@ -36,7 +36,6 @@ using std::cout;
 using std::cerr;
 using std::endl;
 
-
 // Define operator!=() for every case in which "==" is defined:
 
 // template <class T1, class T2> inline bool

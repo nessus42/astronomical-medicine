@@ -18,24 +18,33 @@
 //
 //   for details.
 //
-// ============================================================================
+//=============================================================================
 
+// #include <itkDerivativeImageFilter.h>
+// #include <itkMeanImageFilter.h>
+// #include <itkBinaryMedianImageFilter.h>
+#include <itkFlipImageFilter.h>
+// #include <itkGradientAnisotropicDiffusionImageFilter.h>
 #include <itkImageFileReader.h>
 #include <itkImageFileWriter.h>
 #include <itkImage.h>
-#include <unistd.h>                        // For getopt()
+
 #include <libgen.h>			   // For basename()
-#include <assert.h>
+#include <unistd.h>                        // For getopt()
+
+#include <cassert>
+#include <string>
 
 #include <itkFITSImageIOFactory.h>
 #include <itkFITSImageIO.h>
-
 #include <da_sugar.h>
 
-static const char fits2itkVersion[] = "0.3dev.0";
+using std::string;
+
+static const char fits2itkVersion[] = "0.3dev.1pending";
 
 //-----------------------------------------------------------------------------
-// Local error procedures
+// usage()
 //-----------------------------------------------------------------------------
 
 // Terminates the program with a return status of EXIT_FAILURE after
@@ -83,7 +92,29 @@ usage()
 
 
 //-----------------------------------------------------------------------------
-// Local procedures
+// File-scope variables
+//-----------------------------------------------------------------------------
+
+namespace {
+
+  // Command line arguments:
+  const char* inputFilepath = 0;
+  const char* outputFilepath = 0;
+
+  // Flags controllable from command line:
+  bool coerceToShorts = false;
+  bool coerceToUnsignedShorts = false;
+  bool derivativeImageFilterFlag = false;
+}
+
+//=============================================================================
+// Local functions
+//=============================================================================
+
+namespace {
+
+//-----------------------------------------------------------------------------
+// convertFitsFileToItkFile(): local template function
 //-----------------------------------------------------------------------------
 
 template <class PixelType>
@@ -99,56 +130,104 @@ convertFitsFileToItkFile(const char* const inputFilepath,
   typename ReaderType::Pointer reader = ReaderType::New();
   typename WriterType::Pointer writer = WriterType::New();
   reader->SetFileName(inputFilepath);
-  writer->SetFileName(outputFilepath);
-  writer->SetInput(reader->GetOutput());
 
-  try {
-    writer->Update(); 
-  } catch(itk::ExceptionObject& err) { 
-    cerr << "ExceptionObject caught !" << endl; 
-    cerr << err << endl; 
-    return EXIT_FAILURE;
-  } 
+  // This option to run the image through a derivative filter, exists purely
+  // for debugging purposes at the moment:
+  if (::derivativeImageFilterFlag) {
+    cerr << "YO YO!" << endl;
+//     typedef itk::DerivativeImageFilter<ImageType, ImageType> FilterType;
+//     typename FilterType::Pointer filter = FilterType::New();
+//     filter->SetOrder(1);
+//     filter->SetDirection(0);
+
+//     typedef itk::MeanImageFilter<ImageType, ImageType> FilterType;
+//     typename FilterType::Pointer filter = FilterType::New();
+//     typename ImageType::SizeType indexRadius;
+//     indexRadius[0] = 5;
+//     indexRadius[1] = 5;
+//     indexRadius[2] = 5;
+//     filter->SetRadius(indexRadius);
+
+//     typedef itk::BinaryMedianImageFilter<ImageType, ImageType> FilterType;
+//     typename FilterType::Pointer filter = FilterType::New();
+//     typename ImageType::SizeType indexRadius;
+//     indexRadius[0] = 1;
+//     indexRadius[1] = 1;
+//     indexRadius[2] = 1;
+//     filter->SetRadius(indexRadius);
+
+    typedef itk::FlipImageFilter<ImageType> FilterType;
+    typedef typename FilterType::FlipAxesArrayType FlipAxesArrayType;
+    typename FilterType::Pointer filter = FilterType::New();
+    FlipAxesArrayType flipArray;
+    flipArray[0] = 1;
+    flipArray[1] = 1;
+    flipArray[2] = 1;
+    filter->SetFlipAxes(flipArray);
+
+//     typedef itk::GradientAnisotropicDiffusionImageFilter<ImageType, ImageType>
+//       FilterType;
+//     typename FilterType::Pointer filter = FilterType::New();
+//     filter->SetNumberOfIterations(1);
+//     filter->SetTimeStep(0.125);
+//     filter->SetConductanceParameter(10);
+
+    filter->SetInput(reader->GetOutput());
+    filter->Update();
+    writer->SetInput(filter->GetOutput());
+
+  } else {
+    writer->SetInput(reader->GetOutput());
+  }
+  writer->SetFileName(outputFilepath);
+  writer->Update();
   return EXIT_SUCCESS;
+
+  // Note: The above call to Update() might raise an execption.  If you were to
+  // want to catch this exception, here is now you might do it.  You don't
+  // really need to, though, as the default exception handler will output a
+  // message that is not particularly more cryptic than the following:
+  //
+  //   try {
+  //     writer->Update(); 
+  //   } catch(itk::ExceptionObject& err) { 
+  //     cerr << "ExceptionObject caught !" << endl; 
+  //     cerr << err << endl; 
+  //     return EXIT_FAILURE;
+  //   } 
 }
 
 
-// TODO: Delete the following commented out code.
-
-// local proc void
-// testItkTransform()
-// {
-//   typedef itk::FITSWCSTransform<double, 3> Transform;
-//   Transform::Pointer transform = Transform::New();
-//   Transform::InputPointType point;
-//   point[0] = 1;
-//   point[1] = 2;
-//   point[2] = 9;
-//   cout << transform->TransformPoint(point) << endl;
-// }
-
-
 //-----------------------------------------------------------------------------
-// main()
+// parseExtendedOption(): local function
 //-----------------------------------------------------------------------------
 
-proc int
-main(const int argc, const char* const argv[])
+local proc void
+parseExtendedOption(const char* const option)
 {
-  
-  ::daSetProgramName(argv[0]);
+  cerr << "extendedOption=" << option << endl; //d
+  string optionStr = option;
+  if (optionStr == "derivativeImageFilter") {
+    cerr << "YES!" << endl;
+    ::derivativeImageFilterFlag = true;
+  } else usage();
+}
 
-  // Flags controllable from command line:
-  bool coerceToShorts = false;
-  bool coerceToUnsignedShorts = false;
-  int debugLevel = 0;
 
+//-----------------------------------------------------------------------------
+// parseCommandLine(): local function
+//-----------------------------------------------------------------------------
+
+local proc void
+parseCommandLine(const int argc, const char* const argv[])
+{
   // Parse command line options:
   ::opterr = true;
   char optionChar;
-  const char options[] = "Aa:D:fN:Rr:Ss:Uv:";
+  const char options[] = "Aa:D:fN:o:Rr:Ss:Uv:";
   char** const null = 0;
   const int cBase10 = 10;
+  string extendedOption;
 
   while ((optionChar = ::getopt(argc, const_cast<char**>(argv), options))
          != -1)
@@ -164,12 +243,16 @@ main(const int argc, const char* const argv[])
 	break;
 
       case 'D':
-	debugLevel = strtol(optarg, null, cBase10);
+	const int debugLevel = strtol(optarg, null, cBase10);
 	itk::FITSImageIO::SetDebugLevel(debugLevel);
 	break;
 
       case 'N':
-	itk::FITSImageIO::SetNullValue(strtod(optarg, null));;
+	itk::FITSImageIO::SetNullValue(strtod(optarg, null));
+	break;
+
+      case 'o':
+	parseExtendedOption(optarg);
 	break;
 
       case 'R':
@@ -182,7 +265,7 @@ main(const int argc, const char* const argv[])
 	break;
 
       case 'S':
-        coerceToShorts = true;
+        ::coerceToShorts = true;
         break;
 
       case 's':
@@ -190,7 +273,7 @@ main(const int argc, const char* const argv[])
         break;
 
       case 'U':
-        coerceToUnsignedShorts = true;
+        ::coerceToUnsignedShorts = true;
         break;
 
       case 'v':
@@ -204,36 +287,42 @@ main(const int argc, const char* const argv[])
       default:
         cerr << "Bug!" << endl;
         assert(false);
-      }
-    }
-
+      } // switch
+    } // while
 
   // Parse the command line positional arguments:
   if (argc - ::optind != 2) usage();
-  const char* inputFilepath = argv[::optind];
-  const char* outputFilepath = argv[::optind + 1];
+  inputFilepath = argv[::optind];
+  outputFilepath = argv[::optind + 1];
+}
+
+} // unnamed namespace
 
 
-  // TODO: Delete the following commented-out code:
-//   // Special debugging modes:
-//   if (debugLevel == -1) {
-//     testItkTransform();
-//     return -1;
-//   }
+//=============================================================================
+// main()
+//=============================================================================
 
+proc int
+main(const int argc, const char* const argv[])
+{
+  ::daSetProgramName(argv[0]);
+  ::parseCommandLine(argc, argv);
 
   // Register FITS one factory with the ImageIOFactory.
   itk::FITSImageIOFactory::RegisterOneFactory();
 
-  int status = -666;   // If the following code is correct, this value will always
-                       // get overwritten.
-  if (coerceToShorts) {
-    status = convertFitsFileToItkFile<short>(inputFilepath, outputFilepath);
-  } else if (coerceToUnsignedShorts) {
-    status = convertFitsFileToItkFile<unsigned short>(inputFilepath,
-                                                      outputFilepath);
+  int status = -666;   // If the following code is correct, this value will
+                       // always get overwritten.
+  if (::coerceToShorts) {
+    status = convertFitsFileToItkFile<short>(::inputFilepath,
+					     ::outputFilepath);
+  } else if (::coerceToUnsignedShorts) {
+    status = convertFitsFileToItkFile<unsigned short>(::inputFilepath,
+                                                      ::outputFilepath);
   } else {
-    status = convertFitsFileToItkFile<float>(inputFilepath, outputFilepath);
+    status = convertFitsFileToItkFile<float>(::inputFilepath,
+					     ::outputFilepath);
   }
   return status;
 }
@@ -361,6 +450,18 @@ main(const int argc, const char* const argv[])
 
 // Got both forward and reverse transforms to work for FITSWCSTransform, and
 // made the debugging output prove this fact.
+
+//---------------------------
+// Version 0.3dev.1pending
+//---------------------------
+
+// *** Mon Feb 26, 2007 ***
+
+// Modified to optionally feed the image through an ITK FlipImageFilter and see
+// if the metadata dictionary is preserved.  Alas, it wasn't.  Also, the
+// resulting nrrd output crashes Slicer, and if I try to output an Analyze file
+// instead, I get an error about the image not being in RPI, PIR, or RIP
+// orientation.
 
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
