@@ -203,6 +203,7 @@ double FITSImageIO::_cv_scaleDec = 1;
 bool   FITSImageIO::_cv_autoScaleVelocityAxis = false;
 double FITSImageIO::_cv_scaleVelocityAxis = 1;
 double FITSImageIO::_cv_scaleAllAxes = 1;
+bool   FITSImageIO::_cv_suppressMetaDataDictionary = false;
 
 
 //=============================================================================
@@ -359,9 +360,6 @@ FITSImageIO::ReadImageInformation()
   m_transform = WCSTransform::New();
   m_transform->SetWCS(wcsRcPtr);
   m_transform->ApplySettings();
-
-  // TODO: Delete this commented out code:
-//   Freer freer (wcs);
 
   double lowerLeftRA, lowerLeftDec;
   pix2wcs(wcs, 1, 1, &lowerLeftRA, &lowerLeftDec);
@@ -626,32 +624,35 @@ FITSImageIO::ReadImageInformation()
   }
 
 
-  // Put the FITS Primary Array Header into the ITK MetaDataDictionary as one
-  // big string:
-  MetaDataDictionary& dict = this->GetMetaDataDictionary();
+  if (_cv_suppressMetaDataDictionary) {
+    debugPrint("Suppressing modification of the MetaDataDictionary.");
+  } else {
+    // Put the FITS Primary Array Header into the ITK MetaDataDictionary as one
+    // big string:
 
-  itk::EncapsulateMetaData<string>(dict, "FITS Header", fitsHeader);
+    MetaDataDictionary& dict = this->GetMetaDataDictionary();
 
-  // Also break up the aforementioned FITS header into individual entries and
-  // add each entry into the MetaDataDictionary as a separate entry:
-  int nKeys = 0;
-  int dummy;
-  ::fits_get_hdrspace(m_fitsFile, &nKeys, &dummy, &status);
-  for (int keyIndex = 1; keyIndex <= nKeys; ++keyIndex) {
-    char keyName[FLEN_KEYWORD];
-    char keyValue[FLEN_VALUE];
-    char keyComment[FLEN_COMMENT];
-    ::fits_read_keyn(m_fitsFile, keyIndex, keyName, keyValue, keyComment,
-                     &status);
-    itk::EncapsulateMetaData<string>(dict,
-				     string("FITS.") + keyName,
-				     keyValue);
+    itk::EncapsulateMetaData<string>(dict, "FITS Header", fitsHeader);
 
-    // TODO: You need to put the comments and units somewhere too.
+    // Also break up the aforementioned FITS header into individual entries and
+    // add each entry into the MetaDataDictionary as a separate entry:
+    int nKeys = 0;
+    int dummy;
+    ::fits_get_hdrspace(m_fitsFile, &nKeys, &dummy, &status);
+    for (int keyIndex = 1; keyIndex <= nKeys; ++keyIndex) {
+      char keyName[FLEN_KEYWORD];
+      char keyValue[FLEN_VALUE];
+      char keyComment[FLEN_COMMENT];
+      ::fits_read_keyn(m_fitsFile, keyIndex, keyName, keyValue, keyComment,
+		       &status);
+      itk::EncapsulateMetaData<string>(dict,
+				       string("FITS.") + keyName,
+				       keyValue);
+
+      // TODO: You need to put the comments and units somewhere too.
+    }
+    // TODO: Check status and raise exception.
   }
-
-  // TODO: Check status and raise exception.
-  
 
   // TODO: Above we put the uninterpreted FITS Primary Array header into the
   // ITK image as single huge value.  But, in addition to doing that, we should

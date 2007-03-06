@@ -88,6 +88,9 @@ public:
                  { _cv_scaleRA = scalingFactor; }
   static void SetNullValue(double nullValue)
                  { _cv_nullValue = nullValue; }
+  static void SuppressMetaDataDictionary()
+                 { _cv_suppressMetaDataDictionary = true; }
+					
     
   // Virtual methods implementing pure virtual methods of ImageIOBase:
   virtual bool CanReadFile(const char* filename);
@@ -127,6 +130,7 @@ private:
   static double _cv_scaleVelocityAxis;
   static bool   _cv_autoScaleVelocityAxis;
   static double _cv_scaleAllAxes;
+  static bool   _cv_suppressMetaDataDictionary;
 
   // Deactivate object copying:
   FITSImageIO(const Self&);      // Intentionally not implemented.

@@ -23,11 +23,13 @@
 // #include <itkDerivativeImageFilter.h>
 // #include <itkMeanImageFilter.h>
 // #include <itkBinaryMedianImageFilter.h>
-#include <itkFlipImageFilter.h>
 // #include <itkGradientAnisotropicDiffusionImageFilter.h>
+
+#include <itkImage.h>
 #include <itkImageFileReader.h>
 #include <itkImageFileWriter.h>
-#include <itkImage.h>
+#include <itkFlipImageFilter.h>
+#include <itkBinomialBlurImageFilter.h>
 
 #include <libgen.h>			   // For basename()
 #include <unistd.h>                        // For getopt()
@@ -40,8 +42,10 @@
 #include <da_sugar.h>
 
 using std::string;
+using itk::DataObject;
+using itk::Image;
 
-static const char fits2itkVersion[] = "0.3dev.1pending";
+static const char fits2itkVersion[] = "Version 0.3dev.1";
 
 //-----------------------------------------------------------------------------
 // usage()
@@ -53,8 +57,8 @@ static const char fits2itkVersion[] = "0.3dev.1pending";
 local proc void
 usage()
 {
-  cerr << "Version " << fits2itkVersion;
-  cerr << "\n\nusage:\n";
+  cerr << fits2itkVersion << "\n\n";
+  cerr << "usage:\n";
 
 //  if (daProgramName().size()) cerr << basename(daProgramName().c_str());
 //  else cerr << "fits2itk";
@@ -92,133 +96,81 @@ usage()
 
 
 //-----------------------------------------------------------------------------
-// File-scope variables
+// debugPrint(): local macro
 //-----------------------------------------------------------------------------
 
-namespace {
+#define debugPrint(message) \
+   { if (Cl::getDebugLevel()) { \
+        cerr << message << endl; \
+     } \
+   }
 
-  // Command line arguments:
-  const char* inputFilepath = 0;
-  const char* outputFilepath = 0;
-
-  // Flags controllable from command line:
-  bool coerceToShorts = false;
-  bool coerceToUnsignedShorts = false;
-  bool derivativeImageFilterFlag = false;
-}
 
 //=============================================================================
-// Local functions
+// CommandLineParser: local class
 //=============================================================================
 
 namespace {
+  class CommandLineParser {
 
-//-----------------------------------------------------------------------------
-// convertFitsFileToItkFile(): local template function
-//-----------------------------------------------------------------------------
+    // Private class variables:
+    static const char*    _cv_inputFilepath;
+    static const char*    _cv_outputFilepath;
+    static int		  _cv_debugLevel;
+    static bool           _cv_coerceToShorts;
+    static bool           _cv_coerceToUnsignedShorts;
+    static bool		  _cv_binomialBlurFlag;
+    static bool           _cv_derivativeImageFilterFlag;
+    static bool           _cv_flipImageFlag;
+    static bool		  _cv_identityFlipFlag;
 
-template <class PixelType>
-local proc int
-convertFitsFileToItkFile(const char* const inputFilepath,
-                         const char* const outputFilepath)
-{
-  const unsigned int Dimensions = 3;
-  typedef itk::Image<PixelType, Dimensions> ImageType;
-  typedef itk::ImageFileReader<ImageType> ReaderType;
-  typedef itk::ImageFileWriter<ImageType> WriterType;
+    // Private non-virtual methods:
+    static void        parseExtendedOption(const char* const option);
 
-  typename ReaderType::Pointer reader = ReaderType::New();
-  typename WriterType::Pointer writer = WriterType::New();
-  reader->SetFileName(inputFilepath);
+    // Deactivate constructor:
+    CommandLineParser();
 
-  // This option to run the image through a derivative filter, exists purely
-  // for debugging purposes at the moment:
-  if (::derivativeImageFilterFlag) {
-    cerr << "YO YO!" << endl;
-//     typedef itk::DerivativeImageFilter<ImageType, ImageType> FilterType;
-//     typename FilterType::Pointer filter = FilterType::New();
-//     filter->SetOrder(1);
-//     filter->SetDirection(0);
+  public:
+    
+    // Class methods:
+    static void        parseCommandLine(const int argc,
+					const char* const argv[]);
 
-//     typedef itk::MeanImageFilter<ImageType, ImageType> FilterType;
-//     typename FilterType::Pointer filter = FilterType::New();
-//     typename ImageType::SizeType indexRadius;
-//     indexRadius[0] = 5;
-//     indexRadius[1] = 5;
-//     indexRadius[2] = 5;
-//     filter->SetRadius(indexRadius);
+    // Class accessors:
+    static const char* getInputFilepath()  { return _cv_inputFilepath;}
+    static const char* getOutputFilepath() { return _cv_outputFilepath; }
+    static int         getDebugLevel() { return _cv_debugLevel; }
+    static bool        getCoerceToShorts() { return _cv_coerceToShorts; }
+    static bool        getCoerceToUnsignedShorts()
+                          { return _cv_coerceToUnsignedShorts; }
+    static bool	       getBinomialBlurFlag()
+                          { return _cv_binomialBlurFlag; }
+    static bool        getDerivativeImageFilterFlag()
+                          { return _cv_derivativeImageFilterFlag; }
+    static bool        getFlipImageFlag() { return _cv_flipImageFlag; }
+    static bool	       getIdentityFlipFlag() { return _cv_identityFlipFlag; }
+  };
 
-//     typedef itk::BinaryMedianImageFilter<ImageType, ImageType> FilterType;
-//     typename FilterType::Pointer filter = FilterType::New();
-//     typename ImageType::SizeType indexRadius;
-//     indexRadius[0] = 1;
-//     indexRadius[1] = 1;
-//     indexRadius[2] = 1;
-//     filter->SetRadius(indexRadius);
+  const char* CommandLineParser::_cv_inputFilepath = 0;
+  const char* CommandLineParser::_cv_outputFilepath = 0;
+  int  	      CommandLineParser::_cv_debugLevel = 0;
+  bool	      CommandLineParser::_cv_coerceToShorts = false;
+  bool        CommandLineParser::_cv_coerceToUnsignedShorts = false;
+  bool	      CommandLineParser::_cv_binomialBlurFlag = false;
+  bool        CommandLineParser::_cv_derivativeImageFilterFlag = false;
+  bool        CommandLineParser::_cv_flipImageFlag = false;
+  bool	      CommandLineParser::_cv_identityFlipFlag = false;
 
-    typedef itk::FlipImageFilter<ImageType> FilterType;
-    typedef typename FilterType::FlipAxesArrayType FlipAxesArrayType;
-    typename FilterType::Pointer filter = FilterType::New();
-    FlipAxesArrayType flipArray;
-    flipArray[0] = 1;
-    flipArray[1] = 1;
-    flipArray[2] = 1;
-    filter->SetFlipAxes(flipArray);
+  typedef     CommandLineParser  Cl;
 
-//     typedef itk::GradientAnisotropicDiffusionImageFilter<ImageType, ImageType>
-//       FilterType;
-//     typename FilterType::Pointer filter = FilterType::New();
-//     filter->SetNumberOfIterations(1);
-//     filter->SetTimeStep(0.125);
-//     filter->SetConductanceParameter(10);
-
-    filter->SetInput(reader->GetOutput());
-    filter->Update();
-    writer->SetInput(filter->GetOutput());
-
-  } else {
-    writer->SetInput(reader->GetOutput());
-  }
-  writer->SetFileName(outputFilepath);
-  writer->Update();
-  return EXIT_SUCCESS;
-
-  // Note: The above call to Update() might raise an execption.  If you were to
-  // want to catch this exception, here is now you might do it.  You don't
-  // really need to, though, as the default exception handler will output a
-  // message that is not particularly more cryptic than the following:
-  //
-  //   try {
-  //     writer->Update(); 
-  //   } catch(itk::ExceptionObject& err) { 
-  //     cerr << "ExceptionObject caught !" << endl; 
-  //     cerr << err << endl; 
-  //     return EXIT_FAILURE;
-  //   } 
-}
+} // namespace
 
 
 //-----------------------------------------------------------------------------
-// parseExtendedOption(): local function
+// parseCommandLine(): class method
 //-----------------------------------------------------------------------------
 
-local proc void
-parseExtendedOption(const char* const option)
-{
-  cerr << "extendedOption=" << option << endl; //d
-  string optionStr = option;
-  if (optionStr == "derivativeImageFilter") {
-    cerr << "YES!" << endl;
-    ::derivativeImageFilterFlag = true;
-  } else usage();
-}
-
-
-//-----------------------------------------------------------------------------
-// parseCommandLine(): local function
-//-----------------------------------------------------------------------------
-
-local proc void
+method void CommandLineParser::
 parseCommandLine(const int argc, const char* const argv[])
 {
   // Parse command line options:
@@ -243,8 +195,8 @@ parseCommandLine(const int argc, const char* const argv[])
 	break;
 
       case 'D':
-	const int debugLevel = strtol(optarg, null, cBase10);
-	itk::FITSImageIO::SetDebugLevel(debugLevel);
+	_cv_debugLevel = strtol(optarg, null, cBase10);
+	itk::FITSImageIO::SetDebugLevel(_cv_debugLevel);
 	break;
 
       case 'N':
@@ -252,7 +204,7 @@ parseCommandLine(const int argc, const char* const argv[])
 	break;
 
       case 'o':
-	parseExtendedOption(optarg);
+	Cl::parseExtendedOption(optarg);
 	break;
 
       case 'R':
@@ -265,7 +217,7 @@ parseCommandLine(const int argc, const char* const argv[])
 	break;
 
       case 'S':
-        ::coerceToShorts = true;
+        _cv_coerceToShorts = true;
         break;
 
       case 's':
@@ -273,7 +225,7 @@ parseCommandLine(const int argc, const char* const argv[])
         break;
 
       case 'U':
-        ::coerceToUnsignedShorts = true;
+        _cv_coerceToUnsignedShorts = true;
         break;
 
       case 'v':
@@ -292,12 +244,258 @@ parseCommandLine(const int argc, const char* const argv[])
 
   // Parse the command line positional arguments:
   if (argc - ::optind != 2) usage();
-  inputFilepath = argv[::optind];
-  outputFilepath = argv[::optind + 1];
+  _cv_inputFilepath = argv[::optind];
+  _cv_outputFilepath = argv[::optind + 1];
 }
 
-} // unnamed namespace
 
+//-----------------------------------------------------------------------------
+// parseExtendedOption(): private non-virtual method
+//-----------------------------------------------------------------------------
+
+method void CommandLineParser::
+parseExtendedOption(const char* const option)
+{
+  debugPrint("extendedOption=" << option);
+  string optionStr = option;
+  if (optionStr == "derivativeImageFilter") {
+    _cv_derivativeImageFilterFlag = true;
+  } else if (optionStr == "flipImage") {
+    _cv_flipImageFlag = true;
+  } else if (optionStr == "binomialBlur") {
+    _cv_binomialBlurFlag = true;
+  } else if (optionStr == "suppressMetaDataDictionary") {
+    itk::FITSImageIO::SuppressMetaDataDictionary();
+  } else if (optionStr == "identityFlip") {
+    _cv_identityFlipFlag = true;
+  } else usage();
+}
+
+
+//=============================================================================
+// Local functions
+//=============================================================================
+
+namespace {
+
+
+//-----------------------------------------------------------------------------
+// applyMeanFilter(): local template function
+//-----------------------------------------------------------------------------
+
+// template <class PixelType>
+// local proc void
+// doMeanFilter(Image<PixelType, 3>& image)
+// {
+// //     typedef itk::MeanImageFilter<ImageType, ImageType> FilterType;
+// //     typename FilterType::Pointer filter = FilterType::New();
+// //     typename ImageType::SizeType indexRadius;
+// //     indexRadius[0] = 5;
+// //     indexRadius[1] = 5;
+// //     indexRadius[2] = 5;
+// //     filter->SetRadius(indexRadius);
+
+
+//-----------------------------------------------------------------------------
+// flipImage(): local template function
+//-----------------------------------------------------------------------------
+
+// template <class PixelType>
+// local proc typename DataObject::Pointer
+// flipImage(const typename DataObject::Pointer image)
+// {
+//   typedef itk::Image<PixelType, 3> ImageType;
+//   typedef itk::FlipImageFilter<ImageType> FilterType;
+//   typedef typename FilterType::FlipAxesArrayType FlipAxesArrayType;
+//   typename FilterType::Pointer filter = FilterType::New();
+//   FlipAxesArrayType flipArray;
+//   flipArray[0] = 1;
+//   flipArray[1] = 1;
+//   flipArray[2] = 0;
+//   filter->SetFlipAxes(flipArray);
+//   filter->SetInput(image);
+//   filter->UpdateLargestPossibleRegion();
+//   return filter->GetOutput();
+// }
+
+
+template <class PixelType>
+local proc typename Image<PixelType, 3>::Pointer
+flipImage(const typename Image<PixelType, 3>::Pointer& image)
+{
+  typedef Image<PixelType, 3> ImageType;
+  typedef itk::FlipImageFilter<ImageType> FilterType;
+  typedef typename FilterType::FlipAxesArrayType FlipAxesArrayType;
+  typename FilterType::Pointer filter = FilterType::New();
+  FlipAxesArrayType flipArray;
+  flipArray[0] = 1;
+  flipArray[1] = 0;
+  flipArray[2] = 0;
+  filter->SetFlipAxes(flipArray);
+  filter->SetInput(image);
+  filter->Update();
+  return filter->GetOutput();
+}
+
+
+//-----------------------------------------------------------------------------
+// applyBinomialBlurFilter(): local template function
+//-----------------------------------------------------------------------------
+
+template <class PixelType>
+local proc typename Image<PixelType, 3>::Pointer
+applyBinomialBlur(const typename Image<PixelType, 3>::Pointer& image)
+{
+  typedef Image<PixelType, 3> ImageType;
+  typedef itk::BinomialBlurImageFilter<ImageType, ImageType> FilterType;
+  typename FilterType::Pointer filter = FilterType::New();
+  filter->SetInput(image);
+  filter->SetRepetitions(1);
+  filter->Update();
+  return filter->GetOutput();
+}
+
+
+//-----------------------------------------------------------------------------
+// convertInputFileToItkFile(): local template function
+//-----------------------------------------------------------------------------
+
+template <class PixelType>
+local proc int
+convertInputFileToItkFile(const char* const inputFilepath,
+			  const char* const outputFilepath)
+{
+  const unsigned Dimensions = 3;
+  typedef itk::Image<PixelType, Dimensions> ImageType;
+  typedef itk::ImageFileReader<ImageType> ReaderType;
+  typedef itk::ImageFileWriter<ImageType> WriterType;
+
+  typename ReaderType::Pointer reader = ReaderType::New();
+  typename WriterType::Pointer writer = WriterType::New();
+  reader->SetFileName(inputFilepath);
+  // typename DataObject::Pointer image = reader->GetOutput();
+  typename ImageType::Pointer image = reader->GetOutput();
+  if (Cl::getFlipImageFlag()) {
+    image = ::flipImage<PixelType>(image);
+  }
+  if (Cl::getBinomialBlurFlag()) {
+    image = ::applyBinomialBlur<PixelType>(image);
+  }
+  if (Cl::getIdentityFlipFlag()) {
+    image = ::flipImage<PixelType>(image);
+    image = ::flipImage<PixelType>(image);
+  }
+  writer->SetInput(image);
+  writer->SetFileName(outputFilepath);
+  writer->Update();
+  return EXIT_SUCCESS;
+
+  // Note: The above call to Update() might raise an execption.  If you were to
+  // want to catch this exception, here is now you might do it.  You don't
+  // really need to, though, as the default exception handler will output a
+  // message that is not particularly more cryptic than the following:
+  //
+  //   try {
+  //     writer->Update(); 
+  //   } catch(itk::ExceptionObject& err) { 
+  //     cerr << "ExceptionObject caught !" << endl; 
+  //     cerr << err << endl; 
+  //     return EXIT_FAILURE;
+  //   } 
+}
+
+
+// TODO: The following version uses the ITK recommended way of doing
+// pipelining, while the above code does everything in RAM.  We might want to
+// switch back to the "right" way, which is how things are done below.
+// Unfortunately, the code below isn't working quite right, and also it is
+// requiring seemingly unecessary calls to update().
+
+// //-----------------------------------------------------------------------------
+// // convertInputFileToItkFile(): local template function
+// //-----------------------------------------------------------------------------
+
+// template <class PixelType>
+// local proc int
+// convertInputFileToItkFile(const char* const inputFilepath,
+//                          const char* const outputFilepath)
+// {
+//   const unsigned int Dimensions = 3;
+//   typedef Image<PixelType, Dimensions> ImageType;
+//   typedef itk::ImageFileReader<ImageType> ReaderType;
+//   typedef itk::ImageFileWriter<ImageType> WriterType;
+
+//   typename ReaderType::Pointer reader = ReaderType::New();
+//   typename WriterType::Pointer writer = WriterType::New();
+//   reader->SetFileName(inputFilepath);
+
+//   // This option to run the image through a derivative filter, exists purely
+//   // for debugging purposes at the moment:
+//   if (::derivativeImageFilterFlag) {
+//     cerr << "YO YO!" << endl;
+// //     typedef itk::DerivativeImageFilter<ImageType, ImageType> FilterType;
+// //     typename FilterType::Pointer filter = FilterType::New();
+// //     filter->SetOrder(1);
+// //     filter->SetDirection(0);
+
+// //     typedef itk::MeanImageFilter<ImageType, ImageType> FilterType;
+// //     typename FilterType::Pointer filter = FilterType::New();
+// //     typename ImageType::SizeType indexRadius;
+// //     indexRadius[0] = 5;
+// //     indexRadius[1] = 5;
+// //     indexRadius[2] = 5;
+// //     filter->SetRadius(indexRadius);
+
+// //     typedef itk::BinaryMedianImageFilter<ImageType, ImageType> FilterType;
+// //     typename FilterType::Pointer filter = FilterType::New();
+// //     typename ImageType::SizeType indexRadius;
+// //     indexRadius[0] = 1;
+// //     indexRadius[1] = 1;
+// //     indexRadius[2] = 1;
+// //     filter->SetRadius(indexRadius);
+
+//     typedef itk::FlipImageFilter<ImageType> FilterType;
+//     typedef typename FilterType::FlipAxesArrayType FlipAxesArrayType;
+//     typename FilterType::Pointer filter = FilterType::New();
+//     FlipAxesArrayType flipArray;
+//     flipArray[0] = 1;
+//     flipArray[1] = 1;
+//     flipArray[2] = 1;
+//     filter->SetFlipAxes(flipArray);
+
+// //     typedef itk::GradientAnisotropicDiffusionImageFilter<ImageType, ImageType>
+// //       FilterType;
+// //     typename FilterType::Pointer filter = FilterType::New();
+// //     filter->SetNumberOfIterations(1);
+// //     filter->SetTimeStep(0.125);
+// //     filter->SetConductanceParameter(10);
+
+//     filter->SetInput(reader->GetOutput());
+//     filter->Update();
+//     writer->SetInput(filter->GetOutput());
+
+//   } else {
+//     writer->SetInput(reader->GetOutput());
+//   }
+//   writer->SetFileName(outputFilepath);
+//   writer->Update();
+//   return EXIT_SUCCESS;
+
+//   // Note: The above call to Update() might raise an execption.  If you were to
+//   // want to catch this exception, here is now you might do it.  You don't
+//   // really need to, though, as the default exception handler will output a
+//   // message that is not particularly more cryptic than the following:
+//   //
+//   //   try {
+//   //     writer->Update(); 
+//   //   } catch(itk::ExceptionObject& err) { 
+//   //     cerr << "ExceptionObject caught !" << endl; 
+//   //     cerr << err << endl; 
+//   //     return EXIT_FAILURE;
+//   //   } 
+// }
+
+} // namespace
 
 //=============================================================================
 // main()
@@ -307,22 +505,25 @@ proc int
 main(const int argc, const char* const argv[])
 {
   ::daSetProgramName(argv[0]);
-  ::parseCommandLine(argc, argv);
+  Cl::parseCommandLine(argc, argv);
 
   // Register FITS one factory with the ImageIOFactory.
   itk::FITSImageIOFactory::RegisterOneFactory();
 
   int status = -666;   // If the following code is correct, this value will
                        // always get overwritten.
-  if (::coerceToShorts) {
-    status = convertFitsFileToItkFile<short>(::inputFilepath,
-					     ::outputFilepath);
-  } else if (::coerceToUnsignedShorts) {
-    status = convertFitsFileToItkFile<unsigned short>(::inputFilepath,
-                                                      ::outputFilepath);
+  if (Cl::getCoerceToShorts()) {
+    status = convertInputFileToItkFile<short>(
+	        Cl::getInputFilepath(),
+	        Cl::getOutputFilepath());
+  } else if (Cl::getCoerceToUnsignedShorts()) {
+    status = convertInputFileToItkFile<unsigned short>(
+	        Cl::getInputFilepath(),
+		Cl::getOutputFilepath());
   } else {
-    status = convertFitsFileToItkFile<float>(::inputFilepath,
-					     ::outputFilepath);
+    status = convertInputFileToItkFile<float>(
+                Cl::getInputFilepath(),
+		Cl::getOutputFilepath());
   }
   return status;
 }
@@ -462,6 +663,19 @@ main(const int argc, const char* const argv[])
 // resulting nrrd output crashes Slicer, and if I try to output an Analyze file
 // instead, I get an error about the image not being in RPI, PIR, or RIP
 // orientation.
+
+//---------------------------
+// Version 0.3dev.1
+//---------------------------
+
+// *** Mon Mar  5, 2007 ***
+
+// Added an option to apply the ITK BinomialBlurImageFilter.
+
+// Reworked the code that applies filters so that you can apply multiple
+// filters.
+
+// Moved command line parsing into a class.
 
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
