@@ -20,6 +20,7 @@
 #define ctor
 #define dtor
 #define local static
+#define null  NULL
 
 //# Aliases I use in my .cxx files to make my code prettier:
 

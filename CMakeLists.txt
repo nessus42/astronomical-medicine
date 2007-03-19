@@ -31,9 +31,7 @@ LINK_DIRECTORIES(
   )
 
 ADD_EXECUTABLE(fits2itk
-  fits2itk.cxx 
-  itkFITSImageIO.cxx
-  itkFITSImageIOFactory.cxx
+  fits2itk.cxx version.cxx itkFITSImageIO.cxx itkFITSImageIOFactory.cxx
   itkFITSWCSTransform.cxx
   )
 
