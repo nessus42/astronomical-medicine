@@ -4,6 +4,7 @@ syntax: glob
 *~
 *.o
 .gdb_history
+.DS_Store
 
 syntax: regexp
 .*\#.*\#$
