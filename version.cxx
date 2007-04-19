@@ -12,7 +12,7 @@
 //=============================================================================
 
 
-extern const char fits2itkVersion[] = "Version 0.3.1dev.0pending";
+extern const char fits2itkVersion[] = "Version 0.3.1";
 
 
 //=============================================================================
@@ -175,12 +175,8 @@ extern const char fits2itkVersion[] = "Version 0.3.1dev.0pending";
 
 // Added a much longer usage message when "--help" is specified.
 
-//----------------------------------------------------------------------
-// *** Changes described above this line are checked in to Mercurial ***
-//----------------------------------------------------------------------
-
 //---------------------------
-// Version 0.3.1dev.0pending
+// Version 0.3.1
 //---------------------------
 
 // *** Fri Apr 13, 2007 ***
@@ -192,3 +188,7 @@ extern const char fits2itkVersion[] = "Version 0.3.1dev.0pending";
 // Changed the names of the library subdirs.
 
 // Updated the file headers and copyright and licensing info.
+
+//----------------------------------------------------------------------
+// *** Changes described above this line are checked in to Mercurial ***
+//----------------------------------------------------------------------
