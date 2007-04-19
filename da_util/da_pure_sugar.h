@@ -1,12 +1,14 @@
-// -*- Mode: C++; fill-column: 79; fill-prefix: "//# " -*-
+// -*- Mode: C++; fill-column: 79 -*-
 #ifndef da_pure_sugar_h
 #define da_pure_sugar_h
-
-#define da_pure_sugar_rcsId_H \
-"$Id: da_pure_sugar.h,v 1.4 2002/10/10 17:28:15 nessus Exp $"
-
-// Description : [TBD]
-// Author      : Douglas Alan <doug@alum.mit.edu>
+//=============================================================================
+// Author      : Douglas Alan <nessus@mit.edu>
+//
+// Copyright    (c) 1993-2007  Douglas Alan
+//
+// This is free software available under the terms of the "The MIT License".
+// See LICENSE.txt for for details
+//=============================================================================
 
 //# 'proc', 'method', 'ctor', and 'dtor' are defined to be the null
 //# string.  They are used for declaring procedures and methods to make them

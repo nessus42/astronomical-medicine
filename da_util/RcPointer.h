@@ -1,5 +1,7 @@
+// -*- Mode: C++; fill-column: 79 -*-
+#ifndef RcPointer_H
+#define RcPointer_H
 //=============================================================================
-//
 // Description: An implementation of reference-counted pointers
 // Module:      RcPointer.h
 // Language:    C++
@@ -9,19 +11,9 @@
 //
 // Copyright (c) 1993 Douglas Alan
 //
-//   This software is freely distributable under the open source MIT X11
-//   License.
-//
-//   See
-//
-//      http://www.opensource.org/licenses/mit-license
-//
-//   for details.
-//
+// This is free software available under the terms of the "The MIT License".
+// See LICENSE.txt for for details
 //=============================================================================
-
-#ifndef RcPointer_H
-#define RcPointer_H
 
 template <class T> class RcPointer;
 template <class T> class ConstRcPointer;

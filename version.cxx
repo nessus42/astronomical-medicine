@@ -1,4 +1,19 @@
-extern const char fits2itkVersion[] = "Version 0.3";
+// -*- Mode: C++; fill-column: 79 -*-
+//=============================================================================
+// Program:  fits2itk
+// Author:   Douglas Alan <douglas_alan AT harvard.edu>
+//                        <doug AT alum.mit.edu>
+//           Initiative in Innovative Computing at Harvard University
+//
+// Copyright (c) 2006-2007 Harvard University
+//
+// This is free software available under the terms of the "The MIT License".
+// See LICENSE.txt for for details.
+//=============================================================================
+
+
+extern const char fits2itkVersion[] = "Version 0.3.1dev.0pending";
+
 
 //=============================================================================
 // Change Log
@@ -163,3 +178,17 @@ extern const char fits2itkVersion[] = "Version 0.3";
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
 //----------------------------------------------------------------------
+
+//---------------------------
+// Version 0.3.1dev.0pending
+//---------------------------
+
+// *** Fri Apr 13, 2007 ***
+
+// Revamped CMake configuration.
+
+// Put bundled CFITSIO library back under the control of autoconf.
+
+// Changed the names of the library subdirs.
+
+// Updated the file headers and copyright and licensing info.

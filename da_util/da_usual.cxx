@@ -1,21 +1,14 @@
-// -*- Mode: C++; fill-column: 79; fill-prefix: "//# " -*-
-
-static const char rcsid[] = 
-"$Id: da_usual.C,v 1.2 2004/12/10 22:36:05 nessus Exp $";
-
-// Descpription : Definitions that are used by everything written by Douglas 
-//                   Alan.
+// -*- Mode: C++; fill-column: 79 -*-
+//=============================================================================
+// Descpription : Definitions that are used by neary everything written by
+//                Douglas Alan.
 // Author:        Douglas Alan <doug AT alum.mit.edu>
 //
-// Copyright (c) 2006 Douglas Alan
+// Copyright (c) 1993-2007 Douglas Alan
 //
-// This software is freely distributable under the open source MIT X11 License.
-// See
-//
-//      http://www.opensource.org/licenses/mit-license.php
-//
-// for details.
-
+// This is free software available under the terms of the "The MIT License".
+// See LICENSE.txt for for details
+//=============================================================================
 
 #include <stdlib.h>             // For abort()
 #include <stdio.h>

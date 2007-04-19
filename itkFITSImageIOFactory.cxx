@@ -1,23 +1,16 @@
 // -*- Mode: C++; fill-column: 79 -*-
 //=============================================================================
+// Program:  FITS Reader for ITK
+// Module:   itkFITSImageIOFactory.cxx
+// Package:  FITS IO
+// Author:   Douglas Alan <douglas_alan AT harvard.edu>
+//                        <doug AT alum.mit.edu>
+//           Initiative in Innovative Computing at Harvard University
 //
-//   Program:   FITS Reader for ITK
-//   Module:    itkFITSImageIOFactory.cxx
-//   Package: 	FITS IO
-//   Author:    Douglas Alan <doug AT alum.mit.edu>
-//              Initiative in Innovative Computing at Harvard University
+// Copyright (c) 2006-2007 Harvard University
 //
-//   Copyright (c) 2006 Douglas Alan
-//
-//   This software is freely distributable under the open source MIT X11
-//   License.
-//
-//   See
-//
-//      http://www.opensource.org/licenses/mit-license
-//
-//   for details.
-//
+// This is free software available under the terms of the "The MIT License".
+// See LICENSE.txt for for details.
 //=============================================================================
 
 #include "itkFITSImageIOFactory.h"
@@ -54,7 +47,7 @@ FITSImageIOFactory::GetITKSourceVersion(void) const
 const char* 
 FITSImageIOFactory::GetDescription() const
 {
-  return "FITS ImageIO Factory, allows the loading of FITS images into Insight";
+  return "FITS ImageIO Factory, allows the loading of FITS images into ITK";
 }
 
 } // end namespace itk

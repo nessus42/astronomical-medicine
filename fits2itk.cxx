@@ -1,23 +1,19 @@
 // -*- Mode: C++; fill-column: 79 -*-
 //=============================================================================
+// Description:
+//      fits2itk is a program that reads a FITS file into ITK and then uses ITK
+//      to write the data back out in a form that can be understood by 3D
+//      Slicer or another multidimensional imaging program.
 //
-//   Program:   fits2itk
-//   Module:    fits2itk.cxx
-//   Package: 	FITS IO
-//   Author:    Douglas Alan <doug AT alum.mit.edu>
-//              Initiative in Innovative Computing at Harvard University
+// Author:
+//      Douglas Alan <douglas_alan AT harvard.edu>
+//                   <doug AT alum.mit.edu>
+//      Initiative in Innovative Computing at Harvard University
 //
-//   Copyright (c) 2006 Douglas Alan
+// Copyright (c) 2006-2007 Harvard University
 //
-//   This software is freely distributable under the open source MIT X11
-//   License.
-//
-//   See
-//
-//      http://www.opensource.org/licenses/mite-license
-//
-//   for details.
-//
+// This is free software available under the terms of the "The MIT License".
+// See LICENSE.txt for for details.
 //=============================================================================
 
 // #include <itkDerivativeImageFilter.h>

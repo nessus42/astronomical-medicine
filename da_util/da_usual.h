@@ -1,19 +1,14 @@
-// -*- Mode: C++; fill-column: 79; fill-prefix: "//# " -*-
-// $Id: da_usual.h,v 1.2 2004/12/10 22:36:05 nessus Exp $
-
+// -*- Mode: C++; fill-column: 79 -*-
+//=============================================================================
 // Description : This file contains declarations that are needed in just about
 //               every source file written by Douglas Alan.
 // Author      : Douglas Alan <nessus@mit.edu>
 //
-// Copyright    (C) 1993-2005  Douglas Alan
+// Copyright    (c) 1993-2007  Douglas Alan
 //
-//   This software is freely distributable under the open source MIT X11 License.
-//   See
-//
-//      http://www.opensource.org/licenses/mit-license.php
-//
-//   for details.
-
+// This is free software available under the terms of the "The MIT License".
+// See LICENSE.txt for for details
+//=============================================================================
 
 #ifndef DA_USUAL_H
 #define DA_USUAL_H
