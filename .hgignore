@@ -1,0 +1,11 @@
+syntax: glob
+*.orig
+*.rej
+*~
+*.o
+.gdb_history
+.DS_Store
+.svn
+
+syntax: regexp
+.*\#.*\#$

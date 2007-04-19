@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<wc-entries
+   xmlns="svn:">
+<entry
+   name=""
+   url="http://www.na-mic.org:8000/svn/NAMICSandBox/trunk/FITSImageIO/libwcs/CMakeFiles/itkwcs.dir"
+   kind="dir"
+   schedule="add"
+   revision="0"/>
+<entry
+   name="cmake_clean.cmake"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="cmake_clean_target.cmake"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="flags.make"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="DependInfo.cmake"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="build.make"
+   kind="file"
+   schedule="add"/>
+<entry
+   name="depend.make"
+   kind="file"
+   schedule="add"/>
+</wc-entries>
