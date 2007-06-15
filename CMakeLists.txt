@@ -18,6 +18,7 @@ set (subdirs
   fits2itk_da_util
   # fits2itk_cfitsio
   fits2itk_libwcs
+  pathToExecutable
   )
 
 # Put the fits2itk main source directory into the C/C++ include path.  I do

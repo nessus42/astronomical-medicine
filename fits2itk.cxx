@@ -35,6 +35,8 @@
 
 #include <itkFITSImageIOFactory.h>
 #include <itkFITSImageIO.h>
+
+#include <pathToExecutable.h>
 #include <da_sugar.h>
 
 using std::string;
@@ -540,6 +542,7 @@ proc int
 main(const int argc, const char* const argv[])
 {
   ::daSetProgramName(argv[0]);
+  ::setArgv(argc, argv);
   Cl::parseCommandLine(argc, argv);
 
   // Register FITS one factory with the ImageIOFactory.

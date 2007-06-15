@@ -12,7 +12,7 @@
 //=============================================================================
 
 
-extern const char fits2itkVersion[] = "Version 0.3.1";
+extern const char fits2itkVersion[] = "Version 0.4dev.0";
 
 
 //=============================================================================
@@ -188,6 +188,17 @@ extern const char fits2itkVersion[] = "Version 0.3.1";
 // Changed the names of the library subdirs.
 
 // Updated the file headers and copyright and licensing info.
+
+//---------------------------
+// Version 0.4dev.0
+//---------------------------
+
+// *** Fri Jun 15, 2007 ***
+
+// Coded up pathToExecutable library, and made sure that it works.
+
+// Made a pathToExecutable subdir for this library and configured CMake to
+// build it.
 
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
