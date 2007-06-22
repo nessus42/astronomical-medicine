@@ -16,178 +16,84 @@
 // See LICENSE.txt for for details.
 //=============================================================================
 
+#include <libgen.h>			   // For basename()
+#include <getopt.h>
+#include <sys/param.h>                     // For MAXPATHLEN
+
+#include <cassert>
+#include <fstream>
+using std::ifstream;
+using std::istream;
+using std::ostream;
+using std::ios;
+#include <memory>
+using std::auto_ptr;
+#include <string>
+using std::string;
+
+#include <itkFITSImageIOFactory.h>
+#include <itkFITSImageIO.h>
+#include <itkImage.h>
+using itk::Image;
+
+#include <itkImageFileReader.h>
+#include <itkImageFileWriter.h>
+#include <itkFlipImageFilter.h>
+#include <itkBinomialBlurImageFilter.h>
 // #include <itkDerivativeImageFilter.h>
 // #include <itkMeanImageFilter.h>
 // #include <itkBinaryMedianImageFilter.h>
 // #include <itkGradientAnisotropicDiffusionImageFilter.h>
 
-#include <itkImage.h>
-#include <itkImageFileReader.h>
-#include <itkImageFileWriter.h>
-#include <itkFlipImageFilter.h>
-#include <itkBinomialBlurImageFilter.h>
-
-#include <libgen.h>			   // For basename()
-#include <getopt.h>
-
-#include <cassert>
-#include <string>
-
-#include <itkFITSImageIOFactory.h>
-#include <itkFITSImageIO.h>
-
 #include <pathToExecutable.h>
+#include <da_util.h>
 #include <da_sugar.h>
 
-using std::string;
-using itk::Image;
 
 extern const char fits2itkVersion[];
-
-//-----------------------------------------------------------------------------
-// Usage messages
-//-----------------------------------------------------------------------------
-
-const char shortUsageMessage[] =
-
-"  fits2itk [-ASU] [-a axes-scale] [-D debug-level] [-N null-value]\n"
-"           [-r RA-scale] [-s pixel-scale] [-v velocity-scale]\n"
-"           input-file output-file\n"
-"\n"
-"  A: auto-scale velocity axis\n"
-"  S: coerce pixel values to shorts\n"
-"  U: coerce pixel values to unsigned shorts\n"
-"\n"
-"\"-a\" scales all the axes, while \"-v\" scales only the velocity\n"
-"axis.  If both are used, then both scaling factors will be applied.\n"
-"\n"
-"fits2itk supports CFITSIO's \"extended filename syntax\".\n"
-;
-
-
-const char verboseUsageMessage[] =
-
-"Typical Usage\n"
-"-------------\n"
-
-"The typical usage of fits2itk for converting FITS files into \"nrrd\" files\n"
-"for use with 3D Slicer is as follows:\n"
-"\n"
-"   $ fits2itk -A -a 1000 -r -1 -s 1000 inputfile.fits outputfile.nrrd\n"
-"\n"
-"The above command auto-scales the velocity axis, and then scales all of the\n"
-"axes by 1000.  The right ascension axis is then flipped in order to present\n"
-"it in the orientation to which astronomers are accustomed.  The pixel\n"
-"values of the image are then all multiplied by 1000.\n"
-"\n"
-"To save you a bit of typing, this can be abbreviated as\n"
-"\n"
-"   $ fits2itk --typical inputfile.fits outputfile.nrrd\n"
-"\n"
-"\n"
-"Auto Scaling\n"
-"------------\n"
-"\n"
-"The \"-A\" (velocity auto-scale) option works by fitting the velocity axis\n"
-"into a cube that is defined by the larger of the two positional axes.  If\n"
-"this option is specified in conjunction with other scaling options (such as\n"
-"-v, for instance), then -A is applied first.  The other scaling option are\n"
-"then also applied, multiplicatively.\n"
-"\n"
-"\n"
-"Dealing with NaN's\n"
-"------------------\n"
-"\n"
-"\"NaN\" means \"not a number\".  This is a special floating point value\n"
-"that represents undefined values.  FITS images often use NaN's to represent\n"
-"undefined pixels, but unfortunately not all software can handle NaN's,\n"
-"including some versions of 3D Slicer.  If you have images that contain\n"
-"NaN's and want to use them with software that doesn't understand NaN's, you\n"
-"can tell fits2itk to change all of the NaN's to a floating point value of\n"
-"your choice using the \"-N\" option.  (Note: The value you specify is not\n"
-"allowed to be 0, but it can be 0.000001, or somesuch.)\n"
-"\n"
-"In addition to supporting undefined floating point values, FITS also has a\n"
-"notion of an undefined value for a FITS image with integral pixel values.\n"
-"Unlike for floating point values, however, there is no special integer\n"
-"value that represents an undefined values.  Consequently, FITS allows the\n"
-"creator of a FITS image to specify whatever integer he or she would like to\n"
-"represent undefined pixels.  If, as it so happens, that you don't like the\n"
-"specific integer chosen by the creator of a FITS image for representing\n"
-"undefined pixels, you can remap the undefined value to a different integer\n"
-"using the -N option of fits2itk.\n"
-"\n"
-"\n"
-"CFITSIO Extended Filename Syntax\n"
-"--------------------------------\n"
-"\n"
-"fits2itk supports CFITSIO's \"extended filename syntax\", which allows all\n"
-"sorts of interesting things.  For example, if you have a data cube with an\n"
-"extra 1-pixel-thick fourth dimension, you can slice off the extra dimension\n"
-"like so:\n"
-"\n"
-"   $ fits2itk \"input.fits[*,*,*,1:1][col #NAXIS=3]\" output.nrrd\n"
-"\n"
-"You can also specify a URL, rather than a filename, for the input file and\n"
-"the input file will be automatically fetched via HTTP.  For the complete\n"
-"manual on the extended filename syntax, see the CFITSIO User's Reference\n"
-"Guide chapter on it here:\n"
-"\n"
-"   http://heasarc.nasa.gov/docs/software/fitsio/c/c_user/node79.html\n"
-"\n"
-"\n"
-"Debugging Output\n"
-"----------------\n"
-"\n"
-"Various bits of information that are useful to the developer of fits2itk,\n"
-"but which probably aren't of much interest to you, can be output to stderr\n"
-"during a file conversion by specifying \"-D1\" on the fits2itk command\n"
-"line.\n"
-"\n"
-"\n"
-"This Help Text\n"
-"--------------\n"
-"\n"
-"If this help text scrolled by too quickly for you to read, you might try\n"
-"piping it through \"more\", like so:\n"
-"\n"
-"  $ fits2itk --help | more\n"
-"\n"
-"If you would like a terser help message than this one, use the \"-h\"\n"
-"option instead of \"--help\"\n"
-;
 
 //-----------------------------------------------------------------------------
 // usage()
 //-----------------------------------------------------------------------------
 
 local proc void
-usage1(bool exitWithFailure, bool verboseUsageFlag)
+usage1(bool exitWithFailureP, bool verboseUsageP)
 {
 //  if (daProgramName().size()) cerr << basename(daProgramName().c_str());
 //  else cerr << "fits2itk";
   
-  std::ostream& out = exitWithFailure ? cerr : cout;
-   out << "fits2itk " << fits2itkVersion << "\n\n";
+  ostream& out = exitWithFailureP ? cerr : cout;
+  out << "fits2itk " << fits2itkVersion << "\n\n";
   out << "usage:\n";
-  out << ::shortUsageMessage;
-  
-  if (verboseUsageFlag) {
+
+  const char* shortUsageFilepath = pteJoinPath(pathToExecutableDir(),
+					       "shortUsageMessage.txt");
+
+  auto_ptr<ifstream> shortUsageMessage =
+    da::openFileForReading(shortUsageFilepath, da::dieOnError);
+  da::copyStream(*shortUsageMessage, out, da::dieOnError);
+
+  if (verboseUsageP) {
     out << "\nUse the \"-h\" option to get a terser usage message than this"
       " one.\n\n";
-    out << ::verboseUsageMessage;
+
+    const char* verboseUsageFilepath =
+      pteJoinPath(pathToExecutableDir(), "verboseUsageMessage.txt");
+    auto_ptr<ifstream> verboseUsageMessage = 
+      da::openFileForReading(verboseUsageFilepath, da::dieOnError);
+    da::copyStream(*verboseUsageMessage, out, da::dieOnError);
   } else {
     out <<  "\nUse the \"--help\" option to get a longer usage message.\n";
   }
-  if (exitWithFailure) exit(EXIT_FAILURE);
+  if (exitWithFailureP) exit(EXIT_FAILURE);
   else exit(0);
 }
 
 
 local proc void
-usage(bool exitWithFailure=true)
+usage(bool exitWithFailureP=true)
 {
-  ::usage1(exitWithFailure, false);
+  ::usage1(exitWithFailureP, false);
 }
 
 
@@ -541,7 +447,7 @@ convertInputFileToItkFile(const char* const inputFilepath,
 proc int
 main(const int argc, const char* const argv[])
 {
-  ::daSetProgramName(argv[0]);
+  da::setProgramName(argv[0]);
   ::setArgv(argc, argv);
   Cl::parseCommandLine(argc, argv);
 

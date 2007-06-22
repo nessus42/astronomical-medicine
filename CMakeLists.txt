@@ -15,9 +15,9 @@ set (fits2itk_source_files
 # Specify libraries used by fits2itk that are packaged with the fits2itk
 # source files as subdirs:
 set (subdirs
-  fits2itk_da_util
+  da_util
   # fits2itk_cfitsio
-  fits2itk_libwcs
+  libwcs
   pathToExecutable
   )
 
@@ -71,15 +71,16 @@ target_link_libraries (fits2itk
   )
 
 
-# This will build the bundled CFITSIO library, using it's own autoconf-based
-# build system:
+# BEGIN building the CFITSIO library, using it's own autoconf-based build
+# system.
 
-set_source_files_properties (${fits2itk_source_files}
+set_source_files_properties (itkFITSImageIO.cxx
   PROPERTIES
   OBJECT_DEPENDS ${PROJECT_BINARY_DIR}/cfitsio/libcfitsio.a
   )
 
 add_custom_command (
+
   OUTPUT ${PROJECT_BINARY_DIR}/cfitsio/libcfitsio.a
   COMMAND ${CMAKE_COMMAND}
   ARGS -E copy_directory ${PROJECT_SOURCE_DIR}/cfitsio
@@ -102,4 +103,50 @@ add_custom_command (
              "env MAKEFLAGS='' make"
   COMMAND ${CMAKE_COMMAND}
   ARGS -E echo "Done building CFITSIO."
- )
+  )
+
+# END building CFITSIO.
+
+
+# Here we specify the files that we need to copy into the build directory so
+# that they can be found at runtime by fits2itk during code development.  We do
+# this here by declaring the compilation of version.cxx to be dependent on
+# these files.  As this dependency is not really true, this approach is a bit
+# of a kludge.  Nonetheless, this mechanisms seems to be the most convenient
+# way to specify this sort of thing in CMake.
+
+# Please note that you can only call `set_source_files_properties` once for
+# each soure file.  (If you call it again later, the next call will completely
+# overwrite the previous settings.)  So, if you want to pile on more
+# dependencies onto this version.cxx, you have to do it here.
+
+# Also, you can only apply a single `add_custom_command` to a source file in
+# this manner.  This restriction is counterintuitive, as `add_custom_command`
+# seems to apply to the files that need to be copied or created, not to the
+# source file that has been declared to depend on them.  But so it goes.
+# Consequently, if any one of the files specified below need to be copied or
+# created, all of them will be.  (This is one of the reasons that we have
+# separated the following stuff out from the building of CFITSIO, above.  It
+# didn't make sense to have to rebuild all of CFITSIO just because
+# `shortUsageMessage.txt` needed to be copied in.
+
+set_source_files_properties (version.cxx
+  PROPERTIES
+  OBJECT_DEPENDS ${PROJECT_BINARY_DIR}/shortUsageMessage.txt
+  OBJECT_DEPENDS ${PROJECT_BINARY_DIR}/verboseUsageMessage.txt
+  )
+
+add_custom_command (
+
+  # The following will make sure that files that are needed by fits2itk at
+  # runtime will be copied into the build directory so that fits2itk can find
+  # them:
+  OUTPUT ${PROJECT_BINARY_DIR}/shortUsageMessage.txt
+  COMMAND ${CMAKE_COMMAND}
+  ARGS -E copy ${PROJECT_SOURCE_DIR}/shortUsageMessage.txt
+               ${PROJECT_BINARY_DIR}
+  OUTPUT ${PROJECT_BINARY_DIR}/verboseUsageMessage.txt
+  COMMAND ${CMAKE_COMMAND}
+  ARGS -E copy ${PROJECT_SOURCE_DIR}/verboseUsageMessage.txt
+               ${PROJECT_BINARY_DIR}
+  )

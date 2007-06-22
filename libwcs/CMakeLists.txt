@@ -1,6 +1,6 @@
 # -*- Mode: CMake; fill-column: 79 -*-
 
-add_library(fits2itk_libwcs
+add_library(libwcs
   imsetwcs.c imgetwcs.c matchstar.c findstar.c daoread.c wcscon.c
   fitswcs.c wcsinit.c wcs.c ty2read.c webread.c tmcread.c
   gscread.c gsc2read.c ujcread.c uacread.c ubcread.c ucacread.c

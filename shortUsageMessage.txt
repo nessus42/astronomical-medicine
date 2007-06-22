@@ -1,0 +1,12 @@
+  fits2itk [-ASU] [-a axes-scale] [-D debug-level] [-N null-value]
+           [-r RA-scale] [-s pixel-scale] [-v velocity-scale]
+           input-file output-file
+
+  A: auto-scale velocity axis
+  S: coerce pixel values to shorts
+  U: coerce pixel values to unsigned shorts
+
+"-a" scales all the axes, while "-v" scales only the velocity
+axis.  If both are used, then both scaling factors will be applied.
+
+fits2itk supports CFITSIO's "extended filename syntax".

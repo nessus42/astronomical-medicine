@@ -10,8 +10,9 @@
 // See LICENSE.txt for for details
 //=============================================================================
 
+#include <errno.h>
 #include <stdlib.h>             // For abort()
-#include <stdio.h>
+#include <string.h>
 #include <iostream>
 #include <string>
 
@@ -22,33 +23,35 @@ using std::cerr;
 using std::endl;
 using std::string;
 
+namespace da {
+
 // File-scope variables:
-local string programName;
+local string _programName;
 
 //-----------------------------------------------------------------------------
-// daRunTimeError(): procedure
+// runTimeError(): procedure
 //-----------------------------------------------------------------------------
 
 proc void proc
-daRunTimeError(const string& message)
+runTimeError(const string& message)
 {
   cerr << endl;
-  if (!::programName.empty()) cerr << ::programName << ": ";
+  if (!_programName.empty()) cerr << _programName << ": ";
   cerr << "FATAL ERROR: " << message << endl;
   exit(1);
 }
 
 
 //-----------------------------------------------------------------------------
-// _daInternalError(): procedure used by the error() macro
+// _internalError(): procedure used by the error() macro
 //-----------------------------------------------------------------------------
 
 proc void 
-_daInternalError(const string& message, const char* filename,
-                 const int line_number)
+_internalError(const string& message, const char* filename,
+	       const int line_number)
 {
   cerr << endl;
-  if (!::programName.empty()) cerr << ::programName << ": ";
+  if (!_programName.empty()) cerr << _programName << ": ";
   cerr << "FATAL INTERNAL ERROR: " << message << endl
        << "  File: " << filename << endl
        << "  Line: " << line_number << endl;
@@ -57,31 +60,31 @@ _daInternalError(const string& message, const char* filename,
 
 
 //-----------------------------------------------------------------------------
-// daHeapError(): procedure used by the daCheckHeap() procedure
+// heapError(): procedure used by the checkHeap() procedure
 //-----------------------------------------------------------------------------
 
 proc void 
-daHeapError()
+heapError()
 {
   cerr << endl;
-  if (::programName.size()) cerr << ::programName << ": ";
+  if (_programName.size()) cerr << _programName << ": ";
   cerr << "FATAL ERROR: Heap exhausted!" << endl;
   abort();
 }
 
 
 //-----------------------------------------------------------------------------
-// _daAssertm(): procedure used by the assertm() macro
+// _assertm(): procedure used by the assertm() macro
 //-----------------------------------------------------------------------------
 
-// TODO: get rid of the * const's here and in daRunTimeError()
+// TODO: get rid of the * const's here and in runTimeError()
 
 proc void 
-_daAssertm(const string& expr, const string& message,
-           const string& filename, const unsigned line_number)
+_assertm(const string& expr, const string& message,
+	 const string& filename, const unsigned line_number)
 {
   cerr << endl;
-  if (::programName.size()) cerr << ::programName << ": ";
+  if (_programName.size()) cerr << _programName << ": ";
   cerr << "FATAL INTERNAL ERROR: Assertion Failed!" << endl
        << "  Error message: " << message << endl
        << "  Assertion: " << expr << endl
@@ -92,14 +95,14 @@ _daAssertm(const string& expr, const string& message,
 
 
 //-----------------------------------------------------------------------------
-// daBadInvariant(): procedure
+// badInvariant(): procedure
 //-----------------------------------------------------------------------------
 
 //# daBadInvariant() prints out an error message saying that the rep invariant
 //# is bad and terminates the program, dumping core.
 
 proc void 
-daBadInvariant()
+badInvariant()
 {
   error("Bad rep invariant!");
 }
@@ -117,74 +120,93 @@ breakpoint()
 
 
 //-----------------------------------------------------------------------------
-// daSetProgramName(): procedure
+// setProgramName(): procedure
 //-----------------------------------------------------------------------------
 
 proc void
-daSetProgramName(const string& progname)
+setProgramName(const string& progname)
 {
-  assertm(::programName.empty(),
-          "daSetProgramName() must not be invoked more than once");
-  ::programName = progname;
+  assertm(_programName.empty(),
+          "setProgramName() must not be invoked more than once");
+  _programName = progname;
 }
 
 
 //-----------------------------------------------------------------------------
-// daProgramName(): procedure
+// programName(): procedure
 //-----------------------------------------------------------------------------
 
 proc string
-daProgramName()
+programName()
 {
-  return ::programName;
+  return _programName;
 }
 
 
 //-----------------------------------------------------------------------------
-// daWarning(): procedure
+// warning(): procedure
 //-----------------------------------------------------------------------------
 
 proc void
-daWarning(const string& warningMessage)
+warning(const string& warningMessage)
 {
-   if (::programName.size()) cerr << ::programName << ": ";
+   if (_programName.size()) cerr << _programName << ": ";
   cerr << "WARNING: " << warningMessage << endl;
 }
 
 
 //-----------------------------------------------------------------------------
-// daSyscallWarning(): procedure
+// syscallWarning(): procedure
 //-----------------------------------------------------------------------------
 
 proc void
-daSyscallWarning(const string& warningMessage)
+syscallWarning(const string& warningMessage)
 {
-  if (::programName.size()) cerr << ::programName << ": ";
+  if (_programName.size()) cerr << _programName << ": ";
   cerr << "WARNING: " << warningMessage << ": ";
   perror("");
 }
 
 
 //-----------------------------------------------------------------------------
-// daSyscallError(): procedure
+// syscallError(): procedure
 //-----------------------------------------------------------------------------
 
 proc void
-daSyscallError(const string& errorMessage)
+syscallError(const string& errorMessage)
 {
-  if (::programName.size()) cerr << ::programName << ": ";
-  cerr << "FATAL ERROR: " << errorMessage << ": ";
-  perror("");
+  if (_programName.size()) cerr << _programName << ": ";
+  cerr << "FATAL ERROR: " << errorMessage;
+  const char* const strerrorMessage = strerror(errno);
+  if (strerrorMessage and errno != EINVAL) cerr << ": " << strerrorMessage;
+  else cerr << ".";
+  cerr << endl;
   exit(1);
 }
 
 
 //-----------------------------------------------------------------------------
-// daRaiseHeapExhaustedException(): procedure
+// syscallErrorMessage(): procedure
+//-----------------------------------------------------------------------------
+
+proc const char*
+syscallErrorMessage()
+{
+  const char* const strerrorMessage = strerror(errno);
+  if (strerrorMessage and errno != EINVAL) return strerrorMessage;
+  else return 0;
+}
+
+
+//-----------------------------------------------------------------------------
+// raiseHeapExhaustedException(): procedure
 //-----------------------------------------------------------------------------
 
 proc void
-daRaiseHeapExhaustedException()
+raiseHeapExhaustedException()
 {
   error("Heap exhausted!");
 }
+
+
+} // end namespace da

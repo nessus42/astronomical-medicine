@@ -12,7 +12,7 @@
 //=============================================================================
 
 
-extern const char fits2itkVersion[] = "Version 0.4dev.0";
+extern const char fits2itkVersion[] = "Version 0.4dev.1";
 
 
 //=============================================================================
@@ -199,6 +199,30 @@ extern const char fits2itkVersion[] = "Version 0.4dev.0";
 
 // Made a pathToExecutable subdir for this library and configured CMake to
 // build it.
+
+//---------------------------
+// Version 0.4dev.1
+//---------------------------
+
+// *** Fri Jun 22, 2007 ***
+
+// Moved usage text out of source code and into text files that are copied to
+// stdout or stderr at runtime.  This way don't have to maintain them as
+// cumbersome strings within the program.
+
+// Modified the CMake config so as to automatically copy the usage message
+// files from the source code directory into the build directory, so that
+// during development fits2itk can locate them at runtime.
+
+// Moved some personal library routines into the "da" namespace.
+
+// Added a few utility routines to da_util.
+
+// Added a facility for turing on IO exceptions when using streams that will
+// automatically reset the stream (with regard to exception generation) back to
+// the state it was in previously.
+
+// Restructured the source code directory structure a bit.
 
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***

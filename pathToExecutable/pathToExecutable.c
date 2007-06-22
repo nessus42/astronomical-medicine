@@ -53,6 +53,7 @@
 //
 //=============================================================================
 
+#include <libgen.h>       // For basename()
 #include <stdio.h>
 #include <stdlib.h>       // For getenv()
 #include <string.h>
@@ -75,6 +76,10 @@
 static void
 fatalError(const char* const message)
 {
+  if (getArgc()) {
+    const char* progname = basename(getArgv()[0]);
+    if (progname != NULL) fprintf(stderr, "%s: ", progname);
+  }
   fprintf(stderr, "FATAL ERROR: %s\n", message);
   exit(1);
 }
@@ -100,7 +105,7 @@ void
 setArgv(const int argc, const char* const argv[])
 {
   static bool firstTime = true;
-  if (!firstTime) fatalError("Tried to use setArgv() more than once.");
+  if (!firstTime) fatalError("setArgv() called more than once.");
   firstTime = false;
   fs_argc = argc;
   fs_argv = argv;
@@ -128,9 +133,9 @@ pathToExecutable(void)
     fatalError("pathToExecutable() can't get argv[0].");
   }
   static bool firstTime = true;
-  static char pathToExe[MAXPATHLEN+1];
-  if (!firstTime) return pathToExe;
-  else {
+  static char retval[MAXPATHLEN+1];
+  if (firstTime) {
+    firstTime = false;
     static const char delimiter[2] = {c_pathDelimiter, '\0'};
     static const char separator[2] = {c_filenameSeperator, '\0'};
     const char* const argv0 = getArgv()[0];
@@ -150,24 +155,16 @@ pathToExecutable(void)
     // executable was specified explicitly, rather than being run from
     // $PATH:
     if (strchr(argv0, c_filenameSeperator)) {
-      strncpy(pathToExe, argv0, MAXPATHLEN);
-      pathToExe[MAXPATHLEN] = '\0';
+      strncpy(retval, argv0, MAXPATHLEN);
+      retval[MAXPATHLEN] = '\0';
     }
 
 #ifdef __APPLE__
 
-    // On some older versions of Mac OS X, if a script uses an interpreter
-    // of the form "#!/opt/python2.3/bin/python", the kernel only passes
-    // "python" as argv[0], which falls through to the $PATH search below.
-    // If /opt/python2.3/bin isn't in your path, or is near the end, this
-    // algorithm may incorrectly find /usr/bin/python. To work around this,
-    // we can use _NSGetExecutablePath to get a better hint of what the
-    // intended interpreter was, although this will fail if a relative path
-    // was used. but in that case, absolutize() should help us out below
-    else if (0 == _NSGetExecutablePath(pathToExe, &nsexeclength) &&
-	     pathToExe[0] == c_filenameSeperator)
+    else if (0 == _NSGetExecutablePath(retval, &nsexeclength) &&
+	     retval[0] == c_filenameSeperator)
       {
-	// NOP: `pathToExe` is set by _NSGetExecutablePath above, and that is
+	// NOP: `retval` is set by _NSGetExecutablePath above, and that is
 	// all we need to have done here.
       }
 
@@ -186,16 +183,16 @@ pathToExecutable(void)
 	if (delimPtr) {
 	  size_t len = delimPtr - path;
 	  if (len > MAXPATHLEN) len = MAXPATHLEN;
-	  strncpy(pathToExe, path, len);
-	  *(pathToExe + len) = '\0';
+	  strncpy(retval, path, len);
+	  *(retval + len) = '\0';
 	} else {
-	  strncpy(pathToExe, path, MAXPATHLEN);
-	  pathToExe[MAXPATHLEN] = '\0';
+	  strncpy(retval, path, MAXPATHLEN);
+	  retval[MAXPATHLEN] = '\0';
 	}
-	pteJoinPath(pathToExe, argv0);
-	if (pteIsAnExecutableFile(pathToExe)) break;
+	pteJoinPathM(retval, argv0);
+	if (pteIsAnExecutableFile(retval)) break;
 	if (!delimPtr) {
-	  pathToExe[0] = '\0';
+	  retval[0] = '\0';
 	  break;
 	}
 	path = delimPtr + 1;
@@ -203,8 +200,8 @@ pathToExecutable(void)
     }
 
     // If we've gotten here, then it appears that we are out of luck, and we'll
-    // just have to set pathToExe to the empty string:
-    else pathToExe[0] = '\0';
+    // just have to set retval to the empty string:
+    else retval[0] = '\0';
   
     // Hmmm, I see no reason to absolutize the path as is done in the
     // following commented-out line of code.  Doing so can be
@@ -216,7 +213,7 @@ pathToExecutable(void)
     // is still running from the filesystem, then you can be pretty
     // darn sure that the filesystem won't be unmounted.)
 
-    // if (pathToExe[0] != c_filenameSeperator) absolutize(pathToExe);
+    // if (retval[0] != c_filenameSeperator) absolutize(retval);
 
     // We've now (hopefully) located the executable, sort of, but we're not
     // completely done, as we may have really only located a symbolic link to
@@ -224,22 +221,22 @@ pathToExecutable(void)
     // of symlinks that we might find until we get to the real file:
     {
       char tmpbuffer[MAXPATHLEN+1];
-      int linklen = readlink(pathToExe, tmpbuffer, MAXPATHLEN);
+      int linklen = readlink(retval, tmpbuffer, MAXPATHLEN);
       while (linklen != -1) {
 
 	// The retval from readlink is not null terminated, so we need to
 	// make it so:
 	tmpbuffer[linklen] = '\0';
 	if (tmpbuffer[0] == c_filenameSeperator) {
-	  strncpy(pathToExe, tmpbuffer, MAXPATHLEN);
-	  pathToExe[MAXPATHLEN] = '\0';
+	  strncpy(retval, tmpbuffer, MAXPATHLEN);
+	  retval[MAXPATHLEN] = '\0';
 	} else {
 	  // If we've gotten here, then the symlink is a relative link, so
-	  // interpret it relative to pathToExe:
-	  pteDirname(pathToExe);
-	  pteJoinPath(pathToExe, tmpbuffer);
+	  // interpret it relative to retval:
+	  pteDirname(retval);
+	  pteJoinPathM(retval, tmpbuffer);
 	}
-	linklen = readlink(pathToExe, tmpbuffer, MAXPATHLEN);
+	linklen = readlink(retval, tmpbuffer, MAXPATHLEN);
       }
     }
 
@@ -247,16 +244,31 @@ pathToExecutable(void)
     // case the caller might find that information useful, rather than just the
     // path to the containing directory.  Consequently, I've commented out the
     // following line:
-    // pteDirname(pathToExe);
+    // pteDirname(retval);
 
-    return pathToExe;
-  } // end if (!firstTime)
+  } // end if (firstTime)
+
+  return retval;
 }
 
 
 //-----------------------------------------------------------------------------
 // Other useful exported global functions
 //-----------------------------------------------------------------------------
+
+const char*
+pathToExecutableDir(void)
+{
+  static bool firstTime = true;
+  static char retval[MAXPATHLEN+1];
+  if (firstTime) {
+    firstTime = false;
+    const char* pathToExe = pathToExecutable();
+    strcpy(retval, pathToExecutable());
+    pteDirname(retval);
+  }
+  return retval;
+}
 
 int
 getArgc(void)
@@ -295,7 +307,7 @@ pteDirname(char *filepath)
 // stuff as fits will be appended.
 
 void
-pteJoinPath(char* const pathHead, const char* const pathTail)
+pteJoinPathM(char* const pathHead, const char* const pathTail)
 {
     size_t n, k;
     if (pathTail[0] == c_filenameSeperator) {
@@ -306,13 +318,28 @@ pteJoinPath(char* const pathHead, const char* const pathTail)
 	  pathHead[n++] = c_filenameSeperator;
 	}
     }
-    if (n > MAXPATHLEN) {
-      fatalError("Buffer overflow in getpath.c's pteJoinPath()");
-    }
     k = strlen(pathTail);
-    if (n + k > MAXPATHLEN) k = MAXPATHLEN - n;
-    strncpy(pathHead+n, pathTail, k);
-    pathHead[n+k] = '\0';
+    if (n + k > MAXPATHLEN) {
+      fatalError("Buffer overflow in pteJoinPathM().");
+    }
+    strncpy(pathHead + n, pathTail, k);
+    pathHead[n + k] = '\0';
+}
+
+
+const char*
+pteJoinPath(const char* const pathHead, const char* const pathTail)
+{
+  static bool firstTime = true;
+  static char* buffer;
+  if (firstTime) {
+    firstTime = false;
+    buffer = malloc(MAXPATHLEN+1);
+  }
+  strncpy(buffer, pathHead, MAXPATHLEN);
+  buffer[MAXPATHLEN] = '\0';
+  pteJoinPathM(buffer, pathTail);
+  return buffer;
 }
 
 
@@ -359,7 +386,7 @@ pteCopyAbsolute(char* const destStr, const char* filepath)
         getcwd(destStr, MAXPATHLEN);
         if (filepath[0] == '.' && filepath[1] == c_filenameSeperator)
             filepath += 2;
-        pteJoinPath(destStr, filepath);
+        pteJoinPathM(destStr, filepath);
     }
 }
 

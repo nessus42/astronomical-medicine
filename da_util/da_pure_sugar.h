@@ -27,13 +27,13 @@
 //# Aliases I use in my .cxx files to make my code prettier:
 
 #define assertm         daAssertm
-#define badInvariant    daBadInvariant
-#define checkHeap       daCheckHeap
+#define warning         daWarning
 #define error           daError
 #define ifDebug         daIfDebug
-#define rtError         daRunTimeError
 #define superDebug      daSuperDebug
-#define warning         daWarning
+
+using da::checkHeap;
+using da::runTimeError;
 
 using std::cout;
 using std::cerr;
