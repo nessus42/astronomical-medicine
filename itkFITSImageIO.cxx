@@ -217,7 +217,7 @@ FITSImageIO::getFitsHeader()
   int nKeysDummy;
   ::fits_hdr2str(m_fitsFile, !noComments, headersToExclude, nHeadersToExclude,
                  &retval1, &nKeysDummy, &status);
-  DaFreer freer (retval1);
+  da::Freer freer (retval1);
   if (status) {
     itkExceptionMacro("FITSImageIO could not get header from Primary Array of"
                       "FITS file: \""

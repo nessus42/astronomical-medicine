@@ -16,22 +16,27 @@
 #include <assert.h>
 #include <string>
 
+namespace da {
+
+enum SuccessFlag { succeeded, failed };
+
 // Global procedures:
 
-void            daRunTimeError(const std::string& message);
-void            _daInternalError(const std::string& message,
-                                 const char* filename,
-                                 int line_number);
-void            _daAssertm(const std::string&, const std::string&,
-                           const std::string&, unsigned);
-void            daBreakpoint();
-void            daHeapError();
-void            daRaiseHeapExhaustedException();
-void            daSetProgramName(const std::string& progname);
-void            daSyscallWarning(const std::string& warningMessage);
-void            daSyscallError(const std::string& errorMessage);
-std::string     daProgramName();
-void            daWarning(const std::string& warning);
+void            runTimeError(const std::string& message);
+void            _internalError(const std::string& message,
+			       const char* filename,
+			       int line_number);
+void            _assertm(const std::string&, const std::string&,
+			 const std::string&, unsigned);
+void            breakpoint();
+void            heapError();
+void            raiseHeapExhaustedException();
+void            setProgramName(const std::string& progname);
+void            syscallWarning(const std::string& warningMessage);
+void            syscallError(const std::string& errorMessage);
+const char*     syscallErrorMessage();
+std::string     programName();
+void            warning(const std::string& warning);
 
 
 //-----------------------------------------------------------------------------
@@ -40,28 +45,28 @@ void            daWarning(const std::string& warning);
 
 //! Frees a malloced object via RAII.
 
-class DaFreer {
+class Freer {
 
   void* _malloced_object;
 
   // Disable copying:
-  DaFreer(const DaFreer&);           
-  void operator=(const DaFreer&);
+  Freer(const Freer&);           
+  void operator=(const Freer&);
 
 public:
-  DaFreer(void* malloced_object) : _malloced_object(malloced_object) {}
-  ~DaFreer() { free((char *)_malloced_object); }
+  Freer(void* malloced_object) : _malloced_object(malloced_object) {}
+  ~Freer() { free((char *)_malloced_object); }
 };
 
 
 //-----------------------------------------------------------------------------
-// daNop(): global inline procedure
+// nop(): global inline procedure
 //-----------------------------------------------------------------------------
 
-//# daNop() does absolutely nothing.
+//# nop() does absolutely nothing.
 
 inline void
-daNop()
+nop()
 {}
 
 //-----------------------------------------------------------------------------
@@ -116,9 +121,9 @@ daNop()
 //# the error message that is output indicates that the heap is exhausted.
 
 template <class T> inline T
-daCheckHeap(T arg)
+checkHeap(T arg)
 {
-  if (DA_NDEBUG && !arg) daHeapError();
+  if (DA_NDEBUG && !arg) heapError();
   return arg;
 }
 
@@ -134,7 +139,7 @@ daCheckHeap(T arg)
 #   define daAssertm(ignore1, ignore2)
 #else
 #   define daAssertm(expr, message) \
-        if (expr); else _daAssertm(#expr, message, __FILE__, __LINE__)
+        if (expr); else da::_assertm(#expr, message, __FILE__, __LINE__)
 #endif // NDEBUG
 
 
@@ -146,7 +151,7 @@ daCheckHeap(T arg)
 //# to let the user have some idea of what went wrong.
 
 #define daError(message) \
-        _daInternalError(message, __FILE__, __LINE__)
+        da::_internalError(message, __FILE__, __LINE__)
 
 
 //-----------------------------------------------------------------------------
@@ -154,13 +159,16 @@ daCheckHeap(T arg)
 //-----------------------------------------------------------------------------
 
 #define daCheckSyscall(expr, warningMessage) \
-   if ((expr) != succeeded) daSyscallWarning(warningMessage); else daNop()
+   if ((expr) != succeeded) da::syscallWarning(warningMessage); else da::nop()
 
 //-----------------------------------------------------------------------------
 // daCheckSyscallE(): macro
 //-----------------------------------------------------------------------------
 
 #define daCheckSyscallE(expr, errorMessage) \
-   if ((expr) != succeeded) daSyscallError(errorMessage); else daNop()
+   if ((expr) != succeeded) da::syscallError(errorMessage); else da::nop()
+
+
+} // end namespace da
 
 #endif // DA_USUAL_H

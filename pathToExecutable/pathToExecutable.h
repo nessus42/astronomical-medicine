@@ -12,10 +12,12 @@ extern "C" {
 void               setArgv(int argc, const char* const argv[]);
 const char*        pathToExecutable(void);
 
+const char*        pathToExecutableDir(void);
 int                getArgc(void);
 const char* const* getArgv(void);
-static void        pteDirname(char *filepath);
-static void        pteJoinPath(char* const buffer, const char* const stuff);
+void               pteDirname(char *filepath);
+void               pteJoinPathM(char* buffer, const char* stuff);
+const char*        pteJoinPath(const char* buffer, const char* stuff);
 bool               pteIsFile(const char* filepath);
 bool               pteIsAnExecutableFile(const char *filepath);
 bool               pteIsDir(const char* filepath);
