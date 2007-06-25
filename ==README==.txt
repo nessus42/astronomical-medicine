@@ -56,6 +56,14 @@ following: The copylefted libraries used by fits2itk are
       fits2itk executables currently pick up all the requirements of
       the LGPL.
 
+fits2itk also bundles the following libraries that are not distributed
+under the MIT License, but which are distributed under licenses that
+are for all intents and purposes equivalent to the MIT License:
+
+   pathToExecutable -- Adapted for general use by Douglas Alan from
+      Python's "getpath.c".  It carries the permissive Python Software
+      Foundation License Version 2.
+
 
 BUILDING FIT2ITK FROM SOURCE
 ----------------------------
