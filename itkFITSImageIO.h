@@ -32,9 +32,21 @@
 
 #include <itkFITSWCSTransform.h>
 
+
 namespace itk
 {
-  
+
+//   namespace fitsio {
+//     void _calcCoordinateFrame(
+// 	 const std::string& fitsHeader,
+// 	 const long lengthOfAxisInPixels[],
+// 	 double origin[],
+// 	 double spacing[],
+// 	 std::vector<double> directionCosines[],
+// 	 FITSWCSTransform<double, 3>::Pointer& transform);
+//   }
+
+
 //*****************************************************************************
 //*****                                                                   *****
 //*****         FITSImageIO: leaf subclass of ImageIOBase                 *****
@@ -64,7 +76,8 @@ public:
   //! Run-time type information (and related methods).
   itkTypeMacro(FITSImageIO, ImageIOBase);
 
-  // Class procedures:
+  // Class setter procedures:
+  static void SetSuppressWCS(bool flag) { _cv_suppressWCS = flag; }
   static void SetDebugLevel(int debugLevel)
                  { _cv_debugLevel = debugLevel; }
   static void SetRotateSky(double degrees)
@@ -81,10 +94,30 @@ public:
                  { _cv_scaleRA = scalingFactor; }
   static void SetNullValue(double nullValue)
                  { _cv_nullValue = nullValue; }
-  static void SuppressMetaDataDictionary()
-                 { _cv_suppressMetaDataDictionary = true; }
+  static void SetSuppressMetaDataDictionary(bool flag)
+                 { _cv_suppressMetaDataDictionary = flag; }
 					
-    
+  // Static getter procedures:
+  static bool   GetNoWCS() { return _cv_suppressWCS; }
+  static int    GetDebugLevel()
+                 { return _cv_debugLevel; }
+  static double GetRotateSky()
+                 { return _cv_rotateSky; }
+  static double GetScaleVelocityAxis()
+                 { return _cv_scaleVelocityAxis; }
+  static bool   GetAutoScaleVelocityAxis()
+                 { return _cv_autoScaleVelocityAxis; }
+  static double GetScaleVoxelValues()
+                 { return _cv_scaleVoxelValues; }
+  static double GetScaleAllAxes()
+                 { return _cv_scaleAllAxes; }
+  static double GetScaleRA()
+                 { return _cv_scaleRA; }
+  static double GetNullValue()
+                 { return _cv_nullValue; }
+  static bool   GetSuppressMetaDataDictionary()
+                 { return _cv_suppressMetaDataDictionary; }
+
   // Virtual methods implementing pure virtual methods of ImageIOBase:
   virtual bool CanReadFile(const char* filename);
   virtual void ReadImageInformation();
@@ -113,10 +146,11 @@ private:
 
   // Private class variables:   // TODO
   static int    _cv_debugLevel;
+  static bool   _cv_suppressWCS;
   static double _cv_nullValue;
   static double _cv_rotateSky;
-  static double _cv_rotateDecIntoVelocityAxis;
-  static double _cv_rotateRAIntoVelocityAxis;
+  static double _cv_rollRA;
+  static double _cv_rollDec;
   static double _cv_scaleVoxelValues;
   static double _cv_scaleRA;
   static double _cv_scaleDec;

@@ -26,10 +26,11 @@
 #include <itksys/RegularExpression.hxx>
 
 #include <wcs.h>
-#include <da_usual.h>
 
 #include "itkFITSImageIO.h"
 #include <grparser.h> // for FITS NGP_MAX_ARRAY_DIM
+
+#include <da_sugar.h>
 
 extern "C" { char* GetFITShead(const char* filepath, bool); }
 
@@ -50,7 +51,7 @@ using std::vector;
 //-----------------------------------------------------------------------------
 
 #define debugPrint(message) \
-   { if (_cv_debugLevel) { \
+   { if (FITSImageIO::GetDebugLevel()) { \
         cerr << message << endl; \
      } \
    }
@@ -59,7 +60,7 @@ using std::vector;
 // max(): local proc
 //-----------------------------------------------------------------------------
 
-/*local proc*/ template <class T> T
+/*local*/ proc template <class T> T
 max(T a, T b) {
   if (a > b) return a;
   else return b;
@@ -106,7 +107,7 @@ max(T a, T b) {
 // Returns true iff \a filepath ends with an extension that indicates
 // that it is a FITS file.
 
-/*local proc*/ static bool
+local proc bool
 checkExtension(const string& filepath)
 {
   static itksys::RegularExpression fitsRE =
@@ -139,7 +140,7 @@ checkExtension(const string& filepath)
 // getAllFitsErrorMessages(): local proc
 //-----------------------------------------------------------------------------
 
-/*local proc*/ string
+local proc string
 getAllFitsErrorMessages(const int status)
 {
   string retval;
@@ -162,10 +163,56 @@ getAllFitsErrorMessages(const int status)
 // square(): local inline proc
 //-----------------------------------------------------------------------------
 
-/*local proc*/ inline double
+local proc inline double
 square(double x)
 {
   return x * x;
+}
+
+
+//-----------------------------------------------------------------------------
+// rightMulitply(): local proc
+//-----------------------------------------------------------------------------
+
+local proc void
+mulitply(const double A[3][3], vector<double> B[3])
+{
+  double retval[3][3];
+  for (int row = 0; row < 3; ++row) {
+    for (int col = 0; col < 3; ++col) {
+      retval[row][col] = 0;
+    }
+  }
+
+  for (int row = 0; row < 3; ++row) {
+    for (int col = 0; col < 3; ++col) {
+      for (int i = 0; i < 3; ++i) {
+	retval[row][col] += A[row][i] * B[i][col];
+      }
+    }
+  }
+
+  for (int row = 0; row < 3; ++row) {
+    for (int col = 0; col < 3; ++col) {
+      B[row][col] = retval[row][col];
+    }
+  }
+}
+
+
+//-----------------------------------------------------------------------------
+// rightMulitply(): local proc
+//-----------------------------------------------------------------------------
+
+local proc void
+rotateTransform(vector<double> T[3], double degrees)
+{
+  const double s = sin(degrees/180 * PI);
+  const double c = cos(degrees/180 * PI);
+  double rotationMatrix[3][3] = { c, 0, s,
+				  0, 1, 0,
+				  -s, 0, c };
+  mulitply(rotationMatrix, T);
 }
 
 
@@ -186,9 +233,10 @@ double FITSImageIO::_cv_nullValue = 0.0; // The default of 0.0 causes NaN's
                                          // to be left as NaN's, rather than
                                          // converted to 0.0, as one would
                                          // naively expect.
+bool   FITSImageIO::_cv_suppressWCS = false;
 double FITSImageIO::_cv_rotateSky = 0;     
-double FITSImageIO::_cv_rotateDecIntoVelocityAxis = 0;
-double FITSImageIO::_cv_rotateRAIntoVelocityAxis = 0;
+double FITSImageIO::_cv_rollRA = 0;
+double FITSImageIO::_cv_rollDec = 0;
 double FITSImageIO::_cv_scaleVoxelValues = 1;
 double FITSImageIO::_cv_scaleRA = 1;
 double FITSImageIO::_cv_scaleDec = 1;
@@ -206,7 +254,7 @@ bool   FITSImageIO::_cv_suppressMetaDataDictionary = false;
 // getFitsHeader(): private method of FITSImageIO
 //-----------------------------------------------------------------------------
 
-/*private method*/ string
+private_method string
 FITSImageIO::getFitsHeader()
 {
   int status = 0;
@@ -237,7 +285,7 @@ FITSImageIO::getFitsHeader()
 // CanReadFile(): inherited virtual method
 //-----------------------------------------------------------------------------
 
-/*method*/ bool
+method bool
 FITSImageIO::CanReadFile(const char* const filepath) 
 { 
   debugPrint("Entering FITSImageIO::CanReadFile().")
@@ -259,7 +307,7 @@ FITSImageIO::CanReadFile(const char* const filepath)
 // CanWriteFile(): inherited virtual method
 //-----------------------------------------------------------------------------
 
-/*method*/ bool
+method bool
 FITSImageIO::CanWriteFile(const char* const name)
 {
   
@@ -290,75 +338,37 @@ FITSImageIO::CanWriteFile(const char* const name)
 
 
 //-----------------------------------------------------------------------------
-// ReadImageInformation(): inherited virtual method
+// calcWCSCoordinateFrame(): local proc
 //-----------------------------------------------------------------------------
 
-/*method*/ void
-FITSImageIO::ReadImageInformation()
+
+
+
+
+//-----------------------------------------------------------------------------
+// calcCoordinateFrame(): local proc
+//-----------------------------------------------------------------------------
+
+local void
+calcCoordinateFrame(const string& fitsHeader,
+		    const long lengthsOfAxesInPixels[],
+		    double origin[],
+		    double spacing[],
+		    vector<double> directionCosines[],
+		    FITSWCSTransform<double, 3>::Pointer& transform)
 {
-  // CFITSIO writes to this to indicate errors:
-  int status = 0;   
-
-  // Open the FITS file:
-  ::fits_open_file(&m_fitsFile, this->GetFileName(), READONLY, &status);
-  if (status) {
-    itkExceptionMacro("FITSImageIO could not open FITS file: \""
-                      << this->GetFileName() << "\" for reading: "
-                      << ::getAllFitsErrorMessages(status) << '.');
-  }
-
-  debugPrint("Entering FITSImageIO::ReadImageInformation().");
-
-  // Get the dimensions and type of the FITS Primary Array:
-  int numOfAxes;
-  long lengthOfAxisInPixels[NGP_MAX_ARRAY_DIM];
-  int bitsPerPixel;
-  ::fits_get_img_param(m_fitsFile, NGP_MAX_ARRAY_DIM, &bitsPerPixel,
-                       &numOfAxes, lengthOfAxisInPixels, &status);
-  if (status) {
-    itkExceptionMacro("FITSImageIO could not read Primary Array parameters "
-                      "from FITS file \""
-                      << this->GetFileName() << "\":"
-                      << ::getAllFitsErrorMessages(status) << '.');
-  }
-
-  debugPrint("NAXIS=" << numOfAxes);
-  if (_cv_debugLevel) {
-    cerr << "DIMS=";
-    for (long i = 0; i < numOfAxes; ++i) {
-      cerr << " " << lengthOfAxisInPixels[i];
-    }
-    cerr << endl;
-  }
-  debugPrint("BPP= " << bitsPerPixel);
-
-  if (numOfAxes != 3) {
-    itkExceptionMacro("FITSImageIO cannot handle FITS Primary Arrays that are"
-                      " anything other than three dimensional.");
-    
-    // TODO: Remove this restriction?
-  }
-
-  // BEGIN getting RA and Dec of border pixels.
-
-  // TODO: Check to make sure that wcsinit copies the string handed to it by
-  // fitsHeader.c_str(), as I believe that the string returned by
-  // fitsHeader.c_str() will go stale as soon as fitsHeader goes out of scope.
-
-  string fitsHeader = getFitsHeader();
   WorldCoor* wcs = wcsinit(fitsHeader.c_str());
   const ConstRcMallocPointer<WorldCoor> wcsRcPtr = wcs;
   typedef itk::FITSWCSTransform<double, 3> WCSTransform;
-  m_transform = WCSTransform::New();
-  m_transform->SetWCS(wcsRcPtr);
-  m_transform->ApplySettings();
+  transform = WCSTransform::New();
+  transform->SetWCS(wcsRcPtr);
 
   double lowerLeftRA, lowerLeftDec;
   pix2wcs(wcs, 1, 1, &lowerLeftRA, &lowerLeftDec);
   double lowerRightRA, lowerRightDec;
-  pix2wcs(wcs, lengthOfAxisInPixels[0], 1, &lowerRightRA, &lowerRightDec);
+  pix2wcs(wcs, lengthsOfAxesInPixels[0], 1, &lowerRightRA, &lowerRightDec);
   double upperLeftRA, upperLeftDec;
-  pix2wcs(wcs, 1, lengthOfAxisInPixels[1], &upperLeftRA, &upperLeftDec);
+  pix2wcs(wcs, 1, lengthsOfAxesInPixels[1], &upperLeftRA, &upperLeftDec);
 
   debugPrint("Before correcting for equinox crossing:");
   debugPrint("LL: RA=" << lowerLeftRA << ' ' << "Dec=" << lowerLeftDec);
@@ -366,14 +376,14 @@ FITSImageIO::ReadImageInformation()
   debugPrint("LR: RA=" << lowerRightRA << ' ' << "Dec=" << lowerRightDec);
 
   // If we are in debug output mode, then test out the FITSWCSTransform object:
-  if (_cv_debugLevel) {
+  if (FITSImageIO::GetDebugLevel()) {
     WCSTransform::Pointer inverseTransform = WCSTransform::New();
-    m_transform->GetInverse(inverseTransform);
+    transform->GetInverse(inverseTransform);
     WCSTransform::InputPointType ijkPoint;
     WCSTransform::OutputPointType wcsPoint;
     ijkPoint[0] = 1;
-    ijkPoint[1] = lengthOfAxisInPixels[1];
-    wcsPoint = m_transform->TransformPoint(ijkPoint);
+    ijkPoint[1] = lengthsOfAxesInPixels[1];
+    wcsPoint = transform->TransformPoint(ijkPoint);
     cerr << "Value of transformed UL point: " << wcsPoint << endl;
     ijkPoint[0] = -666;
     ijkPoint[1] = -666;
@@ -446,13 +456,13 @@ FITSImageIO::ReadImageInformation()
 
   // BEGIN Calculate the change-of-basis matrix, "C":
   const double raPerI =
-    (lowerRightRA - lowerLeftRA) / (lengthOfAxisInPixels[0] - 1);
+    (lowerRightRA - lowerLeftRA) / (lengthsOfAxesInPixels[0] - 1);
   const double decPerI =
-    (lowerRightDec - lowerLeftDec)/(lengthOfAxisInPixels[0] - 1);
+    (lowerRightDec - lowerLeftDec)/(lengthsOfAxesInPixels[0] - 1);
   const double raPerJ =
-    (upperLeftRA - lowerLeftRA) / (lengthOfAxisInPixels[1] - 1);
+    (upperLeftRA - lowerLeftRA) / (lengthsOfAxesInPixels[1] - 1);
   const double decPerJ = 
-    (upperLeftDec - lowerLeftDec)/(lengthOfAxisInPixels[1] - 1);
+    (upperLeftDec - lowerLeftDec)/(lengthsOfAxesInPixels[1] - 1);
 
   debugPrint("raPerI=" << raPerI);
   debugPrint("decPerI=" <<  decPerI);
@@ -461,7 +471,7 @@ FITSImageIO::ReadImageInformation()
 
   double velocityPerK;
 
-  if (_cv_autoScaleVelocityAxis) {
+  if (FITSImageIO::GetAutoScaleVelocityAxis()) {
 
     // Calculate length of each side of the sky rectangle in RA/Dec
     // coordinates:
@@ -472,15 +482,15 @@ FITSImageIO::ReadImageInformation()
     debugPrint("rectWidth= " << rectWidth);
     debugPrint("rectHeight= " << rectHeight);
 
-    velocityPerK = max(rectWidth, rectHeight) / lengthOfAxisInPixels[2]
-      * _cv_scaleVelocityAxis;
+    velocityPerK = max(rectWidth, rectHeight) / lengthsOfAxesInPixels[2]
+      * FITSImageIO::GetScaleVelocityAxis();
 
   } else {
 
     // TODO: This is not the right value at all!  It really needs to be
     // determinded from the FITS headers (and then scaled by
     // _cv_scaleVelocityAxis):
-    velocityPerK = _cv_scaleVelocityAxis;
+    velocityPerK = FITSImageIO::GetScaleVelocityAxis();
   }
 
   debugPrint("velocityPerK=" << velocityPerK);
@@ -492,16 +502,18 @@ FITSImageIO::ReadImageInformation()
   // nonsensical things, like 0 for the image origin, immediately below.
 
   // Create the origin vector (what we called "o" in the exposition above):
-  const double origin[3] = { lowerLeftRA, 0, lowerLeftDec };
+  origin[0] = lowerLeftRA;
+  origin[1] = 0;
+  origin[2] = lowerLeftDec;
 
   // Create the change-of-basis matrix (what we called "C" in the exposition
-  // above):
+  // above).  The matrix is in row-major order:
   vector<double> changeOfBasisMatrix[3];
   for (int axis = 0; axis < 3; ++axis) {
     changeOfBasisMatrix[axis].resize(3);
   }
 
-  // Each column of the matrix represents a vector that transform a
+  // Each column of the matrix represents a vector that transforms a
   // unit vector in i, j, k space to RA, V, DEC (a.k.a. LPS) space:
 
   const int ra  = 0;
@@ -512,11 +524,11 @@ FITSImageIO::ReadImageInformation()
   const int j   = 1;
   const int k   = 2;
 
-  changeOfBasisMatrix[ra] [i] = raPerI * _cv_scaleRA;
+  changeOfBasisMatrix[ra] [i] = raPerI * FITSImageIO::GetScaleRA();
   changeOfBasisMatrix[vel][i] = 0;
   changeOfBasisMatrix[dec][i] = decPerI;
 
-  changeOfBasisMatrix[ra] [j] = raPerJ * _cv_scaleRA;
+  changeOfBasisMatrix[ra] [j] = raPerJ * FITSImageIO::GetScaleRA();
   changeOfBasisMatrix[vel][j] = 0;
   changeOfBasisMatrix[dec][j] = decPerJ;
 
@@ -527,7 +539,7 @@ FITSImageIO::ReadImageInformation()
 
   // END Calculate the change-of-basis matrix.
 
-  if (_cv_debugLevel) {
+  if (FITSImageIO::GetDebugLevel()) {
     cerr << "Change-of-basis matrix:\n";
     for (int row = 0; row < 3; ++row) {
       for (int col = 0; col < 3; ++col) {
@@ -537,16 +549,19 @@ FITSImageIO::ReadImageInformation()
     }
   }
 
+  // Apply the sky rotation to the change of basis matrix:
+  rotateTransform(changeOfBasisMatrix, FITSImageIO::GetRotateSky());
+
+
   // TODO: Extract the dimensions for the velocity spectrum from the FITS 
   // file rather than punting and just setting it to 1 as we have done above.
 
-  // Create a direction cosine matrix and spacing vector from the
+  // Create a direction cosine matrix and spacing vector by factoring the
   // change-of-basis matrix.  The direction cosines are calculated by
-  // normalizing the direction vectors contained in the change-of-basis matrix
-  // (i.e., dividing their values by , while also populating the spacing
-  // vector:
-  double spacing[3];
-  vector<double> directionCosines[3];
+  // normalizing the direction vectors contained within the change-of-basis
+  // matrix (i.e., dividing the values in each vector by the length of the
+  // vector), while also populating the spacing vector with the lengths of the
+  // direction vectors:
 
 //   for (int i = 0; i < 3; ++i) {
 //     directionCosines[i].resize(3);
@@ -590,7 +605,75 @@ FITSImageIO::ReadImageInformation()
 
 
   for (int indexAxis = 0; indexAxis < 3; ++indexAxis) {
-    spacing[indexAxis] *= _cv_scaleAllAxes;
+    spacing[indexAxis] *= FITSImageIO::GetScaleAllAxes();
+  }
+}
+
+
+//-----------------------------------------------------------------------------
+// ReadImageInformation(): inherited virtual method
+//-----------------------------------------------------------------------------
+
+method void
+FITSImageIO::ReadImageInformation()
+{
+  // CFITSIO writes to this to indicate errors:
+  int status = 0;   
+
+  // Open the FITS file:
+  ::fits_open_file(&m_fitsFile, this->GetFileName(), READONLY, &status);
+  if (status) {
+    itkExceptionMacro("FITSImageIO could not open FITS file: \""
+                      << this->GetFileName() << "\" for reading: "
+                      << ::getAllFitsErrorMessages(status) << '.');
+  }
+
+  debugPrint("Entering FITSImageIO::ReadImageInformation().");
+
+  // Get the dimensions and type of the FITS Primary Array:
+  int numOfAxes;
+  long lengthsOfAxesInPixels[NGP_MAX_ARRAY_DIM];
+  int bitsPerPixel;
+  ::fits_get_img_param(m_fitsFile, NGP_MAX_ARRAY_DIM, &bitsPerPixel,
+                       &numOfAxes, lengthsOfAxesInPixels, &status);
+  if (status) {
+    itkExceptionMacro("FITSImageIO could not read Primary Array parameters "
+                      "from FITS file \""
+                      << this->GetFileName() << "\":"
+                      << ::getAllFitsErrorMessages(status) << '.');
+  }
+
+  debugPrint("NAXIS=" << numOfAxes);
+  if (_cv_debugLevel) {
+    cerr << "DIMS=";
+    for (long i = 0; i < numOfAxes; ++i) {
+      cerr << " " << lengthsOfAxesInPixels[i];
+    }
+    cerr << endl;
+  }
+  debugPrint("BPP= " << bitsPerPixel);
+
+  if (numOfAxes != 3) {
+    itkExceptionMacro("FITSImageIO cannot handle FITS Primary Arrays that are"
+                      " anything other than three dimensional.");
+    
+    // TODO: Remove this restriction?
+  }
+
+  // BEGIN getting RA and Dec of border pixels.
+
+  // TODO: Check to make sure that wcsinit copies the string handed to it by
+  // fitsHeader.c_str(), as I believe that the string returned by
+  // fitsHeader.c_str() will go stale as soon as fitsHeader goes out of scope.
+
+  string fitsHeader = getFitsHeader();
+
+  double origin[3];
+  double spacing[3];
+  vector<double> directionCosines[3];
+  if (!_cv_suppressWCS) {
+    itk::calcCoordinateFrame(fitsHeader, lengthsOfAxesInPixels, origin,
+			     spacing, directionCosines, m_transform);
   }
 
   // Set up the ITK image:
@@ -598,23 +681,31 @@ FITSImageIO::ReadImageInformation()
   this->SetPixelType(SCALAR);
   this->SetComponentType(FLOAT);
   this->SetNumberOfDimensions(numOfAxes);
-  for (int indexAxis = 0; indexAxis < numOfAxes; ++indexAxis) {
-    this->SetDimensions(indexAxis, lengthOfAxisInPixels[indexAxis]);
-    this->SetOrigin(indexAxis, origin[indexAxis]);
-    this->SetSpacing(indexAxis, spacing[indexAxis]);
-    this->SetDirection(indexAxis, directionCosines[indexAxis]);
 
-    // Write debugging output if debug output option is set:
-    if (_cv_debugLevel) {
-      cerr << "spacing=" << indexAxis << "," << spacing[indexAxis] << " ";
-      cerr << "directions=";
-      for (int physicalAxis = 0; physicalAxis < 3; ++physicalAxis) {
-	cerr << directionCosines[indexAxis][physicalAxis] << " ";
+  // YOU ARE HERE.  These changes are causing a core dump.  Maybe you have to
+  // set the orgin and spacing, etc.
+
+  for (int indexAxis = 0; indexAxis < numOfAxes; ++indexAxis) {
+    this->SetDimensions(indexAxis, lengthsOfAxesInPixels[indexAxis]);
+    this->SetSpacing(indexAxis, 1);
+  }
+  if (!_cv_suppressWCS) {
+    for (int indexAxis = 0; indexAxis < numOfAxes; ++indexAxis) {
+      this->SetOrigin(indexAxis, origin[indexAxis]);
+      this->SetSpacing(indexAxis, spacing[indexAxis]);
+      this->SetDirection(indexAxis, directionCosines[indexAxis]);
+
+      // Write debugging output if debug output option is set:
+      if (_cv_debugLevel) {
+	cerr << "spacing=" << indexAxis << "," << spacing[indexAxis] << " ";
+	cerr << "directions=";
+	for (int physicalAxis = 0; physicalAxis < 3; ++physicalAxis) {
+	  cerr << directionCosines[indexAxis][physicalAxis] << " ";
+	}
+	cerr << endl;
       }
-      cerr << endl;
     }
   }
-
 
   if (_cv_suppressMetaDataDictionary) {
     debugPrint("Suppressing modification of the MetaDataDictionary.");
@@ -697,14 +788,14 @@ FITSImageIO::ReadImageInformation()
 //                                               stringValue);
 //     }
 
-}
+} // end namespace fitsio
 
 
 //-----------------------------------------------------------------------------
 // Read(): inherited virtual method
 //-----------------------------------------------------------------------------
 
-/*method*/ void
+method void
 FITSImageIO::Read(void* const buffer)
 {
   // TODO: At some point we might want to preserve the native pixel
@@ -772,7 +863,7 @@ FITSImageIO::Read(void* const buffer)
 
 //! Not yet implemented.
 
-/*method*/ void 
+method void 
 FITSImageIO::WriteImageInformation()
 {
   // TODO: Implement with help of cfitsio
@@ -787,7 +878,7 @@ FITSImageIO::WriteImageInformation()
 
 //! Not yet implemented.
 
-/*method*/ void 
+method void 
 FITSImageIO::Write(const void* const buffer) 
 {
   // TODO: Maybe implement this someday.
@@ -800,7 +891,7 @@ FITSImageIO::Write(const void* const buffer)
 // PrintSelf(): inherited virtual method
 //-----------------------------------------------------------------------------
 
-/*method*/ void
+method void
 FITSImageIO::PrintSelf(ostream& os, const Indent indent) const
 {
   Superclass::PrintSelf(os, indent);
