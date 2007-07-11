@@ -76,6 +76,7 @@ PrintSelf(std::ostream &os, Indent indent) const
 method FITSWCSTransform<double, 3>::OutputPointType
 FITSWCSTransform<double, 3>::TransformPoint(const InputPointType &point) const
 {
+  assert(m_wcs);
 
   OutputPointType retval;
    

@@ -104,6 +104,13 @@ verboseUsage()
 }
 
 
+local proc void
+checkEndptr(const char* endptr)
+{
+  if (*endptr != '\0') usage();
+}
+
+
 //-----------------------------------------------------------------------------
 // debugPrint(): local macro
 //-----------------------------------------------------------------------------
@@ -183,17 +190,24 @@ method void CommandLineParser::
 parseCommandLine(const int argc, const char* const argv[])
 {
   ::opterr = true;
+  char* endptr;
+  
   char optionChar;
   const int cBase10 = 10;
   string extendedOption;
   int verboseHelpFlag = false;
   int typicalFlag = false;
+  int rotateSkyFlag = false;
+  int noWcsFlag = false;
 
   // Specify the allowed options:
   const char shortopts[] = "Aa:D:fhN:o:Rr:Ss:Uv:";
   struct option longopts[] = {
     { "help", no_argument, &verboseHelpFlag, true },
     { "typical", no_argument, &typicalFlag, true },
+    { "rotate-sky", required_argument, &rotateSkyFlag,
+      true },
+    { "no-wcs", no_argument, &noWcsFlag, true},
     { null, 0, null, 0 }
   };
 
@@ -213,7 +227,14 @@ parseCommandLine(const int argc, const char* const argv[])
         break;
 
       case 'a':
-	itk::FITSImageIO::SetScaleAllAxes(strtod(optarg, null));
+	itk::FITSImageIO::SetScaleAllAxes(strtod(optarg, &endptr));
+	::checkEndptr(endptr);
+	break;
+
+      case 'd':
+	// YOU ARE HERE
+	// itk::FITSImageIO::SetScaleDec(strtod(optarg, &endptr));
+	// ::checkEndptr(endptr);
 	break;
 
       case 'D':
@@ -224,20 +245,17 @@ parseCommandLine(const int argc, const char* const argv[])
       case 'h': ::usage(false);
 
       case 'N':
-	itk::FITSImageIO::SetNullValue(strtod(optarg, null));
+	itk::FITSImageIO::SetNullValue(strtod(optarg, &endptr));
+	::checkEndptr(endptr);
 	break;
 
       case 'o':
 	Cl::parseExtendedOption(optarg);
 	break;
 
-      case 'R':
-	// TODO: This isn't implemented yet.
-	itk::FITSImageIO::SetRotateSky(strtod(optarg, null));
-	break;
-
       case 'r':
-	itk::FITSImageIO::SetScaleRA(strtod(optarg, null));
+	itk::FITSImageIO::SetScaleRA(strtod(optarg, &endptr));
+	::checkEndptr(endptr);
 	break;
 
       case 'S':
@@ -245,7 +263,8 @@ parseCommandLine(const int argc, const char* const argv[])
         break;
 
       case 's':
-        itk::FITSImageIO::SetScaleVoxelValues(strtod(optarg, null));
+        itk::FITSImageIO::SetScaleVoxelValues(strtod(optarg, &endptr));
+	::checkEndptr(endptr);
         break;
 
       case 'U':
@@ -255,7 +274,8 @@ parseCommandLine(const int argc, const char* const argv[])
       case 'v':
         // TODO: Make the following (and other similar code here) more
         // robust:
-        itk::FITSImageIO::SetScaleVelocityAxis(strtod(optarg, null));
+        itk::FITSImageIO::SetScaleVelocityAxis(strtod(optarg, &endptr));
+	::checkEndptr(endptr);
         break;
 
 
@@ -277,10 +297,18 @@ parseCommandLine(const int argc, const char* const argv[])
 	if (verboseHelpFlag) {
 	  ::verboseUsage();
 	} else if (typicalFlag) {
+	  typicalFlag = false;
 	  itk::FITSImageIO::SetAutoScaleVelocityAxis(true);
 	  itk::FITSImageIO::SetScaleAllAxes(1000);
 	  itk::FITSImageIO::SetScaleRA(-1);
 	  itk::FITSImageIO::SetScaleVoxelValues(1000);
+	} else if (rotateSkyFlag) {
+	  rotateSkyFlag = false;
+	  itk::FITSImageIO::SetRotateSky(strtod(optarg, &endptr));
+	  ::checkEndptr(endptr);
+	} else if (noWcsFlag) {
+	  noWcsFlag = false;
+	  itk::FITSImageIO::SetSuppressWCS(true);
 	} else {
 	  ::usage();
 	}
@@ -315,7 +343,7 @@ parseExtendedOption(const char* const option)
   } else if (optionStr == "binomialBlur") {
     _cv_binomialBlurFlag = true;
   } else if (optionStr == "suppressMetaDataDictionary") {
-    itk::FITSImageIO::SuppressMetaDataDictionary();
+    itk::FITSImageIO::SetSuppressMetaDataDictionary(true);
   } else if (optionStr == "identityFlip") {
     _cv_identityFlipFlag = true;
   } else ::usage();
