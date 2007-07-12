@@ -12,7 +12,7 @@
 //=============================================================================
 
 
-extern const char fits2itkVersion[] = "Version 0.4dev.2pending";
+extern const char fits2itkVersion[] = "Version 0.4dev.2pending.1";
 
 
 //=============================================================================
@@ -232,15 +232,26 @@ extern const char fits2itkVersion[] = "Version 0.4dev.2pending";
 
 // Added --rotate-sky option to allow the user to specify a v-axis roll.
 
+// *** Wed Jul 11, 2007 ***
+
 // Added --no-wcs flag in order to allow pixel coordinates to be read off in
 // Slicer, rather than RA and Dec.  Also causes images to not be rotated or
 // squooshed at all due to the WCS information.
 
+//---------------------------
+// Version 0.4dev.2pending.1
+//---------------------------
+
+// *** Wed Jul 11, 2007 ***
+
+// Refactored code a bit as support for the "--no-wcs" flag was rather ugly.
+
+// Now the "--no-wcs" flag can be used in conjunction with other scaling
+// options, which wouldn't work before.
+
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
 //----------------------------------------------------------------------
-
-// TODO: Refactor code a bit as support for the "--no-wcs" flag is rather ugly.
 
 // TODO: Adding "--scale-dec" option to allow the user to scale the declination
 // axis.

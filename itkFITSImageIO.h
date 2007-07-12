@@ -82,8 +82,8 @@ public:
                  { _cv_debugLevel = debugLevel; }
   static void SetRotateSky(double degrees)
                  { _cv_rotateSky = degrees; }
-  static void SetScaleVelocityAxis(double scalingFactor)
-                 { _cv_scaleVelocityAxis = scalingFactor; }
+  static void SetScaleVelocity(double scalingFactor)
+                 { _cv_scaleVelocity = scalingFactor; }
   static void SetAutoScaleVelocityAxis(bool flag)
                  { _cv_autoScaleVelocityAxis = flag; }
   static void SetScaleVoxelValues(double scalingFactor)
@@ -98,13 +98,13 @@ public:
                  { _cv_suppressMetaDataDictionary = flag; }
 					
   // Static getter procedures:
-  static bool   GetNoWCS() { return _cv_suppressWCS; }
+  static bool   GetSuppressWCS() { return _cv_suppressWCS; }
   static int    GetDebugLevel()
                  { return _cv_debugLevel; }
   static double GetRotateSky()
                  { return _cv_rotateSky; }
-  static double GetScaleVelocityAxis()
-                 { return _cv_scaleVelocityAxis; }
+  static double GetScaleVelocity()
+                 { return _cv_scaleVelocity; }
   static bool   GetAutoScaleVelocityAxis()
                  { return _cv_autoScaleVelocityAxis; }
   static double GetScaleVoxelValues()
@@ -154,7 +154,7 @@ private:
   static double _cv_scaleVoxelValues;
   static double _cv_scaleRA;
   static double _cv_scaleDec;
-  static double _cv_scaleVelocityAxis;
+  static double _cv_scaleVelocity;
   static bool   _cv_autoScaleVelocityAxis;
   static double _cv_scaleAllAxes;
   static bool   _cv_suppressMetaDataDictionary;
