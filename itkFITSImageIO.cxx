@@ -43,6 +43,14 @@ using std::vector;
 
 
 //*****************************************************************************
+//*****				Local constants                           *****
+//*****************************************************************************
+
+enum CelestialCoordinateAxis { c_ra, c_vel, c_dec };
+enum FitsImageArrayAxis { c_i, c_j, c_k };
+
+
+//*****************************************************************************
 //*****              Local procedures and classes                         *****
 //*****************************************************************************
 
@@ -175,7 +183,7 @@ square(double x)
 //-----------------------------------------------------------------------------
 
 local proc void
-mulitply(const double A[3][3], vector<double> B[3])
+mulitply(const double leftMatrix[3][3], vector<double> rightMatrix[3])
 {
   double retval[3][3];
   for (int row = 0; row < 3; ++row) {
@@ -187,32 +195,79 @@ mulitply(const double A[3][3], vector<double> B[3])
   for (int row = 0; row < 3; ++row) {
     for (int col = 0; col < 3; ++col) {
       for (int i = 0; i < 3; ++i) {
-	retval[row][col] += A[row][i] * B[i][col];
+	retval[row][col] += leftMatrix[row][i] * rightMatrix[i][col];
       }
     }
   }
 
   for (int row = 0; row < 3; ++row) {
     for (int col = 0; col < 3; ++col) {
-      B[row][col] = retval[row][col];
+      rightMatrix[row][col] = retval[row][col];
     }
   }
 }
 
 
 //-----------------------------------------------------------------------------
-// rightMulitply(): local proc
+// applySkyRotation(): local proc
 //-----------------------------------------------------------------------------
 
 local proc void
-rotateTransform(vector<double> T[3], double degrees)
+applySkyRotation(vector<double> changeOfBasisMatrix[3], double degrees)
 {
-  const double s = sin(degrees/180 * PI);
-  const double c = cos(degrees/180 * PI);
-  double rotationMatrix[3][3] = { c, 0, s,
-				  0, 1, 0,
-				  -s, 0, c };
-  mulitply(rotationMatrix, T);
+  if (degrees != 0) {
+    const double s = sin(degrees/180 * PI);
+    const double c = cos(degrees/180 * PI);
+    double rotationMatrix[3][3] = { c, 0, s,
+				    0, 1, 0,
+				    -s, 0, c };
+    mulitply(rotationMatrix, changeOfBasisMatrix);
+  }
+}
+
+
+//-----------------------------------------------------------------------------
+// applyRAScale(): local proc
+//-----------------------------------------------------------------------------
+
+local proc void
+applyRAScale(vector<double> changeOfBasisMatrix[3], double scaleFactor)
+{
+  if (scaleFactor != 1) {
+    for (int axis = c_i; axis <= c_k; ++axis) {
+      changeOfBasisMatrix[c_ra][axis] *= scaleFactor;
+    }
+  }
+}
+
+
+//-----------------------------------------------------------------------------
+// applyVelocityScale(): local proc
+//-----------------------------------------------------------------------------
+
+local proc void
+applyVelocityScale(vector<double> changeOfBasisMatrix[3], double scaleFactor)
+{
+  if (scaleFactor != 1) {
+    for (int axis = c_i; axis <= c_k; ++axis) {
+      changeOfBasisMatrix[c_vel][axis] *= scaleFactor;
+    }
+  }
+}
+
+
+//-----------------------------------------------------------------------------
+// applyScaleToAllAxes(): local proc
+//-----------------------------------------------------------------------------
+
+local proc void
+applyScaleToAllAxes(vector<double> changeOfBasisMatrix[3], double scaleFactor)
+{
+  if (scaleFactor != 1) {
+    for (int indexAxis = c_i; indexAxis <= c_k; ++indexAxis)
+      for (int physicalAxis = 0; physicalAxis < 3; ++physicalAxis)
+	  changeOfBasisMatrix[physicalAxis][indexAxis] *= scaleFactor;
+  }
 }
 
 
@@ -241,7 +296,7 @@ double FITSImageIO::_cv_scaleVoxelValues = 1;
 double FITSImageIO::_cv_scaleRA = 1;
 double FITSImageIO::_cv_scaleDec = 1;
 bool   FITSImageIO::_cv_autoScaleVelocityAxis = false;
-double FITSImageIO::_cv_scaleVelocityAxis = 1;
+double FITSImageIO::_cv_scaleVelocity = 1;
 double FITSImageIO::_cv_scaleAllAxes = 1;
 bool   FITSImageIO::_cv_suppressMetaDataDictionary = false;
 
@@ -341,21 +396,12 @@ FITSImageIO::CanWriteFile(const char* const name)
 // calcWCSCoordinateFrame(): local proc
 //-----------------------------------------------------------------------------
 
-
-
-
-
-//-----------------------------------------------------------------------------
-// calcCoordinateFrame(): local proc
-//-----------------------------------------------------------------------------
-
-local void
-calcCoordinateFrame(const string& fitsHeader,
-		    const long lengthsOfAxesInPixels[],
-		    double origin[],
-		    double spacing[],
-		    vector<double> directionCosines[],
-		    FITSWCSTransform<double, 3>::Pointer& transform)
+local void 
+calcWCSCoordinateFrame(const string& fitsHeader,
+		       const long lengthsOfAxesInPixels[],
+		       double origin[],
+		       vector<double> changeOfBasisMatrix[],
+		       FITSWCSTransform<double, 3>::Pointer& transform)
 {
   WorldCoor* wcs = wcsinit(fitsHeader.c_str());
   const ConstRcMallocPointer<WorldCoor> wcsRcPtr = wcs;
@@ -454,7 +500,6 @@ calcCoordinateFrame(const string& fitsHeader,
   // have to work with the facilities that 3D Slicer provides us, and so this
   // is the best that we can do for right now.
 
-  // BEGIN Calculate the change-of-basis matrix, "C":
   const double raPerI =
     (lowerRightRA - lowerLeftRA) / (lengthsOfAxesInPixels[0] - 1);
   const double decPerI =
@@ -482,15 +527,13 @@ calcCoordinateFrame(const string& fitsHeader,
     debugPrint("rectWidth= " << rectWidth);
     debugPrint("rectHeight= " << rectHeight);
 
-    velocityPerK = max(rectWidth, rectHeight) / lengthsOfAxesInPixels[2]
-      * FITSImageIO::GetScaleVelocityAxis();
+    velocityPerK = max(rectWidth, rectHeight) / lengthsOfAxesInPixels[2];
 
   } else {
 
     // TODO: This is not the right value at all!  It really needs to be
-    // determinded from the FITS headers (and then scaled by
-    // _cv_scaleVelocityAxis):
-    velocityPerK = FITSImageIO::GetScaleVelocityAxis();
+    // determinded from the FITS headers.
+    velocityPerK = 1;
   }
 
   debugPrint("velocityPerK=" << velocityPerK);
@@ -502,42 +545,60 @@ calcCoordinateFrame(const string& fitsHeader,
   // nonsensical things, like 0 for the image origin, immediately below.
 
   // Create the origin vector (what we called "o" in the exposition above):
-  origin[0] = lowerLeftRA;
-  origin[1] = 0;
-  origin[2] = lowerLeftDec;
-
-  // Create the change-of-basis matrix (what we called "C" in the exposition
-  // above).  The matrix is in row-major order:
-  vector<double> changeOfBasisMatrix[3];
-  for (int axis = 0; axis < 3; ++axis) {
-    changeOfBasisMatrix[axis].resize(3);
-  }
+  origin[c_ra ] = lowerLeftRA;
+  origin[c_dec] = lowerLeftDec;
+  origin[c_vel] = 0;
 
   // Each column of the matrix represents a vector that transforms a
   // unit vector in i, j, k space to RA, V, DEC (a.k.a. LPS) space:
+  {
+    changeOfBasisMatrix[c_ra] [c_i] = raPerI;
+    changeOfBasisMatrix[c_vel][c_i] = 0;
+    changeOfBasisMatrix[c_dec][c_i] = decPerI;
 
-  const int ra  = 0;
-  const int vel = 1;
-  const int dec = 2;
+    changeOfBasisMatrix[c_ra] [c_j] = raPerJ;
+    changeOfBasisMatrix[c_vel][c_j] = 0;
+    changeOfBasisMatrix[c_dec][c_j] = decPerJ;
 
-  const int i   = 0;
-  const int j   = 1;
-  const int k   = 2;
-
-  changeOfBasisMatrix[ra] [i] = raPerI * FITSImageIO::GetScaleRA();
-  changeOfBasisMatrix[vel][i] = 0;
-  changeOfBasisMatrix[dec][i] = decPerI;
-
-  changeOfBasisMatrix[ra] [j] = raPerJ * FITSImageIO::GetScaleRA();
-  changeOfBasisMatrix[vel][j] = 0;
-  changeOfBasisMatrix[dec][j] = decPerJ;
-
-  changeOfBasisMatrix[ra] [k] = 0;
-  changeOfBasisMatrix[vel][k] = velocityPerK;
-  changeOfBasisMatrix[dec][k] = 0;
+    changeOfBasisMatrix[c_ra] [c_k] = 0;
+    changeOfBasisMatrix[c_vel][c_k] = velocityPerK;
+    changeOfBasisMatrix[c_dec][c_k] = 0;
+  }
+}
 
 
-  // END Calculate the change-of-basis matrix.
+//-----------------------------------------------------------------------------
+// calcCoordinateFrame(): local proc
+//-----------------------------------------------------------------------------
+
+local void
+calcCoordinateFrame(const string& fitsHeader,
+		    const long lengthsOfAxesInPixels[],
+		    double origin[],
+		    double spacing[],
+		    vector<double> directionCosines[],
+		    FITSWCSTransform<double, 3>::Pointer& transform)
+{
+  // Initialize the origin to be (0, 0, 0).  It will remain so only in the
+  // default case:
+  origin[0] = 0;
+  origin[1] = 0;
+  origin[2] = 0;
+
+  // The default change-of-basis matrix, maps the FITS image array axes onto
+  // LPS axes, without doing any additional tranformations to map to physical
+  // coordinates.  This matrix will most likely end up being overwritten, but
+  // not all of the time:
+  vector<double> changeOfBasisMatrix[3];
+  for (int axis = 0; axis < 3; ++axis) changeOfBasisMatrix[axis].resize(3);
+  changeOfBasisMatrix[c_ra ][c_i] = 1;
+  changeOfBasisMatrix[c_dec][c_j] = 1;
+  changeOfBasisMatrix[c_vel][c_k] = 1;
+
+  if (!FITSImageIO::GetSuppressWCS()) {
+    calcWCSCoordinateFrame(fitsHeader, lengthsOfAxesInPixels, origin,
+			   changeOfBasisMatrix, transform);
+  }
 
   if (FITSImageIO::GetDebugLevel()) {
     cerr << "Change-of-basis matrix:\n";
@@ -549,8 +610,13 @@ calcCoordinateFrame(const string& fitsHeader,
     }
   }
 
-  // Apply the sky rotation to the change of basis matrix:
-  rotateTransform(changeOfBasisMatrix, FITSImageIO::GetRotateSky());
+  // YOU ARE HERE: I think we need to initialize m_transform with an identity
+  // transform, or something.
+
+  applySkyRotation(changeOfBasisMatrix, FITSImageIO::GetRotateSky());
+  applyRAScale(changeOfBasisMatrix, FITSImageIO::GetScaleRA());
+  applyVelocityScale(changeOfBasisMatrix, FITSImageIO::GetScaleVelocity());
+  applyScaleToAllAxes(changeOfBasisMatrix, FITSImageIO::GetScaleAllAxes());
 
 
   // TODO: Extract the dimensions for the velocity spectrum from the FITS 
@@ -671,10 +737,8 @@ FITSImageIO::ReadImageInformation()
   double origin[3];
   double spacing[3];
   vector<double> directionCosines[3];
-  if (!_cv_suppressWCS) {
-    itk::calcCoordinateFrame(fitsHeader, lengthsOfAxesInPixels, origin,
-			     spacing, directionCosines, m_transform);
-  }
+  itk::calcCoordinateFrame(fitsHeader, lengthsOfAxesInPixels, origin,
+			   spacing, directionCosines, m_transform);
 
   // Set up the ITK image:
   this->SetNumberOfComponents(1);
@@ -682,28 +746,21 @@ FITSImageIO::ReadImageInformation()
   this->SetComponentType(FLOAT);
   this->SetNumberOfDimensions(numOfAxes);
 
-  // YOU ARE HERE.  These changes are causing a core dump.  Maybe you have to
-  // set the orgin and spacing, etc.
-
+  // YOU ARE HERE.
   for (int indexAxis = 0; indexAxis < numOfAxes; ++indexAxis) {
     this->SetDimensions(indexAxis, lengthsOfAxesInPixels[indexAxis]);
-    this->SetSpacing(indexAxis, 1);
-  }
-  if (!_cv_suppressWCS) {
-    for (int indexAxis = 0; indexAxis < numOfAxes; ++indexAxis) {
-      this->SetOrigin(indexAxis, origin[indexAxis]);
-      this->SetSpacing(indexAxis, spacing[indexAxis]);
-      this->SetDirection(indexAxis, directionCosines[indexAxis]);
+    this->SetOrigin(indexAxis, origin[indexAxis]);
+    this->SetSpacing(indexAxis, spacing[indexAxis]);
+    this->SetDirection(indexAxis, directionCosines[indexAxis]);
 
-      // Write debugging output if debug output option is set:
-      if (_cv_debugLevel) {
-	cerr << "spacing=" << indexAxis << "," << spacing[indexAxis] << " ";
-	cerr << "directions=";
-	for (int physicalAxis = 0; physicalAxis < 3; ++physicalAxis) {
-	  cerr << directionCosines[indexAxis][physicalAxis] << " ";
-	}
-	cerr << endl;
+    // Write debugging output if debug output option is set:
+    if (_cv_debugLevel) {
+      cerr << "spacing=" << indexAxis << "," << spacing[indexAxis] << " ";
+      cerr << "directions=";
+      for (int physicalAxis = 0; physicalAxis < 3; ++physicalAxis) {
+	cerr << directionCosines[indexAxis][physicalAxis] << " ";
       }
+      cerr << endl;
     }
   }
 

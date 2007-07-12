@@ -274,7 +274,7 @@ parseCommandLine(const int argc, const char* const argv[])
       case 'v':
         // TODO: Make the following (and other similar code here) more
         // robust:
-        itk::FITSImageIO::SetScaleVelocityAxis(strtod(optarg, &endptr));
+        itk::FITSImageIO::SetScaleVelocity(strtod(optarg, &endptr));
 	::checkEndptr(endptr);
         break;
 
@@ -330,6 +330,9 @@ parseCommandLine(const int argc, const char* const argv[])
 //-----------------------------------------------------------------------------
 // parseExtendedOption(): private non-virtual method
 //-----------------------------------------------------------------------------
+
+// TODO: Replace this stuff with long options, which I have started using since
+// originally implementing this.
 
 method void CommandLineParser::
 parseExtendedOption(const char* const option)
