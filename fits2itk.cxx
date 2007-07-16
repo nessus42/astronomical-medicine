@@ -199,6 +199,7 @@ parseCommandLine(const int argc, const char* const argv[])
   int typicalFlag = false;
   int rotateSkyFlag = false;
   int noWcsFlag = false;
+  int scaleDecFlag = false;
 
   // Specify the allowed options:
   const char shortopts[] = "Aa:D:fhN:o:Rr:Ss:Uv:";
@@ -208,6 +209,7 @@ parseCommandLine(const int argc, const char* const argv[])
     { "rotate-sky", required_argument, &rotateSkyFlag,
       true },
     { "no-wcs", no_argument, &noWcsFlag, true},
+    { "scale-dec", required_argument, &scaleDecFlag, true },
     { null, 0, null, 0 }
   };
 
@@ -309,6 +311,10 @@ parseCommandLine(const int argc, const char* const argv[])
 	} else if (noWcsFlag) {
 	  noWcsFlag = false;
 	  itk::FITSImageIO::SetSuppressWCS(true);
+	} else if (scaleDecFlag) {
+	  scaleDecFlag = false;
+	  itk::FITSImageIO::SetScaleDec(strtod(optarg, &endptr));
+	  ::checkEndptr(endptr);
 	} else {
 	  ::usage();
 	}

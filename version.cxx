@@ -12,7 +12,7 @@
 //=============================================================================
 
 
-extern const char fits2itkVersion[] = "Version 0.4dev.2pending.1";
+extern const char fits2itkVersion[] = "Version 0.4dev.2pending.2";
 
 
 //=============================================================================
@@ -249,9 +249,12 @@ extern const char fits2itkVersion[] = "Version 0.4dev.2pending.1";
 // Now the "--no-wcs" flag can be used in conjunction with other scaling
 // options, which wouldn't work before.
 
+//---------------------------
+// Version 0.4dev.2pending.2
+//---------------------------
+
+// Added "--scale-dec" option to allow the user to scale the declination axis.
+
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
 //----------------------------------------------------------------------
-
-// TODO: Adding "--scale-dec" option to allow the user to scale the declination
-// axis.

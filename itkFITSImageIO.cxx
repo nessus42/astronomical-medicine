@@ -242,6 +242,21 @@ applyRAScale(vector<double> changeOfBasisMatrix[3], double scaleFactor)
 
 
 //-----------------------------------------------------------------------------
+// applyDecScale(): local proc
+//-----------------------------------------------------------------------------
+
+local proc void
+applyDecScale(vector<double> changeOfBasisMatrix[3], double scaleFactor)
+{
+  if (scaleFactor != 1) {
+    for (int axis = c_i; axis <= c_k; ++axis) {
+      changeOfBasisMatrix[c_dec][axis] *= scaleFactor;
+    }
+  }
+}
+
+
+//-----------------------------------------------------------------------------
 // applyVelocityScale(): local proc
 //-----------------------------------------------------------------------------
 
@@ -531,8 +546,10 @@ calcWCSCoordinateFrame(const string& fitsHeader,
 
   } else {
 
-    // TODO: This is not the right value at all!  It really needs to be
-    // determinded from the FITS headers.
+    // TODO: Here we are just setting each voxel to one unit of velocity, which
+    // is rather arbitrary.  Really we should figure out how to get this
+    // information out of the FITS header.  The WCS library that we are using
+    // does not support this, however.
     velocityPerK = 1;
   }
 
@@ -615,41 +632,35 @@ calcCoordinateFrame(const string& fitsHeader,
 
   applySkyRotation(changeOfBasisMatrix, FITSImageIO::GetRotateSky());
   applyRAScale(changeOfBasisMatrix, FITSImageIO::GetScaleRA());
+  applyDecScale(changeOfBasisMatrix, FITSImageIO::GetScaleDec());
   applyVelocityScale(changeOfBasisMatrix, FITSImageIO::GetScaleVelocity());
   applyScaleToAllAxes(changeOfBasisMatrix, FITSImageIO::GetScaleAllAxes());
 
 
-  // TODO: Extract the dimensions for the velocity spectrum from the FITS 
-  // file rather than punting and just setting it to 1 as we have done above.
+  { // Create a direction cosine matrix and spacing vector by factoring the
+    // change-of-basis matrix.  The direction cosines are calculated by
+    // normalizing the direction vectors contained within the change-of-basis
+    // matrix (i.e., dividing the values in each vector by the length of the
+    // vector), while also populating the spacing vector with the lengths of
+    // the direction vectors.
 
-  // Create a direction cosine matrix and spacing vector by factoring the
-  // change-of-basis matrix.  The direction cosines are calculated by
-  // normalizing the direction vectors contained within the change-of-basis
-  // matrix (i.e., dividing the values in each vector by the length of the
-  // vector), while also populating the spacing vector with the lengths of the
-  // direction vectors:
+    // NOTE: We calculated the change-of-basis matrix in row-major form, since
+    // that is standard mathematical notation, and C notation, but computer
+    // graphics is traditionally done in column-major form, and ITK follows
+    // this tradition.  Consequently, the direction cosine matrix we calculate
+    // here is on column-major form.
 
-//   for (int i = 0; i < 3; ++i) {
-//     directionCosines[i].resize(3);
-//     spacing[i] = sqrt(square(changeOfBasisMatrix[i][0]) + 
-//                       square(changeOfBasisMatrix[i][1]) +
-//                       square(changeOfBasisMatrix[i][2]));
-//     for (int j = 0; j < 3; ++j) {
-//       directionCosines[i][j] = changeOfBasisMatrix[i][j] / spacing[i];
-//     }
-//   }
-
-
-  for (int indexAxis = 0; indexAxis < 3; ++indexAxis) {
-    directionCosines[indexAxis].resize(3);
-    spacing[indexAxis] = sqrt(square(changeOfBasisMatrix[0][indexAxis]) + 
-			      square(changeOfBasisMatrix[1][indexAxis]) +
-			      square(changeOfBasisMatrix[2][indexAxis]));
-  }
-  for (int indexAxis = 0; indexAxis < 3; ++indexAxis) {
-    for (int physicalAxis = 0; physicalAxis < 3; ++physicalAxis) {
-      directionCosines[indexAxis][physicalAxis] =
-	changeOfBasisMatrix[physicalAxis][indexAxis] / spacing[indexAxis];
+    for (int indexAxis = 0; indexAxis < 3; ++indexAxis) {
+      directionCosines[indexAxis].resize(3);
+      spacing[indexAxis] = sqrt(square(changeOfBasisMatrix[0][indexAxis]) + 
+				square(changeOfBasisMatrix[1][indexAxis]) +
+				square(changeOfBasisMatrix[2][indexAxis]));
+    }
+    for (int indexAxis = 0; indexAxis < 3; ++indexAxis) {
+      for (int physicalAxis = 0; physicalAxis < 3; ++physicalAxis) {
+	directionCosines[indexAxis][physicalAxis] =
+	  changeOfBasisMatrix[physicalAxis][indexAxis] / spacing[indexAxis];
+      }
     }
   }
 
@@ -669,10 +680,6 @@ calcCoordinateFrame(const string& fitsHeader,
 //    spacing[1] = 1; //d
 //    spacing[2] = 1; //d
 
-
-  for (int indexAxis = 0; indexAxis < 3; ++indexAxis) {
-    spacing[indexAxis] *= FITSImageIO::GetScaleAllAxes();
-  }
 }
 
 

@@ -90,6 +90,8 @@ public:
                  { _cv_scaleVoxelValues = scalingFactor; }
   static void SetScaleAllAxes(double scalingFactor)
                  { _cv_scaleAllAxes = scalingFactor; }
+  static void SetScaleDec(double scalingFactor)
+                 { _cv_scaleDec = scalingFactor; }
   static void SetScaleRA(double scalingFactor)
                  { _cv_scaleRA = scalingFactor; }
   static void SetNullValue(double nullValue)
@@ -100,23 +102,25 @@ public:
   // Static getter procedures:
   static bool   GetSuppressWCS() { return _cv_suppressWCS; }
   static int    GetDebugLevel()
-                 { return _cv_debugLevel; }
+                  { return _cv_debugLevel; }
   static double GetRotateSky()
-                 { return _cv_rotateSky; }
+                  { return _cv_rotateSky; }
   static double GetScaleVelocity()
-                 { return _cv_scaleVelocity; }
+                  { return _cv_scaleVelocity; }
   static bool   GetAutoScaleVelocityAxis()
-                 { return _cv_autoScaleVelocityAxis; }
+                  { return _cv_autoScaleVelocityAxis; }
   static double GetScaleVoxelValues()
-                 { return _cv_scaleVoxelValues; }
+                  { return _cv_scaleVoxelValues; }
   static double GetScaleAllAxes()
-                 { return _cv_scaleAllAxes; }
+                  { return _cv_scaleAllAxes; }
+  static double GetScaleDec()
+                  { return _cv_scaleDec; }
   static double GetScaleRA()
-                 { return _cv_scaleRA; }
+                  { return _cv_scaleRA; }
   static double GetNullValue()
-                 { return _cv_nullValue; }
+                  { return _cv_nullValue; }
   static bool   GetSuppressMetaDataDictionary()
-                 { return _cv_suppressMetaDataDictionary; }
+                  { return _cv_suppressMetaDataDictionary; }
 
   // Virtual methods implementing pure virtual methods of ImageIOBase:
   virtual bool CanReadFile(const char* filename);
