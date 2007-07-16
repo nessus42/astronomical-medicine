@@ -2,8 +2,8 @@ INTRODUCTION
 ------------
 
 fits2itk is free software, whose source code is available under the
-terms of the "The MIT License".  See LICENSE.txt for for details.  It
-relies on libraries that are GPL'ed, however, so the executable is
+terms of the permissive "MIT License".  See LICENSE.txt for details.
+It relies on libraries that are GPL'ed, however, so the executable is
 licensed under the GPL.
 
 fits2itk was written and is maintained by
