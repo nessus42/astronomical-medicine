@@ -27,7 +27,6 @@
 //# Aliases I use in my .cxx files to make my code prettier:
 
 #define assertm         daAssertm
-#define warning         daWarning
 #define error           daError
 #define ifDebug         daIfDebug
 #define superDebug      daSuperDebug

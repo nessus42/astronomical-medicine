@@ -304,6 +304,7 @@ double FITSImageIO::_cv_nullValue = 0.0; // The default of 0.0 causes NaN's
                                          // converted to 0.0, as one would
                                          // naively expect.
 bool   FITSImageIO::_cv_suppressWCS = false;
+bool   FITSImageIO::_cv_RIPOrientationFlag = false;
 double FITSImageIO::_cv_rotateSky = 0;     
 double FITSImageIO::_cv_rollRA = 0;
 double FITSImageIO::_cv_rollDec = 0;
@@ -608,9 +609,15 @@ calcCoordinateFrame(const string& fitsHeader,
   // not all of the time:
   vector<double> changeOfBasisMatrix[3];
   for (int axis = 0; axis < 3; ++axis) changeOfBasisMatrix[axis].resize(3);
-  changeOfBasisMatrix[c_ra ][c_i] = 1;
-  changeOfBasisMatrix[c_dec][c_j] = 1;
-  changeOfBasisMatrix[c_vel][c_k] = 1;
+  if (FITSImageIO::GetRIPOrientation()) {
+    changeOfBasisMatrix[c_ra ][c_i] = 1;
+    changeOfBasisMatrix[c_dec][c_j] = 1;
+    changeOfBasisMatrix[c_vel][c_k] = -1;
+  } else {
+    changeOfBasisMatrix[c_ra ][c_i] = 1;
+    changeOfBasisMatrix[c_dec][c_j] = 1;
+    changeOfBasisMatrix[c_vel][c_k] = 1;
+  }
 
   if (!FITSImageIO::GetSuppressWCS()) {
     calcWCSCoordinateFrame(fitsHeader, lengthsOfAxesInPixels, origin,
@@ -626,9 +633,6 @@ calcCoordinateFrame(const string& fitsHeader,
       cerr << endl;
     }
   }
-
-  // YOU ARE HERE: I think we need to initialize m_transform with an identity
-  // transform, or something.
 
   applySkyRotation(changeOfBasisMatrix, FITSImageIO::GetRotateSky());
   applyRAScale(changeOfBasisMatrix, FITSImageIO::GetScaleRA());
@@ -648,7 +652,7 @@ calcCoordinateFrame(const string& fitsHeader,
     // that is standard mathematical notation, and C notation, but computer
     // graphics is traditionally done in column-major form, and ITK follows
     // this tradition.  Consequently, the direction cosine matrix we calculate
-    // here is on column-major form.
+    // here is in column-major form.
 
     for (int indexAxis = 0; indexAxis < 3; ++indexAxis) {
       directionCosines[indexAxis].resize(3);
@@ -663,23 +667,6 @@ calcCoordinateFrame(const string& fitsHeader,
       }
     }
   }
-
-  // TODO: Adapt the following code to do rotations, using the -R
-  // option, which you already partially implemented the command-line
-  // parsing for.
-
-//   For testing purposes the following code rotates the image by 30 degrees,
-//   to make sure that the direction cosines are being interpreted properly:
-
-//    double angle = PI/6; //d
-//    directionCosines[0][0] = cos(angle); //d
-//    directionCosines[0][1] = sin(angle); //d
-//    directionCosines[1][0] = -sin(angle); //d
-//    directionCosines[1][1] = cos(angle); //d
-//    spacing[0] = 1; //d
-//    spacing[1] = 1; //d
-//    spacing[2] = 1; //d
-
 }
 
 
@@ -748,26 +735,27 @@ FITSImageIO::ReadImageInformation()
 			   spacing, directionCosines, m_transform);
 
   // Set up the ITK image:
-  this->SetNumberOfComponents(1);
-  this->SetPixelType(SCALAR);
-  this->SetComponentType(FLOAT);
-  this->SetNumberOfDimensions(numOfAxes);
+  { 
+    this->SetNumberOfComponents(1);
+    this->SetPixelType(SCALAR);
+    this->SetComponentType(FLOAT);
+    this->SetNumberOfDimensions(numOfAxes);
 
-  // YOU ARE HERE.
-  for (int indexAxis = 0; indexAxis < numOfAxes; ++indexAxis) {
-    this->SetDimensions(indexAxis, lengthsOfAxesInPixels[indexAxis]);
-    this->SetOrigin(indexAxis, origin[indexAxis]);
-    this->SetSpacing(indexAxis, spacing[indexAxis]);
-    this->SetDirection(indexAxis, directionCosines[indexAxis]);
+    for (int indexAxis = 0; indexAxis < numOfAxes; ++indexAxis) {
+      this->SetDimensions(indexAxis, lengthsOfAxesInPixels[indexAxis]);
+      this->SetOrigin(indexAxis, origin[indexAxis]);
+      this->SetSpacing(indexAxis, spacing[indexAxis]);
+      this->SetDirection(indexAxis, directionCosines[indexAxis]);
 
-    // Write debugging output if debug output option is set:
-    if (_cv_debugLevel) {
-      cerr << "spacing=" << indexAxis << "," << spacing[indexAxis] << " ";
-      cerr << "directions=";
-      for (int physicalAxis = 0; physicalAxis < 3; ++physicalAxis) {
-	cerr << directionCosines[indexAxis][physicalAxis] << " ";
+      // Write debugging output if debug output option is set:
+      if (_cv_debugLevel) {
+	cerr << "spacing=" << indexAxis << "," << spacing[indexAxis] << " ";
+	cerr << "directions=";
+	for (int physicalAxis = 0; physicalAxis < 3; ++physicalAxis) {
+	  cerr << directionCosines[indexAxis][physicalAxis] << " ";
+	}
+	cerr << endl;
       }
-      cerr << endl;
     }
   }
 

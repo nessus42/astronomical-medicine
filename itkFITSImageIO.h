@@ -77,9 +77,12 @@ public:
   itkTypeMacro(FITSImageIO, ImageIOBase);
 
   // Class setter procedures:
-  static void SetSuppressWCS(bool flag) { _cv_suppressWCS = flag; }
+  static void SetSuppressWCS(bool flag)
+                 { _cv_suppressWCS = flag; }
   static void SetDebugLevel(int debugLevel)
                  { _cv_debugLevel = debugLevel; }
+  static void SetRIPOrientation(bool flag)
+                 { _cv_RIPOrientationFlag = flag; }
   static void SetRotateSky(double degrees)
                  { _cv_rotateSky = degrees; }
   static void SetScaleVelocity(double scalingFactor)
@@ -100,9 +103,12 @@ public:
                  { _cv_suppressMetaDataDictionary = flag; }
 					
   // Static getter procedures:
-  static bool   GetSuppressWCS() { return _cv_suppressWCS; }
+  static bool   GetSuppressWCS()
+                  { return _cv_suppressWCS; }
   static int    GetDebugLevel()
                   { return _cv_debugLevel; }
+  static bool   GetRIPOrientation()
+                  { return _cv_RIPOrientationFlag; }
   static double GetRotateSky()
                   { return _cv_rotateSky; }
   static double GetScaleVelocity()
@@ -152,6 +158,7 @@ private:
   static int    _cv_debugLevel;
   static bool   _cv_suppressWCS;
   static double _cv_nullValue;
+  static bool   _cv_RIPOrientationFlag;
   static double _cv_rotateSky;
   static double _cv_rollRA;
   static double _cv_rollDec;
