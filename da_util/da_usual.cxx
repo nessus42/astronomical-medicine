@@ -11,10 +11,13 @@
 //=============================================================================
 
 #include <errno.h>
+#include <libgen.h>		// For basename()
 #include <stdlib.h>             // For abort()
 #include <string.h>
 #include <iostream>
 #include <string>
+
+#include <pathToExecutable.h>
 
 #include <da_usual.h>
 #include <da_sugar.h>
@@ -36,7 +39,7 @@ proc void proc
 runTimeError(const string& message)
 {
   cerr << endl;
-  if (!_programName.empty()) cerr << _programName << ": ";
+  if (!programName().empty()) cerr << programName() << ": ";
   cerr << "FATAL ERROR: " << message << endl;
   exit(1);
 }
@@ -51,7 +54,7 @@ _internalError(const string& message, const char* filename,
 	       const int line_number)
 {
   cerr << endl;
-  if (!_programName.empty()) cerr << _programName << ": ";
+  if (!programName().empty()) cerr << programName() << ": ";
   cerr << "FATAL INTERNAL ERROR: " << message << endl
        << "  File: " << filename << endl
        << "  Line: " << line_number << endl;
@@ -67,7 +70,7 @@ proc void
 heapError()
 {
   cerr << endl;
-  if (_programName.size()) cerr << _programName << ": ";
+  if (!programName().empty()) cerr << programName() << ": ";
   cerr << "FATAL ERROR: Heap exhausted!" << endl;
   abort();
 }
@@ -84,7 +87,7 @@ _assertm(const string& expr, const string& message,
 	 const string& filename, const unsigned line_number)
 {
   cerr << endl;
-  if (_programName.size()) cerr << _programName << ": ";
+  if (!programName().empty()) cerr << programName() << ": ";
   cerr << "FATAL INTERNAL ERROR: Assertion Failed!" << endl
        << "  Error message: " << message << endl
        << "  Assertion: " << expr << endl
@@ -139,6 +142,9 @@ setProgramName(const string& progname)
 proc string
 programName()
 {
+  if (_programName.empty()) {
+    _programName = ::basename(::pathToExecutable());
+  }
   return _programName;
 }
 
@@ -150,7 +156,7 @@ programName()
 proc void
 warning(const string& warningMessage)
 {
-   if (_programName.size()) cerr << _programName << ": ";
+   if (!programName().empty()) cerr << programName() << ": ";
   cerr << "WARNING: " << warningMessage << endl;
 }
 
@@ -162,7 +168,7 @@ warning(const string& warningMessage)
 proc void
 syscallWarning(const string& warningMessage)
 {
-  if (_programName.size()) cerr << _programName << ": ";
+  if (!programName().empty()) cerr << programName() << ": ";
   cerr << "WARNING: " << warningMessage << ": ";
   perror("");
 }
@@ -175,7 +181,7 @@ syscallWarning(const string& warningMessage)
 proc void
 syscallError(const string& errorMessage)
 {
-  if (_programName.size()) cerr << _programName << ": ";
+  if (!programName().empty()) cerr << programName() << ": ";
   cerr << "FATAL ERROR: " << errorMessage;
   const char* const strerrorMessage = strerror(errno);
   if (strerrorMessage and errno != EINVAL) cerr << ": " << strerrorMessage;
@@ -207,6 +213,5 @@ raiseHeapExhaustedException()
 {
   error("Heap exhausted!");
 }
-
 
 } // end namespace da

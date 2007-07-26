@@ -12,7 +12,8 @@
 //=============================================================================
 
 
-extern const char fits2itkVersion[] = "Version 0.4dev.2pending.2";
+extern const char fits2itkVersion[] =
+   "Version 0.4dev.2pending.2make-analyze-output-work.0";
 
 
 //=============================================================================
@@ -254,6 +255,25 @@ extern const char fits2itkVersion[] = "Version 0.4dev.2pending.2";
 //---------------------------
 
 // Added "--scale-dec" option to allow the user to scale the declination axis.
+
+//----------------------------------------------------
+// Version 0.4dev.2pending.2make-analyze-output-work.0
+//----------------------------------------------------
+
+// *** Thu Jul 26, 2007 ***
+
+// Added an --RIP option to fits2itk that forces the image to be in the "RIP"
+// spatial orientation.  (See the Insight Journal paper, "A Definition of
+// Spatial Orientation for the Insight Toolkit".)  The way that this option
+// works is set the change of basis matrix accordingly.
+
+// The purpose of this option is to allow Analyze file output without getting a
+// heinous error message.  Unfortunately, it also causes the Velocity axis to
+// be reversed, and there would seem to be no way around this without creating
+// a new image with all the pixels moved around.  FlipImageFilter doesn't help
+// any because apparently it just manipulates the direction cosines, or
+// something.  Whatever the case, the Analyze writer knows somehow that the
+// orientation has been flipped, and then the error message returns.
 
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***

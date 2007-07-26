@@ -196,20 +196,22 @@ parseCommandLine(const int argc, const char* const argv[])
   const int cBase10 = 10;
   string extendedOption;
   int verboseHelpFlag = false;
-  int typicalFlag = false;
-  int rotateSkyFlag = false;
   int noWcsFlag = false;
+  int ripOrientationFlag = false;
+  int rotateSkyFlag = false;
   int scaleDecFlag = false;
+  int typicalFlag = false;
 
   // Specify the allowed options:
   const char shortopts[] = "Aa:D:fhN:o:Rr:Ss:Uv:";
   struct option longopts[] = {
     { "help", no_argument, &verboseHelpFlag, true },
-    { "typical", no_argument, &typicalFlag, true },
+    { "no-wcs", no_argument, &noWcsFlag, true},
     { "rotate-sky", required_argument, &rotateSkyFlag,
       true },
-    { "no-wcs", no_argument, &noWcsFlag, true},
+    { "RIP", no_argument, &ripOrientationFlag, true },
     { "scale-dec", required_argument, &scaleDecFlag, true },
+    { "typical", no_argument, &typicalFlag, true },
     { null, 0, null, 0 }
   };
 
@@ -225,19 +227,19 @@ parseCommandLine(const int argc, const char* const argv[])
       switch (optionChar) {
 
       case 'A':
-        itk::FITSImageIO::SetAutoScaleVelocityAxis(true);
-        break;
+	itk::FITSImageIO::SetAutoScaleVelocityAxis(true);
+	break;
 
       case 'a':
 	itk::FITSImageIO::SetScaleAllAxes(strtod(optarg, &endptr));
 	::checkEndptr(endptr);
 	break;
 
-      case 'd':
-	// YOU ARE HERE
-	// itk::FITSImageIO::SetScaleDec(strtod(optarg, &endptr));
-	// ::checkEndptr(endptr);
-	break;
+// 	// TODO: Implement this
+//       case 'd':
+// 	// itk::FITSImageIO::SetScaleDec(strtod(optarg, &endptr));
+// 	// ::checkEndptr(endptr);
+// 	break;
 
       case 'D':
 	_cv_debugLevel = strtol(optarg, null, cBase10);
@@ -274,8 +276,6 @@ parseCommandLine(const int argc, const char* const argv[])
         break;
 
       case 'v':
-        // TODO: Make the following (and other similar code here) more
-        // robust:
         itk::FITSImageIO::SetScaleVelocity(strtod(optarg, &endptr));
 	::checkEndptr(endptr);
         break;
@@ -304,6 +304,10 @@ parseCommandLine(const int argc, const char* const argv[])
 	  itk::FITSImageIO::SetScaleAllAxes(1000);
 	  itk::FITSImageIO::SetScaleRA(-1);
 	  itk::FITSImageIO::SetScaleVoxelValues(1000);
+	} else if (ripOrientationFlag) {
+	  ripOrientationFlag = false;
+	  itk::FITSImageIO::SetRIPOrientation(true);
+	  itk::FITSImageIO::SetSuppressWCS(true);
 	} else if (rotateSkyFlag) {
 	  rotateSkyFlag = false;
 	  itk::FITSImageIO::SetRotateSky(strtod(optarg, &endptr));
@@ -330,6 +334,15 @@ parseCommandLine(const int argc, const char* const argv[])
   if (argc - ::optind != 2) ::usage();
   _cv_inputFilepath = argv[::optind];
   _cv_outputFilepath = argv[::optind + 1];
+
+  // Do some sanity checking to make sure that the options specified are
+  // consistent with each other:
+  if (itk::FITSImageIO::GetSuppressWCS() and
+      itk::FITSImageIO::GetAutoScaleVelocityAxis())
+    {
+      da::warning("Velocity axis auto-scaling does not work when WCS\n"
+		  "     is suppressed.");
+    }
 }
 
 
@@ -396,8 +409,8 @@ flipImage(const typename Image<PixelType, 3>::Pointer& image)
   typedef typename FilterType::FlipAxesArrayType FlipAxesArrayType;
   typename FilterType::Pointer filter = FilterType::New();
   FlipAxesArrayType flipArray;
-  flipArray[0] = 1;
-  flipArray[1] = 0;
+  flipArray[0] = 0;
+  flipArray[1] = 1;
   flipArray[2] = 0;
   filter->SetFlipAxes(flipArray);
   filter->SetInput(image);
@@ -484,7 +497,6 @@ convertInputFileToItkFile(const char* const inputFilepath,
 proc int
 main(const int argc, const char* const argv[])
 {
-  da::setProgramName(argv[0]);
   ::setArgv(argc, argv);
   Cl::parseCommandLine(argc, argv);
 
