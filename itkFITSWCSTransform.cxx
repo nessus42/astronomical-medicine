@@ -15,15 +15,19 @@
 
 #include <wcs.h>
 #include <itkFITSWCSTransform.h>
+#include <itkFITSImageIO.h>
 #include <da_sugar.h>
 
 namespace itk
 {
 
+const int c_dims = FITSImageIO::c_dims;
+
+
 //*****************************************************************************
 //*****                                                                   *****
-//*****      FITSWCSTransform<double, 3>:                                 *****
-//*****         leaf subclass of Transform<double, 3, 3>                  *****
+//*****      FITSWCSTransform<double, c_dims>:                            *****
+//*****         leaf subclass of Transform<double, c_dims, c_dims>        *****
 //*****                                                                   *****
 //*****************************************************************************
 
@@ -31,8 +35,8 @@ namespace itk
 // Constructors, etc.
 //----------------------------------------------------------------------------
 
-method FITSWCSTransform<double, 3>&
-FITSWCSTransform<double, 3>::
+method FITSWCSTransform<double, c_dims>&
+FITSWCSTransform<double, c_dims>::
 operator=(const Self& orig)
 {
   if (this != &orig) {
@@ -48,7 +52,7 @@ operator=(const Self& orig)
 //----------------------------------------------------------------------------
 
 method void
-FITSWCSTransform<double, 3>::
+FITSWCSTransform<double, c_dims>::
 SetWCS(const ConstRcMallocPointer<WorldCoor>& wcs) {
   assert(!m_wcs);
   m_wcs = wcs;
@@ -60,7 +64,7 @@ SetWCS(const ConstRcMallocPointer<WorldCoor>& wcs) {
 //----------------------------------------------------------------------------
 
 method void
-FITSWCSTransform<double, 3>::
+FITSWCSTransform<double, c_dims>::
 PrintSelf(std::ostream &os, Indent indent) const
 {
   // TODO: Make this real.
@@ -73,8 +77,9 @@ PrintSelf(std::ostream &os, Indent indent) const
 // TransformPoint(): inherited virtual method
 //----------------------------------------------------------------------------
 
-method FITSWCSTransform<double, 3>::OutputPointType
-FITSWCSTransform<double, 3>::TransformPoint(const InputPointType &point) const
+method FITSWCSTransform<double, c_dims>::OutputPointType
+FITSWCSTransform<double, c_dims>::
+TransformPoint(const InputPointType &point) const
 {
   assert(m_wcs);
 
@@ -101,7 +106,7 @@ FITSWCSTransform<double, 3>::TransformPoint(const InputPointType &point) const
 //----------------------------------------------------------------------------
 
 method bool
-FITSWCSTransform<double, 3>::GetInverse(Self* inverse) const
+FITSWCSTransform<double, c_dims>::GetInverse(Self* inverse) const
 {
   assert(inverse);
   *inverse = *this;
@@ -115,7 +120,7 @@ FITSWCSTransform<double, 3>::GetInverse(Self* inverse) const
 //----------------------------------------------------------------------------
 
 method void
-FITSWCSTransform<double, 3>::Invert()
+FITSWCSTransform<double, c_dims>::Invert()
 {
   m_isInverted = !m_isInverted;
 }

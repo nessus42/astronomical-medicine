@@ -25,6 +25,8 @@ struct WorldCoor;
 namespace itk
 {
 
+  const int c_FITSWCSTransformNumOfDimensions = 3;
+
 //*****************************************************************************
 //*****                                                                   *****
 //*****         FITSWCSTransform<T, N>:                                   *****
@@ -40,20 +42,25 @@ namespace itk
 //! (i.e., right ascension [RA], declination [Dec], and velocity [V]), and
 //! vice versa (via the back transform).
 
-//! NOTE: At the moment, only FITSWCSTransform<double, 3> is implemented.
+//! NOTE: At the moment, only FITSWCSTransform<double, c_dims> is implemented.
 
 template<class TScalarType, unsigned int NDimensions>
 class FITSWCSTransform {};
 
 template<>
-class ITK_EXPORT FITSWCSTransform<double, 3>: 
-    public Transform<double, 3, 3>
+class ITK_EXPORT FITSWCSTransform<double, c_FITSWCSTransformNumOfDimensions>: 
+    public Transform<double,
+		     c_FITSWCSTransformNumOfDimensions,
+		     c_FITSWCSTransformNumOfDimensions>
 {
 public:
+  
+  // The number of dimensions in an image:
+  enum { c_dims = 3};
 
   // ----- Standard ITK class typedefs -----
   typedef FITSWCSTransform                      Self;
-  typedef Transform<double, 3, 3>               Superclass;
+  typedef Transform<double, c_dims, c_dims>     Superclass;
   typedef SmartPointer<Self>                    Pointer;
   typedef SmartPointer<const Self>              ConstPointer;
 
@@ -89,7 +96,7 @@ public:
 protected:
 
   // ----- Protected constructors, etc. -----
-  FITSWCSTransform(): Superclass(3, 0), m_wcs(0), m_isInverted(false) {};
+  FITSWCSTransform(): Superclass(c_dims, 0), m_wcs(0), m_isInverted(false) {};
 
   // ----- Protected virtual methods inherited from LightObject -----
   void 				PrintSelf(std::ostream &os, Indent indent)
@@ -104,7 +111,7 @@ private:
   ConstRcMallocPointer<WorldCoor>    m_wcs;
   bool				     m_isInverted;
 
-}; // class FITSWCSTransform<double, 3>
+}; // class FITSWCSTransform<double, c_dims>
 
 }  // namespace itk
 
