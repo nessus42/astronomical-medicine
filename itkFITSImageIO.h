@@ -43,7 +43,7 @@ namespace itk
 // 	 double origin[],
 // 	 double spacing[],
 // 	 std::vector<double> directionCosines[],
-// 	 FITSWCSTransform<double, 3>::Pointer& transform);
+// 	 FITSWCSTransform<double, c_dims>::Pointer& transform);
 //   }
 
 
@@ -64,6 +64,11 @@ namespace itk
 class ITK_EXPORT FITSImageIO : public ImageIOBase
 {
 public:
+
+  // The number of dimensions in an image:
+  enum { c_dims = 3 };
+  enum CelestialCoordinateAxis { c_ra, c_vel, c_dec };
+  enum FitsImageArrayAxis { c_i, c_j, c_k };
 
   // Standard class typedefs:
   typedef FITSImageIO         Self;
@@ -148,7 +153,7 @@ private:
 
   // Instance variables:
   fitsfile*                                      m_fitsFile;
-  FITSWCSTransform<double, 3>::Pointer           m_transform;
+  FITSWCSTransform<double, c_dims>::Pointer      m_transform;
 
 				// Note: the memory for 'm_fitsFile' is managed
 				// by CFITSIO.  I.e., its memory is freed when

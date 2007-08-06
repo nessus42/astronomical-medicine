@@ -46,8 +46,13 @@ using std::vector;
 //*****				Local constants                           *****
 //*****************************************************************************
 
-enum CelestialCoordinateAxis { c_ra, c_vel, c_dec };
-enum FitsImageArrayAxis { c_i, c_j, c_k };
+const size_t c_dims = itk::FITSImageIO::c_dims;
+const size_t c_ra   = itk::FITSImageIO::c_ra;
+const size_t c_vel  = itk::FITSImageIO::c_vel;
+const size_t c_dec  = itk::FITSImageIO::c_dec;
+const size_t c_i    = itk::FITSImageIO::c_i;
+const size_t c_j    = itk::FITSImageIO::c_j;
+const size_t c_k    = itk::FITSImageIO::c_k;
 
 
 //*****************************************************************************
@@ -171,8 +176,7 @@ getAllFitsErrorMessages(const int status)
 // square(): local inline proc
 //-----------------------------------------------------------------------------
 
-local proc inline double
-square(double x)
+local proc inline double square(double x)
 {
   return x * x;
 }
@@ -183,25 +187,26 @@ square(double x)
 //-----------------------------------------------------------------------------
 
 local proc void
-mulitply(const double leftMatrix[3][3], vector<double> rightMatrix[3])
+mulitply(const double leftMatrix[c_dims][c_dims],
+	 vector<double> rightMatrix[c_dims])
 {
-  double retval[3][3];
-  for (int row = 0; row < 3; ++row) {
-    for (int col = 0; col < 3; ++col) {
+  double retval[c_dims][c_dims];
+  for (int row = 0; row < c_dims; ++row) {
+    for (int col = 0; col < c_dims; ++col) {
       retval[row][col] = 0;
     }
   }
 
-  for (int row = 0; row < 3; ++row) {
-    for (int col = 0; col < 3; ++col) {
-      for (int i = 0; i < 3; ++i) {
+  for (int row = 0; row < c_dims; ++row) {
+    for (int col = 0; col < c_dims; ++col) {
+      for (int i = 0; i < c_dims; ++i) {
 	retval[row][col] += leftMatrix[row][i] * rightMatrix[i][col];
       }
     }
   }
 
-  for (int row = 0; row < 3; ++row) {
-    for (int col = 0; col < 3; ++col) {
+  for (int row = 0; row < c_dims; ++row) {
+    for (int col = 0; col < c_dims; ++col) {
       rightMatrix[row][col] = retval[row][col];
     }
   }
@@ -213,14 +218,14 @@ mulitply(const double leftMatrix[3][3], vector<double> rightMatrix[3])
 //-----------------------------------------------------------------------------
 
 local proc void
-applySkyRotation(vector<double> changeOfBasisMatrix[3], double degrees)
+applySkyRotation(vector<double> changeOfBasisMatrix[c_dims], double degrees)
 {
   if (degrees != 0) {
     const double s = sin(degrees/180 * PI);
     const double c = cos(degrees/180 * PI);
-    double rotationMatrix[3][3] = { c, 0, s,
-				    0, 1, 0,
-				    -s, 0, c };
+    double rotationMatrix[c_dims][c_dims] = { c, 0, s,
+					      0, 1, 0,
+					      -s, 0, c };
     mulitply(rotationMatrix, changeOfBasisMatrix);
   }
 }
@@ -231,7 +236,7 @@ applySkyRotation(vector<double> changeOfBasisMatrix[3], double degrees)
 //-----------------------------------------------------------------------------
 
 local proc void
-applyRAScale(vector<double> changeOfBasisMatrix[3], double scaleFactor)
+applyRAScale(vector<double> changeOfBasisMatrix[c_dims], double scaleFactor)
 {
   if (scaleFactor != 1) {
     for (int axis = c_i; axis <= c_k; ++axis) {
@@ -246,7 +251,7 @@ applyRAScale(vector<double> changeOfBasisMatrix[3], double scaleFactor)
 //-----------------------------------------------------------------------------
 
 local proc void
-applyDecScale(vector<double> changeOfBasisMatrix[3], double scaleFactor)
+applyDecScale(vector<double> changeOfBasisMatrix[c_dims], double scaleFactor)
 {
   if (scaleFactor != 1) {
     for (int axis = c_i; axis <= c_k; ++axis) {
@@ -261,7 +266,8 @@ applyDecScale(vector<double> changeOfBasisMatrix[3], double scaleFactor)
 //-----------------------------------------------------------------------------
 
 local proc void
-applyVelocityScale(vector<double> changeOfBasisMatrix[3], double scaleFactor)
+applyVelocityScale(vector<double> changeOfBasisMatrix[c_dims],
+		   double scaleFactor)
 {
   if (scaleFactor != 1) {
     for (int axis = c_i; axis <= c_k; ++axis) {
@@ -276,11 +282,12 @@ applyVelocityScale(vector<double> changeOfBasisMatrix[3], double scaleFactor)
 //-----------------------------------------------------------------------------
 
 local proc void
-applyScaleToAllAxes(vector<double> changeOfBasisMatrix[3], double scaleFactor)
+applyScaleToAllAxes(vector<double> changeOfBasisMatrix[c_dims],
+		    double scaleFactor)
 {
   if (scaleFactor != 1) {
     for (int indexAxis = c_i; indexAxis <= c_k; ++indexAxis)
-      for (int physicalAxis = 0; physicalAxis < 3; ++physicalAxis)
+      for (int physicalAxis = 0; physicalAxis < c_dims; ++physicalAxis)
 	  changeOfBasisMatrix[physicalAxis][indexAxis] *= scaleFactor;
   }
 }
@@ -417,11 +424,11 @@ calcWCSCoordinateFrame(const string& fitsHeader,
 		       const long lengthsOfAxesInPixels[],
 		       double origin[],
 		       vector<double> changeOfBasisMatrix[],
-		       FITSWCSTransform<double, 3>::Pointer& transform)
+		       FITSWCSTransform<double, c_dims>::Pointer& transform)
 {
   WorldCoor* wcs = wcsinit(fitsHeader.c_str());
   const ConstRcMallocPointer<WorldCoor> wcsRcPtr = wcs;
-  typedef itk::FITSWCSTransform<double, 3> WCSTransform;
+  typedef itk::FITSWCSTransform<double, c_dims> WCSTransform;
   transform = WCSTransform::New();
   transform->SetWCS(wcsRcPtr);
 
@@ -595,7 +602,7 @@ calcCoordinateFrame(const string& fitsHeader,
 		    double origin[],
 		    double spacing[],
 		    vector<double> directionCosines[],
-		    FITSWCSTransform<double, 3>::Pointer& transform)
+		    FITSWCSTransform<double, c_dims>::Pointer& transform)
 {
   // Initialize the origin to be (0, 0, 0).  It will remain so only in the
   // default case:
@@ -607,8 +614,10 @@ calcCoordinateFrame(const string& fitsHeader,
   // LPS axes, without doing any additional tranformations to map to physical
   // coordinates.  This matrix will most likely end up being overwritten, but
   // not all of the time:
-  vector<double> changeOfBasisMatrix[3];
-  for (int axis = 0; axis < 3; ++axis) changeOfBasisMatrix[axis].resize(3);
+  vector<double> changeOfBasisMatrix[c_dims];
+  for (int axis = 0; axis < c_dims; ++axis) {
+    changeOfBasisMatrix[axis].resize(c_dims);
+  }
   if (FITSImageIO::GetRIPOrientation()) {
     changeOfBasisMatrix[c_ra ][c_i] = 1;
     changeOfBasisMatrix[c_dec][c_j] = 1;
@@ -626,8 +635,8 @@ calcCoordinateFrame(const string& fitsHeader,
 
   if (FITSImageIO::GetDebugLevel()) {
     cerr << "Change-of-basis matrix:\n";
-    for (int row = 0; row < 3; ++row) {
-      for (int col = 0; col < 3; ++col) {
+    for (int row = 0; row < c_dims; ++row) {
+      for (int col = 0; col < c_dims; ++col) {
 	cerr << "    " << changeOfBasisMatrix[row][col];
       }
       cerr << endl;
@@ -654,14 +663,14 @@ calcCoordinateFrame(const string& fitsHeader,
     // this tradition.  Consequently, the direction cosine matrix we calculate
     // here is in column-major form.
 
-    for (int indexAxis = 0; indexAxis < 3; ++indexAxis) {
-      directionCosines[indexAxis].resize(3);
+    for (int indexAxis = 0; indexAxis < c_dims; ++indexAxis) {
+      directionCosines[indexAxis].resize(c_dims);
       spacing[indexAxis] = sqrt(square(changeOfBasisMatrix[0][indexAxis]) + 
 				square(changeOfBasisMatrix[1][indexAxis]) +
 				square(changeOfBasisMatrix[2][indexAxis]));
     }
-    for (int indexAxis = 0; indexAxis < 3; ++indexAxis) {
-      for (int physicalAxis = 0; physicalAxis < 3; ++physicalAxis) {
+    for (int indexAxis = 0; indexAxis < c_dims; ++indexAxis) {
+      for (int physicalAxis = 0; physicalAxis < c_dims; ++physicalAxis) {
 	directionCosines[indexAxis][physicalAxis] =
 	  changeOfBasisMatrix[physicalAxis][indexAxis] / spacing[indexAxis];
       }
@@ -713,7 +722,7 @@ FITSImageIO::ReadImageInformation()
   }
   debugPrint("BPP= " << bitsPerPixel);
 
-  if (numOfAxes != 3) {
+  if (numOfAxes != c_dims) {
     itkExceptionMacro("FITSImageIO cannot handle FITS Primary Arrays that are"
                       " anything other than three dimensional.");
     
@@ -728,9 +737,9 @@ FITSImageIO::ReadImageInformation()
 
   string fitsHeader = getFitsHeader();
 
-  double origin[3];
-  double spacing[3];
-  vector<double> directionCosines[3];
+  double origin[c_dims];
+  double spacing[c_dims];
+  vector<double> directionCosines[c_dims];
   itk::calcCoordinateFrame(fitsHeader, lengthsOfAxesInPixels, origin,
 			   spacing, directionCosines, m_transform);
 
@@ -751,7 +760,7 @@ FITSImageIO::ReadImageInformation()
       if (_cv_debugLevel) {
 	cerr << "spacing=" << indexAxis << "," << spacing[indexAxis] << " ";
 	cerr << "directions=";
-	for (int physicalAxis = 0; physicalAxis < 3; ++physicalAxis) {
+	for (int physicalAxis = 0; physicalAxis < c_dims; ++physicalAxis) {
 	  cerr << directionCosines[indexAxis][physicalAxis] << " ";
 	}
 	cerr << endl;

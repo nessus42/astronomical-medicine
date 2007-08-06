@@ -12,8 +12,7 @@
 //=============================================================================
 
 
-extern const char fits2itkVersion[] =
-   "Version 0.4dev.2pending.2make-analyze-output-work.0";
+extern const char fits2itkVersion[] = "Version 0.4dev.3pending";
 
 
 //=============================================================================
@@ -274,6 +273,17 @@ extern const char fits2itkVersion[] =
 // any because apparently it just manipulates the direction cosines, or
 // something.  Whatever the case, the Analyze writer knows somehow that the
 // orientation has been flipped, and then the error message returns.
+
+//---------------------------
+// Version 0.4dev.3pending
+//---------------------------
+
+// *** Mon Aug  6, 2007 ***
+
+// Working on the "--flipv" option, to flip the velocity axis without mucking
+// with direction cosines.  I.e., it will work by actually moving pixels around
+// in the image.  The purpose for this is so that Analyze files can be properly
+// displayed in OsiriX, et. al.
 
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
