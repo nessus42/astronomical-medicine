@@ -136,10 +136,12 @@ namespace {
     static int		  _cv_debugLevel;
     static bool           _cv_coerceToShorts;
     static bool           _cv_coerceToUnsignedShorts;
-    static bool		  _cv_flipvFlag;
+    static bool		  _cv_flipDecFlag;
+    static bool		  _cv_flipRAFlag;
+    static bool		  _cv_flipVFlag;
     static bool		  _cv_binomialBlurFlag;
     static bool           _cv_derivativeImageFilterFlag;
-    static bool           _cv_flipImageFlag;
+    static bool           _cv_flipImageFilterFlag;
     static bool		  _cv_identityFlipFlag;
 
     // Private non-virtual methods:
@@ -165,8 +167,11 @@ namespace {
                           { return _cv_binomialBlurFlag; }
     static bool        getDerivativeImageFilterFlag()
                           { return _cv_derivativeImageFilterFlag; }
-    static bool        getFlipImageFlag() { return _cv_flipImageFlag; }
-    static bool	       getFlipvFlag() { return _cv_flipvFlag; }
+    static bool        getFlipImageFilterFlag()
+                          { return _cv_flipImageFilterFlag; }
+    static bool	       getFlipDecFlag() { return _cv_flipDecFlag; }
+    static bool        getFlipRAFlag() { return _cv_flipRAFlag; }
+    static bool	       getFlipVFlag() { return _cv_flipVFlag; }
     static bool	       getIdentityFlipFlag() { return _cv_identityFlipFlag; }
   };
 
@@ -175,10 +180,12 @@ namespace {
   int  	      CommandLineParser::_cv_debugLevel = 0;
   bool	      CommandLineParser::_cv_coerceToShorts = false;
   bool        CommandLineParser::_cv_coerceToUnsignedShorts = false;
-  bool	      CommandLineParser::_cv_flipvFlag = false;
+  bool	      CommandLineParser::_cv_flipDecFlag = false;
+  bool	      CommandLineParser::_cv_flipRAFlag = false;
+  bool	      CommandLineParser::_cv_flipVFlag = false;
   bool	      CommandLineParser::_cv_binomialBlurFlag = false;
   bool        CommandLineParser::_cv_derivativeImageFilterFlag = false;
-  bool        CommandLineParser::_cv_flipImageFlag = false;
+  bool        CommandLineParser::_cv_flipImageFilterFlag = false;
   bool	      CommandLineParser::_cv_identityFlipFlag = false;
 
   typedef     CommandLineParser  Cl;
@@ -200,7 +207,9 @@ parseCommandLine(const int argc, const char* const argv[])
   const int cBase10 = 10;
   string extendedOption;
   int verboseHelpFlag = false;
-  int flipvFlag = false;
+  int flipDecFlag = false;
+  int flipRAFlag = false;
+  int flipVFlag = false;
   int noWcsFlag = false;
   int ripOrientationFlag = false;
   int rotateSkyFlag = false;
@@ -211,7 +220,9 @@ parseCommandLine(const int argc, const char* const argv[])
   const char shortopts[] = "Aa:D:fhN:o:Rr:Ss:Uv:";
   struct option longopts[] = {
     { "help", no_argument, &verboseHelpFlag, true },
-    { "flipv", no_argument, &flipvFlag, true },
+    { "flip-dec", no_argument, &flipDecFlag, true },
+    { "flip-ra", no_argument, &flipRAFlag, true },
+    { "flip-v", no_argument, &flipVFlag, true },
     { "no-wcs", no_argument, &noWcsFlag, true},
     { "rotate-sky", required_argument, &rotateSkyFlag,
       true },
@@ -304,9 +315,15 @@ parseCommandLine(const int argc, const char* const argv[])
 	// Parse long options:
 	if (verboseHelpFlag) {
 	  ::verboseUsage();
-	} else if (flipvFlag) {
-	  flipvFlag = false;
-	  _cv_flipvFlag = true;
+	} else if (flipDecFlag) {
+	  flipDecFlag = false;
+	  _cv_flipDecFlag = true;
+	} else if (flipRAFlag) {
+	  flipRAFlag = false;
+	  _cv_flipRAFlag = true;
+	} else if (flipVFlag) {
+	  flipVFlag = false;
+	  _cv_flipVFlag = true;
 	} else if (noWcsFlag) {
 	  noWcsFlag = false;
 	  itk::FITSImageIO::SetSuppressWCS(true);
@@ -369,8 +386,8 @@ parseExtendedOption(const char* const option)
   string optionStr = option;
   if (optionStr == "derivativeImageFilter") {
     _cv_derivativeImageFilterFlag = true;
-  } else if (optionStr == "flipImage") {
-    _cv_flipImageFlag = true;
+  } else if (optionStr == "flipImageFilter") {
+    _cv_flipImageFilterFlag = true;
   } else if (optionStr == "binomialBlur") {
     _cv_binomialBlurFlag = true;
   } else if (optionStr == "suppressMetaDataDictionary") {
@@ -406,12 +423,12 @@ namespace {
 
 
 //-----------------------------------------------------------------------------
-// flipImage(): local template function
+// applyFlipImageFilter(): local template function
 //-----------------------------------------------------------------------------
 
 template <class PixelType>
 local proc typename Image<PixelType, c_dims>::Pointer
-flipImage(const typename Image<PixelType, c_dims>::Pointer& image)
+applyFlipImageFilter(const typename Image<PixelType, c_dims>::Pointer& image)
 {
   typedef Image<PixelType, c_dims> ImageType;
   typedef itk::FlipImageFilter<ImageType> FilterType;
@@ -447,19 +464,36 @@ applyBinomialBlur(const typename Image<PixelType, c_dims>::Pointer& image)
 
 
 //-----------------------------------------------------------------------------
-// flipv(): local template function
+// isOdd(): local inline function
 //-----------------------------------------------------------------------------
 
-// This functions flips the image around the velocity axis.  It does this by
+local proc inline bool
+isOdd(size_t num)
+{
+  if ((num / 2) * 2 == num) return false;
+  else return true;
+}
+
+
+//-----------------------------------------------------------------------------
+// reflectPixels(): local template function
+//-----------------------------------------------------------------------------
+
+// This functions flips the image around the specified axes.  It does this by
 // actually moving the pixels around, rather than by messing with the direction
-// cosines.
+// cosines.  It is, unfortunately, quite hairy.
 
 template <class PixelType>
 local proc void
-flipv(const typename Image<PixelType, c_dims>::Pointer& image)
+reflectPixels(const typename Image<PixelType, c_dims>::Pointer& image,
+	      bool flipRAFlag, bool flipDecFlag, bool flipVFlag)
 {
   // CAVEAT: This code will break if c_dims ever changes from 3.
 
+  // Return immediately if a NOP is requested:
+  if (!flipRAFlag and !flipDecFlag and !flipVFlag) return;
+
+  // Make sure that we actually have the pixels loaded into the image:
   image->Update();
 
   typedef Image<PixelType, c_dims> ImageType;
@@ -475,34 +509,99 @@ flipv(const typename Image<PixelType, c_dims>::Pointer& image)
   const size_t c_j    = itk::FITSImageIO::c_j;
   const size_t c_k    = itk::FITSImageIO::c_k;
 
-  const size_t min_ra_index  = imageOrigin[c_i];
-  const size_t min_dec_index = imageOrigin[c_j];
-  const size_t min_vel_index = imageOrigin[c_k];
+  const size_t minRaIndex  = imageOrigin[c_i];
+  const size_t minDecIndex = imageOrigin[c_j];
+  const size_t minVelIndex = imageOrigin[c_k];
 
-  const size_t max_ra_index = min_ra_index + imageSize[c_i];
-  const size_t max_dec_index = min_dec_index + imageSize[c_j];
-  const size_t max_vel_index = min_vel_index + imageSize[c_k];
-  const size_t midway_vel_index = min_vel_index + (imageSize[c_k] / 2);
+  const size_t maxRaIndex  = minRaIndex  + imageSize[c_i] - 1;
+  const size_t maxDecIndex = minDecIndex + imageSize[c_j] - 1;
+  const size_t maxVelIndex = minVelIndex + imageSize[c_k] - 1;
 
-  for (size_t ra_i = min_ra_index; ra_i < max_ra_index; ++ra_i) {
-    for (size_t dec_i= min_dec_index; dec_i < max_dec_index; ++dec_i) {
-      for (size_t vel_i          = min_vel_index,
-	          opposite_vel_i = max_vel_index - 1;
-	   vel_i <= midway_vel_index;
-	   ++vel_i, --opposite_vel_i)
+  const size_t middleRaIndex  = minRaIndex  + ((imageSize[c_i] + 1) / 2) - 1;
+  const size_t middleDecIndex = minDecIndex + ((imageSize[c_j] + 1) / 2) - 1;
+  const size_t middleVelIndex = minVelIndex + ((imageSize[c_k] + 1) / 2) - 1;
+  
+  const bool lastFlipIsV = flipVFlag;
+  const bool lastFlipIsDec = !lastFlipIsV and flipDecFlag;
+  const bool lastFlipIsRA = !lastFlipIsV and !lastFlipIsDec and flipRAFlag;
+
+//   const bool lastFlipIsRA = flipRAFlag;
+//   const bool lastFlipIsDec = !lastFlipIsRA and flipDecFlag;
+//   const bool lastFlipIsV = !lastFlipIsRA and !lastFlipIsDec and flipVFlag;
+
+  const size_t raStopIndex = lastFlipIsRA   ? middleRaIndex
+                                            : maxRaIndex;
+  const size_t decStopIndex = lastFlipIsDec ? middleDecIndex
+                                            : maxDecIndex;
+  const size_t velStopIndex = lastFlipIsV   ? middleVelIndex
+                                            : maxVelIndex;
+
+//   cout << "raStopIndex=" << raStopIndex << endl; //d
+//   cout << "decStopIndex=" << decStopIndex << endl; //d
+//   cout << "velStopIndex=" << velStopIndex << endl; //d
+
+//   cout << "lastFlipIsRA=" << lastFlipIsRA << endl; //d
+//   cout << "lastFlipIsDec=" << lastFlipIsDec << endl; //d
+//   cout << "lastFlipIsV=" << lastFlipIsV << endl; //d
+
+  const bool needToWorryAboutMiddleV = flipVFlag and isOdd(imageSize[c_k]);
+  const bool needToWorryAboutMiddleDec = flipDecFlag and isOdd(imageSize[c_j]);
+
+  for (size_t ra_i = minRaIndex, raReverse_i = maxRaIndex;
+       ra_i <= raStopIndex;
+       ++ra_i, --raReverse_i)
+    {
+      for (size_t dec_i= minDecIndex, decReverse_i = maxDecIndex;
+	   dec_i <= decStopIndex;
+	   ++dec_i, --decReverse_i)
 	{
-	  IndexType thisPixelIndex;
-	  IndexType oppositePixelIndex;
-	  thisPixelIndex[c_i] = oppositePixelIndex[c_i] = ra_i;
-	  thisPixelIndex[c_j] = oppositePixelIndex[c_j] = dec_i;
-	  thisPixelIndex[c_k] = vel_i;
-	  oppositePixelIndex[c_k] = opposite_vel_i;
-	  PixelType tmp = image->GetPixel(thisPixelIndex);
-	  image->SetPixel(thisPixelIndex, image->GetPixel(oppositePixelIndex));
-	  image->SetPixel(oppositePixelIndex, tmp);
+	  for (size_t vel_i = minVelIndex, velReverse_i = maxVelIndex;
+	       vel_i <= velStopIndex;
+	       ++vel_i, --velReverse_i)
+	    {
+	      // Break out of the loop in situations in which we'd be swapping
+	      // a pair of pixels back to their original locations due to
+	      // swapping the pixels more than once:
+	      if (needToWorryAboutMiddleV) {
+		if (vel_i == middleVelIndex) {
+		  if (flipDecFlag) {
+		    if (dec_i > middleDecIndex) break;
+		    else if (needToWorryAboutMiddleDec and
+			     flipRAFlag and
+			     dec_i == middleDecIndex and
+			     ra_i > middleRaIndex) {
+		      break;
+		    }
+		  } else if (flipRAFlag and ra_i > middleRaIndex) break;
+		}
+	      }
+
+	      IndexType thisPixelIndex;
+	      IndexType oppositePixelIndex;
+	      thisPixelIndex[c_i] = ra_i;
+	      thisPixelIndex[c_j] = dec_i;
+	      thisPixelIndex[c_k] = vel_i;
+	      oppositePixelIndex[c_i] = flipRAFlag  ? raReverse_i  : ra_i;
+	      oppositePixelIndex[c_j] = flipDecFlag ? decReverse_i : dec_i;
+	      oppositePixelIndex[c_k] = flipVFlag   ? velReverse_i : vel_i;
+
+// 	      cout << "thisPixel= " //d
+// 		   << thisPixelIndex[c_i] << ", " //d
+// 		   << thisPixelIndex[c_j] << ", " //d
+// 		   << thisPixelIndex[c_k]; //d
+// 	      cout << " oppositePixelIndex= " //d
+// 		   << oppositePixelIndex[c_i] << ", " //d
+// 		   << oppositePixelIndex[c_j] << ", " //d
+// 		   << oppositePixelIndex[c_k] << endl; //d
+
+
+	      PixelType tmp = image->GetPixel(thisPixelIndex);
+	      image->SetPixel(thisPixelIndex,
+			      image->GetPixel(oppositePixelIndex));
+	      image->SetPixel(oppositePixelIndex, tmp);
+	    }
 	}
     }
-  }
 }
 
 
@@ -523,13 +622,20 @@ convertInputFileToItkFile(const char* const inputFilepath,
   typename WriterType::Pointer writer = WriterType::New();
   reader->SetFileName(inputFilepath);
   typename ImageType::Pointer image = reader->GetOutput();
-  if (Cl::getFlipImageFlag()) image = ::flipImage<PixelType>(image);
-  if (Cl::getBinomialBlurFlag()) image = ::applyBinomialBlur<PixelType>(image);
-  if (Cl::getIdentityFlipFlag()) {
-    image = ::flipImage<PixelType>(image);
-    image = ::flipImage<PixelType>(image);
+  if (Cl::getFlipImageFilterFlag()) {
+    image = ::applyFlipImageFilter<PixelType>(image);
   }
-  if (Cl::getFlipvFlag()) ::flipv<PixelType>(image);
+  if (Cl::getBinomialBlurFlag()) {
+    image = ::applyBinomialBlur<PixelType>(image);
+  }
+  if (Cl::getIdentityFlipFlag()) {
+    image = ::applyFlipImageFilter<PixelType>(image);
+    image = ::applyFlipImageFilter<PixelType>(image);
+  }
+  ::reflectPixels<PixelType>(image,
+			     Cl::getFlipRAFlag(),
+			     Cl::getFlipDecFlag(),
+			     Cl::getFlipVFlag());
   writer->SetInput(image);
   writer->SetFileName(outputFilepath);
   writer->Update();
