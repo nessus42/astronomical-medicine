@@ -12,7 +12,7 @@
 //=============================================================================
 
 
-extern const char fits2itkVersion[] = "Version 0.4dev.3pending";
+extern const char fits2itkVersion[] = "Version 0.4dev.3flip-any";
 
 
 //=============================================================================
@@ -285,6 +285,16 @@ extern const char fits2itkVersion[] = "Version 0.4dev.3pending";
 // in the image.  The purpose for this is so that Analyze files can be properly
 // displayed in OsiriX, et. al.
 
+//---------------------------
+// Version 0.4dev.3flipv-any
+//---------------------------
+
+// *** Tue Aug  7, 2007 ***
+
+// Modified the flipv() function to allow flipping of any axis.  Boy this was
+// really hairy to do it all in place in only one pass!
+
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
 //----------------------------------------------------------------------
+
