@@ -12,7 +12,7 @@
 //=============================================================================
 
 
-extern const char fits2itkVersion[] = "Version 0.4dev.3flip-any";
+extern const char fits2itkVersion[] = "Version 0.4dev.3flipv-any.1";
 
 
 //=============================================================================
@@ -293,6 +293,16 @@ extern const char fits2itkVersion[] = "Version 0.4dev.3flip-any";
 
 // Modified the flipv() function to allow flipping of any axis.  Boy this was
 // really hairy to do it all in place in only one pass!
+
+//----------------------------
+// Version 0.4dev.3flipv-any.1
+//----------------------------
+
+// *** Wed Aug  8, 2007 ***
+
+// Reordered the loop index ordering so that the ram access will be more
+// sequential than striding, as it was previously.  Hopefully this will speed
+// things up a bit.
 
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***

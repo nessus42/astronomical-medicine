@@ -525,10 +525,6 @@ reflectPixels(const typename Image<PixelType, c_dims>::Pointer& image,
   const bool lastFlipIsDec = !lastFlipIsV and flipDecFlag;
   const bool lastFlipIsRA = !lastFlipIsV and !lastFlipIsDec and flipRAFlag;
 
-//   const bool lastFlipIsRA = flipRAFlag;
-//   const bool lastFlipIsDec = !lastFlipIsRA and flipDecFlag;
-//   const bool lastFlipIsV = !lastFlipIsRA and !lastFlipIsDec and flipVFlag;
-
   const size_t raStopIndex = lastFlipIsRA   ? middleRaIndex
                                             : maxRaIndex;
   const size_t decStopIndex = lastFlipIsDec ? middleDecIndex
@@ -536,33 +532,25 @@ reflectPixels(const typename Image<PixelType, c_dims>::Pointer& image,
   const size_t velStopIndex = lastFlipIsV   ? middleVelIndex
                                             : maxVelIndex;
 
-//   cout << "raStopIndex=" << raStopIndex << endl; //d
-//   cout << "decStopIndex=" << decStopIndex << endl; //d
-//   cout << "velStopIndex=" << velStopIndex << endl; //d
-
-//   cout << "lastFlipIsRA=" << lastFlipIsRA << endl; //d
-//   cout << "lastFlipIsDec=" << lastFlipIsDec << endl; //d
-//   cout << "lastFlipIsV=" << lastFlipIsV << endl; //d
-
-  const bool needToWorryAboutMiddleV = flipVFlag and isOdd(imageSize[c_k]);
+  const bool needToWorryAboutMiddleVel = flipVFlag and isOdd(imageSize[c_k]);
   const bool needToWorryAboutMiddleDec = flipDecFlag and isOdd(imageSize[c_j]);
 
-  for (size_t ra_i = minRaIndex, raReverse_i = maxRaIndex;
-       ra_i <= raStopIndex;
-       ++ra_i, --raReverse_i)
+  for (size_t vel_i = minVelIndex, velReverse_i = maxVelIndex;
+       vel_i <= velStopIndex;
+       ++vel_i, --velReverse_i)
     {
       for (size_t dec_i= minDecIndex, decReverse_i = maxDecIndex;
 	   dec_i <= decStopIndex;
 	   ++dec_i, --decReverse_i)
 	{
-	  for (size_t vel_i = minVelIndex, velReverse_i = maxVelIndex;
-	       vel_i <= velStopIndex;
-	       ++vel_i, --velReverse_i)
+	  for (size_t ra_i = minRaIndex, raReverse_i = maxRaIndex;
+	       ra_i <= raStopIndex;
+	       ++ra_i, --raReverse_i)
 	    {
 	      // Break out of the loop in situations in which we'd be swapping
 	      // a pair of pixels back to their original locations due to
 	      // swapping the pixels more than once:
-	      if (needToWorryAboutMiddleV) {
+	      if (needToWorryAboutMiddleVel) {
 		if (vel_i == middleVelIndex) {
 		  if (flipDecFlag) {
 		    if (dec_i > middleDecIndex) break;
@@ -584,17 +572,6 @@ reflectPixels(const typename Image<PixelType, c_dims>::Pointer& image,
 	      oppositePixelIndex[c_i] = flipRAFlag  ? raReverse_i  : ra_i;
 	      oppositePixelIndex[c_j] = flipDecFlag ? decReverse_i : dec_i;
 	      oppositePixelIndex[c_k] = flipVFlag   ? velReverse_i : vel_i;
-
-// 	      cout << "thisPixel= " //d
-// 		   << thisPixelIndex[c_i] << ", " //d
-// 		   << thisPixelIndex[c_j] << ", " //d
-// 		   << thisPixelIndex[c_k]; //d
-// 	      cout << " oppositePixelIndex= " //d
-// 		   << oppositePixelIndex[c_i] << ", " //d
-// 		   << oppositePixelIndex[c_j] << ", " //d
-// 		   << oppositePixelIndex[c_k] << endl; //d
-
-
 	      PixelType tmp = image->GetPixel(thisPixelIndex);
 	      image->SetPixel(thisPixelIndex,
 			      image->GetPixel(oppositePixelIndex));
