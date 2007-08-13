@@ -12,7 +12,7 @@
 //=============================================================================
 
 
-extern const char fits2itkVersion[] = "Version 0.4dev.4";
+extern const char fits2itkVersion[] = "Version 0.4dev.5";
 
 
 //=============================================================================
@@ -311,6 +311,14 @@ extern const char fits2itkVersion[] = "Version 0.4dev.4";
 // *** Sat Aug 11, 2007 ***
 
 // Changed isOdd() to be a bit more elegant.
+
+//---------------------------
+// Version 0.4dev.5
+//---------------------------
+
+// *** Mon Aug 13, 2007 ***
+
+// Added support for the "-n" option, which causes fits2itk to not write any output.
 
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
