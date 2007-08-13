@@ -470,8 +470,7 @@ applyBinomialBlur(const typename Image<PixelType, c_dims>::Pointer& image)
 local proc inline bool
 isOdd(size_t num)
 {
-  if ((num / 2) * 2 == num) return false;
-  else return true;
+  return num & 1;
 }
 
 

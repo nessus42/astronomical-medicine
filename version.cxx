@@ -12,7 +12,7 @@
 //=============================================================================
 
 
-extern const char fits2itkVersion[] = "Version 0.4dev.3flipv-any.1";
+extern const char fits2itkVersion[] = "Version 0.4dev.4";
 
 
 //=============================================================================
@@ -304,7 +304,14 @@ extern const char fits2itkVersion[] = "Version 0.4dev.3flipv-any.1";
 // sequential than striding, as it was previously.  Hopefully this will speed
 // things up a bit.
 
+//---------------------------
+// Version 0.4dev.4
+//---------------------------
+
+// *** Sat Aug 11, 2007 ***
+
+// Changed isOdd() to be a bit more elegant.
+
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
 //----------------------------------------------------------------------
-
