@@ -135,6 +135,7 @@ namespace {
     static const char*    _cv_outputFilepath;
     static int		  _cv_debugLevel;
     static bool           _cv_coerceToShorts;
+    static bool		  _cv_dontWrite;
     static bool           _cv_coerceToUnsignedShorts;
     static bool		  _cv_flipDecFlag;
     static bool		  _cv_flipRAFlag;
@@ -160,6 +161,7 @@ namespace {
     static const char* getInputFilepath()  { return _cv_inputFilepath;}
     static const char* getOutputFilepath() { return _cv_outputFilepath; }
     static int         getDebugLevel() { return _cv_debugLevel; }
+    static bool	       getDontWrite() { return _cv_dontWrite; }
     static bool        getCoerceToShorts() { return _cv_coerceToShorts; }
     static bool        getCoerceToUnsignedShorts()
                           { return _cv_coerceToUnsignedShorts; }
@@ -178,6 +180,7 @@ namespace {
   const char* CommandLineParser::_cv_inputFilepath = 0;
   const char* CommandLineParser::_cv_outputFilepath = 0;
   int  	      CommandLineParser::_cv_debugLevel = 0;
+  bool	      CommandLineParser::_cv_dontWrite = false;
   bool	      CommandLineParser::_cv_coerceToShorts = false;
   bool        CommandLineParser::_cv_coerceToUnsignedShorts = false;
   bool	      CommandLineParser::_cv_flipDecFlag = false;
@@ -217,7 +220,8 @@ parseCommandLine(const int argc, const char* const argv[])
   int typicalFlag = false;
 
   // Specify the allowed options:
-  const char shortopts[] = "Aa:D:fhN:o:Rr:Ss:Uv:";
+  const char shortopts[] = "Aa:D:fhnN:o:Rr:Ss:Uv:";
+
   struct option longopts[] = {
     { "help", no_argument, &verboseHelpFlag, true },
     { "flip-dec", no_argument, &flipDecFlag, true },
@@ -268,6 +272,10 @@ parseCommandLine(const int argc, const char* const argv[])
       case 'N':
 	itk::FITSImageIO::SetNullValue(strtod(optarg, &endptr));
 	::checkEndptr(endptr);
+	break;
+
+      case 'n':
+	_cv_dontWrite = true;
 	break;
 
       case 'o':
@@ -357,9 +365,13 @@ parseCommandLine(const int argc, const char* const argv[])
     } // while
 
   // Parse the command line positional arguments:
-  if (argc - ::optind != 2) ::usage();
+  if (_cv_dontWrite) {
+    if (argc - ::optind != 1) ::usage();
+  } else {
+    if (argc - ::optind != 2) ::usage();
+    _cv_outputFilepath = argv[::optind + 1];
+  }
   _cv_inputFilepath = argv[::optind];
-  _cv_outputFilepath = argv[::optind + 1];
 
   // Do some sanity checking to make sure that the options specified are
   // consistent with each other:
@@ -592,10 +604,8 @@ convertInputFileToItkFile(const char* const inputFilepath,
 {
   typedef itk::Image<PixelType, c_dims> ImageType;
   typedef itk::ImageFileReader<ImageType> ReaderType;
-  typedef itk::ImageFileWriter<ImageType> WriterType;
 
   typename ReaderType::Pointer reader = ReaderType::New();
-  typename WriterType::Pointer writer = WriterType::New();
   reader->SetFileName(inputFilepath);
   typename ImageType::Pointer image = reader->GetOutput();
   if (Cl::getFlipImageFilterFlag()) {
@@ -612,12 +622,19 @@ convertInputFileToItkFile(const char* const inputFilepath,
 			     Cl::getFlipRAFlag(),
 			     Cl::getFlipDecFlag(),
 			     Cl::getFlipVFlag());
-  writer->SetInput(image);
-  writer->SetFileName(outputFilepath);
-  writer->Update();
+  if (outputFilepath) {
+    typedef itk::ImageFileWriter<ImageType> WriterType;
+    typename WriterType::Pointer writer = WriterType::New();
+    writer->SetInput(image);
+    writer->SetFileName(outputFilepath);
+    writer->Update();
+  } else {
+    reader->Update();
+  }
+  
   return EXIT_SUCCESS;
 
-  // Note: The above call to Update() might raise an execption.  If you were to
+  // Note: The above call to writer->Update() might raise an execption.  If you were to
   // want to catch this exception, here is now you might do it.  You don't
   // really need to, though, as the default exception handler will output a
   // message that is not particularly more cryptic than the following:
