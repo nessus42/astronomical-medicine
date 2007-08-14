@@ -12,7 +12,7 @@
 //=============================================================================
 
 
-extern const char fits2itkVersion[] = "Version 0.4dev.6";
+extern const char fits2itkVersion[] = "Version 0.4dev.7";
 
 //=============================================================================
 // Change Log
@@ -317,7 +317,8 @@ extern const char fits2itkVersion[] = "Version 0.4dev.6";
 
 // *** Mon Aug 13, 2007 ***
 
-// Added support for the "-n" option, which causes fits2itk to not write any output.
+// Added support for the "-n" option, which causes fits2itk to not write any
+// output.
 
 //---------------------------
 // Version 0.4dev.6
@@ -326,8 +327,23 @@ extern const char fits2itkVersion[] = "Version 0.4dev.6";
 // *** Mon Aug 13, 2007 ***
 
 // Implemented the "--verbose" option, which current prints out the IJK center
-// coordinates and the RA/Dec center coordinates.  In the future it will do more.
+// coordinates and the RA/Dec center coordinates.  In the future it will do
+// more.
+
+//---------------------------
+// Version 0.4dev.7
+//---------------------------
+
+// *** Tue Aug 14, 2007 ***
+
+// Added to the "--verbose" output, information on the "i" and "j" basis
+// vectors tranformed into RA/Dec space.  Also it now outputs these basis
+// vectors transformed into "approximate angular" space.  Or that's what I'm
+// calling it in the meantime.
 
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
 //----------------------------------------------------------------------
+
+// TODO: Add an option to reorient to North, and to another to scale the pixels
+// to be equa-angular.

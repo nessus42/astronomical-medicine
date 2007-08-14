@@ -21,6 +21,7 @@
 #include <sys/param.h>                     // For MAXPATHLEN
 
 #include <cassert>
+#include <cmath>
 #include <fstream>
 using std::ifstream;
 using std::istream;
@@ -495,6 +496,28 @@ isOdd(size_t num)
 
 
 //-----------------------------------------------------------------------------
+// degreesToRadians(): local inline function
+//-----------------------------------------------------------------------------
+
+local proc inline double
+degreesToRadians(double degrees)
+{
+  return degrees * M_PI/180;
+}
+
+
+//-----------------------------------------------------------------------------
+// radiansToDegrees(): local inline function
+//-----------------------------------------------------------------------------
+
+local proc inline double
+radiansToDegrees(double radians)
+{
+  return radians * 180/M_PI;
+}
+
+
+//-----------------------------------------------------------------------------
 // reflectPixels(): local template function
 //-----------------------------------------------------------------------------
 
@@ -629,35 +652,95 @@ writeImageInfo(const Image<PixelType, c_dims>& image,
   float middleJIndex = imageOrigin[c_j] + imageSize[c_j]/2.0 - 0.5;
   float middleKIndex = imageOrigin[c_k] + imageSize[c_k]/2.0 - 0.5;
 
-//   const size_t middleIIndex = imageOrigin[c_i] + ((imageSize[c_i] + 1) / 2) - 1;
-//   const size_t middleJIndex = imageOrigin[c_j] + ((imageSize[c_j] + 1) / 2) - 1;
-//   const size_t middleKIndex = imageOrigin[c_k] + ((imageSize[c_k] + 1) / 2) - 1;
-
-//   float middleRaIndexF  = isOdd(imageSize[c_i]) ? middleRaIndex  : middleRaIndex  + 0.5;
-//   float middleDecIndexF = isOdd(imageSize[c_j]) ? middleDecIndex : middleDecIndex + 0.5;
-//   float middleVelIndexF  = isOdd(imageSize[c_k]) ? middleVelIndex : middleVelIndex + 0.5;
-
-  out << "Image center in IJK coordinates with (0,0,0) origin: ("
+  out << "Image center in IJK space with (0,0,0) origin: ("
       << middleIIndex << ", "
       << middleJIndex << ", "
       << middleKIndex << ")\n";
 
-
   if (itk::g_theFITSWCSTransform) {
     typedef itk::FITSWCSTransform<double, c_dims> WCS;
-    // const WCS::ConstPointer wcs = image.GetWCSTransform();
 
     // URGENT TODO: Fix this attrocity!
     const WCS::ConstPointer wcs = (WCS*) itk::g_theFITSWCSTransform;
-    WCS::InputPointType ijkPoint;
-    ijkPoint[0] = middleIIndex;
-    ijkPoint[1] = middleJIndex;
-    ijkPoint[2] = middleKIndex;
-    WCS::OutputPointType wcsPoint = wcs->TransformPoint(ijkPoint);
+
+    typedef WCS::InputPointType IjkPoint;
+    IjkPoint ijkCenter;
+    ijkCenter[c_i] = middleIIndex;
+    ijkCenter[c_j] = middleJIndex;
+    ijkCenter[c_k] = middleKIndex;
+
+    typedef WCS::OutputPointType WcsPoint;
+    WcsPoint wcsCenter = wcs->TransformPoint(ijkCenter);
+
+    const size_t raIndex  = 0;
+    const size_t decIndex = 1;
+
+    const double raAtCenter  = wcsCenter[raIndex];
+    const double decAtCenter = wcsCenter[decIndex];
+
 
     out << "Image center in RA/Dec coordinates: ("
-	<< wcsPoint[0] << ", "
-	<< wcsPoint[1] << ")\n";
+	<< raAtCenter << ", " << decAtCenter << ")\n";
+
+    // Calculate lengths of unit i and j vectors in RA/Dec space:
+    { 
+      IjkPoint ijkLeftHalfAPixel  = ijkCenter;
+      IjkPoint ijkRightHalfAPixel = ijkCenter;
+      IjkPoint ijkDownHalfAPixel  = ijkCenter;
+      IjkPoint ijkUpHalfAPixel    = ijkCenter;
+      ijkLeftHalfAPixel[c_i]  -= .5;
+      ijkRightHalfAPixel[c_i] += .5;
+      ijkDownHalfAPixel[c_j]  -= .5;
+      ijkUpHalfAPixel[c_j]    += .5;
+      
+      WcsPoint wcsLeftHalfAPixel  = wcs->TransformPoint(ijkLeftHalfAPixel);
+      WcsPoint wcsRightHalfAPixel = wcs->TransformPoint(ijkRightHalfAPixel);
+      WcsPoint wcsDownHalfAPixel  = wcs->TransformPoint(ijkDownHalfAPixel);
+      WcsPoint wcsUpHalfAPixel    = wcs->TransformPoint(ijkUpHalfAPixel);
+      
+      // TODO: It's confusing that in some situations V is 1 and dec is 2, and
+      // in others, dec is 1 and V is 2.  We need a better way to denote this.
+
+      const double raPerI = 
+	wcsRightHalfAPixel[raIndex]  - wcsLeftHalfAPixel[raIndex];
+      const double decPerI =
+	wcsRightHalfAPixel[decIndex] - wcsLeftHalfAPixel[decIndex];
+      const double raPerJ =
+	wcsUpHalfAPixel[raIndex]     - wcsDownHalfAPixel[raIndex];
+      const double decPerJ =
+	wcsUpHalfAPixel[decIndex]    - wcsDownHalfAPixel[decIndex];
+
+//       itk::Vector<double> unitJInWcs = wcsUpHalfAPixel - wcsDownHalfAPixel;
+//       cout << "unitJInWcs=" << unitJInWcs << "\n";
+
+//       cout << "raPerI=" << raPerI << "\n";
+//       cout << "decPerI=" << decPerI << "\n";
+//       cout << "raPerJ=" << raPerJ << "\n";
+//       cout << "decPerJ=" << decPerJ << "\n";
+
+//       cout << "ijkLeftHalfAPixel=" << ijkLeftHalfAPixel << "\n";
+//       cout << "ijkRightHalfAPixel=" << ijkRightHalfAPixel << "\n";
+//       cout << "ijkDownHalfAPixel=" << ijkDownHalfAPixel << "\n";
+//       cout << "ijkUpHalfAPixel=" << ijkUpHalfAPixel << "\n";
+
+//       cout << "wcsLeftHalfAPixel=" << wcsLeftHalfAPixel << "\n";
+//       cout << "wcsRightHalfAPixel=" << wcsRightHalfAPixel << "\n";
+//       cout << "wcsDownHalfAPixel=" << wcsDownHalfAPixel << "\n";
+//       cout << "wcsUpHalfAPixel=" << wcsUpHalfAPixel << "\n";
+
+      out << "Unit i vector in RA/Dec space: ("
+	  << raPerI << ", " << decPerI << ")\n";
+      out << "Unit j vector in RA/Dec space: ("
+	  << raPerJ << ", " << decPerJ << ")\n";
+      out << "Unit i vector in approximate angular space: ("
+	  << raPerI * cos(degreesToRadians(decAtCenter)) << ", "
+	  << decPerI << ")\n";
+      out << "Unit j vector in approximate angular space: ("
+	  << raPerJ * cos(degreesToRadians(decAtCenter)) << ", "
+	  << decPerJ << ")\n";
+      out << "Image rotation in degrees clockwise:  "
+	  << radiansToDegrees(atan(-raPerJ/decPerJ)) << "\n";
+    }
   }
 }
 
@@ -705,10 +788,10 @@ convertInputFileToItkFile(const char* const inputFilepath,
   
   return EXIT_SUCCESS;
 
-  // Note: The above call to writer->Update() might raise an execption.  If you were to
-  // want to catch this exception, here is now you might do it.  You don't
-  // really need to, though, as the default exception handler will output a
-  // message that is not particularly more cryptic than the following:
+  // Note: The above call to writer->Update() might raise an execption.  If we
+  // were to want to catch this exception, here is how we might do it.  You
+  // don't really need to, though, as the default exception handler will output
+  // a message that is not particularly more cryptic than the following:
   //
   //   try {
   //     writer->Update(); 
