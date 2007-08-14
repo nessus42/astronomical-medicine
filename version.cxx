@@ -12,8 +12,7 @@
 //=============================================================================
 
 
-extern const char fits2itkVersion[] = "Version 0.4dev.5";
-
+extern const char fits2itkVersion[] = "Version 0.4dev.6";
 
 //=============================================================================
 // Change Log
@@ -319,6 +318,15 @@ extern const char fits2itkVersion[] = "Version 0.4dev.5";
 // *** Mon Aug 13, 2007 ***
 
 // Added support for the "-n" option, which causes fits2itk to not write any output.
+
+//---------------------------
+// Version 0.4dev.6
+//---------------------------
+
+// *** Mon Aug 13, 2007 ***
+
+// Implemented the "--verbose" option, which current prints out the IJK center
+// coordinates and the RA/Dec center coordinates.  In the future it will do more.
 
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***

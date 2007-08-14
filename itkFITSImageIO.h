@@ -47,6 +47,14 @@ namespace itk
 //   }
 
 
+// URGENT TODO: Fix this attrocity!  Pass the information in the
+// meta-data dictionary, or something, instead.  This won't work right if the
+// program uses more than one FITS Image!
+
+extern void* g_theFITSWCSTransform;
+
+
+
 //*****************************************************************************
 //*****                                                                   *****
 //*****         FITSImageIO: leaf subclass of ImageIOBase                 *****
@@ -81,7 +89,7 @@ public:
   //! Run-time type information (and related methods).
   itkTypeMacro(FITSImageIO, ImageIOBase);
 
-  // Class setter procedures:
+  // Static setter methods:
   static void SetSuppressWCS(bool flag)
                  { _cv_suppressWCS = flag; }
   static void SetDebugLevel(int debugLevel)
@@ -106,8 +114,10 @@ public:
                  { _cv_nullValue = nullValue; }
   static void SetSuppressMetaDataDictionary(bool flag)
                  { _cv_suppressMetaDataDictionary = flag; }
+  static void SetVerbose(bool flag)
+                 { _cv_verbose = flag; }
 					
-  // Static getter procedures:
+  // Static getter methods:
   static bool   GetSuppressWCS()
                   { return _cv_suppressWCS; }
   static int    GetDebugLevel()
@@ -132,6 +142,8 @@ public:
                   { return _cv_nullValue; }
   static bool   GetSuppressMetaDataDictionary()
                   { return _cv_suppressMetaDataDictionary; }
+  static bool   GetVerbose()
+                  { return _cv_verbose; }
 
   // Virtual methods implementing pure virtual methods of ImageIOBase:
   virtual bool CanReadFile(const char* filename);
@@ -153,7 +165,7 @@ private:
 
   // Instance variables:
   fitsfile*                                      m_fitsFile;
-  FITSWCSTransform<double, c_dims>::Pointer      m_transform;
+  FITSWCSTransform<double, c_dims>::Pointer      m_WCSTransform;
 
 				// Note: the memory for 'm_fitsFile' is managed
 				// by CFITSIO.  I.e., its memory is freed when
@@ -174,6 +186,7 @@ private:
   static bool   _cv_autoScaleVelocityAxis;
   static double _cv_scaleAllAxes;
   static bool   _cv_suppressMetaDataDictionary;
+  static bool	_cv_verbose;
 
   // Deactivate object copying:
   FITSImageIO(const Self&);      // Intentionally not implemented.

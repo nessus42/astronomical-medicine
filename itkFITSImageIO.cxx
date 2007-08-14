@@ -42,6 +42,9 @@ using std::endl;
 using std::vector;
 
 
+// URGENT TODO: Fix this attrocity!
+void* itk::g_theFITSWCSTransform = 0;
+
 //*****************************************************************************
 //*****				Local constants                           *****
 //*****************************************************************************
@@ -68,6 +71,18 @@ const size_t c_k    = itk::FITSImageIO::c_k;
         cerr << message << endl; \
      } \
    }
+
+
+//-----------------------------------------------------------------------------
+// printIfVerbose(): local macro
+//-----------------------------------------------------------------------------
+
+#define printIfVerbose(message) \
+   { if (FITSImageIO::GetVerbose()) { \
+        cout << message << '\n'; \
+     } \
+   }
+
 
 //-----------------------------------------------------------------------------
 // max(): local proc
@@ -131,21 +146,6 @@ checkExtension(const string& filepath)
     "^.+\\.dat\\[[^][]+\\]$";
 
   return fitsRE.find(filepath) or rawRE.find(filepath);
-
-// TODO: Remove the following commented-out code:
-
-//   // TODO: Extend this to deal CFITSIO's "Extended File Name Syntax".
-
-//   if (endMatchesP(loweredFilepath, ".fits")    or
-//       endMatchesP(loweredFilepath, ".fits.gz") or
-//       endMatchesP(loweredFilepath, ".fit")     or
-//       endMatchesP(loweredFilepath, ".fit.gz")  or
-//       endMatchesP(loweredFilepath, ".fits.Z")  or
-//       endMatchesP(loweredFilepath, ".fit.Z"))
-//     {
-//       return true;
-//     }
-//   else return false;
 }
 
 
@@ -322,6 +322,7 @@ bool   FITSImageIO::_cv_autoScaleVelocityAxis = false;
 double FITSImageIO::_cv_scaleVelocity = 1;
 double FITSImageIO::_cv_scaleAllAxes = 1;
 bool   FITSImageIO::_cv_suppressMetaDataDictionary = false;
+bool   FITSImageIO::_cv_verbose = false;
 
 
 //=============================================================================
@@ -741,7 +742,10 @@ FITSImageIO::ReadImageInformation()
   double spacing[c_dims];
   vector<double> directionCosines[c_dims];
   itk::calcCoordinateFrame(fitsHeader, lengthsOfAxesInPixels, origin,
-			   spacing, directionCosines, m_transform);
+			   spacing, directionCosines, m_WCSTransform);
+
+  // URGENT TODO: Fix this attrocity!
+  g_theFITSWCSTransform = m_WCSTransform;
 
   // Set up the ITK image:
   { 
