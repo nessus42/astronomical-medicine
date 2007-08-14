@@ -13,12 +13,9 @@
 // See LICENSE.txt for for details.
 //=============================================================================
 
+#include <cmath>
 #include <iostream>
-#include <list>
 #include <string>
-#include <sstream>
-#include <math.h>
-#include <zlib.h>
 
 #include <itkExceptionObject.h>
 #include <itkByteSwapper.h>
@@ -27,7 +24,7 @@
 
 #include <wcs.h>
 
-#include "itkFITSImageIO.h"
+#include <itkFITSImageIO.h>
 #include <grparser.h> // for FITS NGP_MAX_ARRAY_DIM
 
 #include <da_sugar.h>
@@ -85,13 +82,13 @@ const size_t c_k    = itk::FITSImageIO::c_k;
 
 
 //-----------------------------------------------------------------------------
-// max(): local proc
+// max(): local template proc
 //-----------------------------------------------------------------------------
 
-/*local*/ proc template <class T> T
-max(T a, T b) {
-  if (a > b) return a;
-  else return b;
+/*local*/ template <class T> inline T
+max(T& a, T& b)
+{
+  return a > b ? a : b;
 }
 
 
@@ -101,7 +98,7 @@ max(T a, T b) {
 
 // // Converts \a s to lowercase.
 
-// /*local proc*/ void
+// local proc void
 // toLower(string& s)
 // {
 //    for (string::iterator p = s.begin(); p != s.end( ); ++p) {
@@ -109,13 +106,15 @@ max(T a, T b) {
 //    }
 
 // }
+
+
 // //--------------------------------------------------------------------------
 // // endMatchesP(): local proc
 // //--------------------------------------------------------------------------
 
 // // Returns true iff \a extension is on the end of \a filepath.
 
-// /*local proc*/ static bool
+// local proc static bool
 // endMatchesP(const string& filepath, const string& extension)
 // {
 //   typedef string::size_type StrLen;
@@ -183,11 +182,11 @@ local proc inline double square(double x)
 
 
 //-----------------------------------------------------------------------------
-// rightMulitply(): local proc
+// multiply(): local proc
 //-----------------------------------------------------------------------------
 
 local proc void
-mulitply(const double leftMatrix[c_dims][c_dims],
+multiply(const double leftMatrix[c_dims][c_dims],
 	 vector<double> rightMatrix[c_dims])
 {
   double retval[c_dims][c_dims];
@@ -226,7 +225,7 @@ applySkyRotation(vector<double> changeOfBasisMatrix[c_dims], double degrees)
     double rotationMatrix[c_dims][c_dims] = { c, 0, s,
 					      0, 1, 0,
 					      -s, 0, c };
-    mulitply(rotationMatrix, changeOfBasisMatrix);
+    multiply(rotationMatrix, changeOfBasisMatrix);
   }
 }
 
