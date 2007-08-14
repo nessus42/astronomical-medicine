@@ -133,13 +133,14 @@ namespace {
     // Private class variables:
     static const char*    _cv_inputFilepath;
     static const char*    _cv_outputFilepath;
-    static int		  _cv_debugLevel;
     static bool           _cv_coerceToShorts;
-    static bool		  _cv_dontWrite;
     static bool           _cv_coerceToUnsignedShorts;
+    static int		  _cv_debugLevel;
+    static bool		  _cv_dontWrite;
     static bool		  _cv_flipDecFlag;
     static bool		  _cv_flipRAFlag;
     static bool		  _cv_flipVFlag;
+
     static bool		  _cv_binomialBlurFlag;
     static bool           _cv_derivativeImageFilterFlag;
     static bool           _cv_flipImageFilterFlag;
@@ -160,32 +161,34 @@ namespace {
     // Class accessors:
     static const char* getInputFilepath()  { return _cv_inputFilepath;}
     static const char* getOutputFilepath() { return _cv_outputFilepath; }
-    static int         getDebugLevel() { return _cv_debugLevel; }
-    static bool	       getDontWrite() { return _cv_dontWrite; }
     static bool        getCoerceToShorts() { return _cv_coerceToShorts; }
     static bool        getCoerceToUnsignedShorts()
                           { return _cv_coerceToUnsignedShorts; }
+    static int         getDebugLevel() { return _cv_debugLevel; }
+    static bool	       getDontWrite() { return _cv_dontWrite; }
+    static bool	       getFlipDecFlag() { return _cv_flipDecFlag; }
+    static bool        getFlipRAFlag() { return _cv_flipRAFlag; }
+    static bool	       getFlipVFlag() { return _cv_flipVFlag; }
+    
     static bool	       getBinomialBlurFlag()
                           { return _cv_binomialBlurFlag; }
     static bool        getDerivativeImageFilterFlag()
                           { return _cv_derivativeImageFilterFlag; }
     static bool        getFlipImageFilterFlag()
                           { return _cv_flipImageFilterFlag; }
-    static bool	       getFlipDecFlag() { return _cv_flipDecFlag; }
-    static bool        getFlipRAFlag() { return _cv_flipRAFlag; }
-    static bool	       getFlipVFlag() { return _cv_flipVFlag; }
     static bool	       getIdentityFlipFlag() { return _cv_identityFlipFlag; }
   };
 
   const char* CommandLineParser::_cv_inputFilepath = 0;
   const char* CommandLineParser::_cv_outputFilepath = 0;
-  int  	      CommandLineParser::_cv_debugLevel = 0;
-  bool	      CommandLineParser::_cv_dontWrite = false;
   bool	      CommandLineParser::_cv_coerceToShorts = false;
   bool        CommandLineParser::_cv_coerceToUnsignedShorts = false;
+  int  	      CommandLineParser::_cv_debugLevel = 0;
+  bool	      CommandLineParser::_cv_dontWrite = false;
   bool	      CommandLineParser::_cv_flipDecFlag = false;
   bool	      CommandLineParser::_cv_flipRAFlag = false;
   bool	      CommandLineParser::_cv_flipVFlag = false;
+
   bool	      CommandLineParser::_cv_binomialBlurFlag = false;
   bool        CommandLineParser::_cv_derivativeImageFilterFlag = false;
   bool        CommandLineParser::_cv_flipImageFilterFlag = false;
@@ -218,6 +221,7 @@ parseCommandLine(const int argc, const char* const argv[])
   int rotateSkyFlag = false;
   int scaleDecFlag = false;
   int typicalFlag = false;
+  int verboseFlag = false;
 
   // Specify the allowed options:
   const char shortopts[] = "Aa:D:fhnN:o:Rr:Ss:Uv:";
@@ -233,6 +237,7 @@ parseCommandLine(const int argc, const char* const argv[])
     { "RIP", no_argument, &ripOrientationFlag, true },
     { "scale-dec", required_argument, &scaleDecFlag, true },
     { "typical", no_argument, &typicalFlag, true },
+    { "verbose", no_argument, &verboseFlag, true },
     { null, 0, null, 0 }
   };
 
@@ -353,6 +358,9 @@ parseCommandLine(const int argc, const char* const argv[])
 	  itk::FITSImageIO::SetScaleAllAxes(1000);
 	  itk::FITSImageIO::SetScaleRA(-1);
 	  itk::FITSImageIO::SetScaleVoxelValues(1000);
+	} else if (verboseFlag) {
+	  verboseFlag = false;
+	  itk::FITSImageIO::SetVerbose(true);
 	} else {
 	  ::usage();
 	}
@@ -494,9 +502,16 @@ isOdd(size_t num)
 // actually moving the pixels around, rather than by messing with the direction
 // cosines.  It is, unfortunately, quite hairy.
 
+// CAVEAT: This function assumes that RA is aligned with the i-axis, that Dec
+// is aligned with the j-axis, and that V is aligned with the k-axis.  This is
+// not always the case, however.  Sometimes a FITS image is rotated in RA/Dec
+// space.  Furthermore, even then, this is only an approximation that works for
+// small areas of the sky that are not near a pole.  As this function is only
+// designed to be used with OsiriX, we can live with this caveat.
+
 template <class PixelType>
 local proc void
-reflectPixels(const typename Image<PixelType, c_dims>::Pointer& image,
+reflectPixels(Image<PixelType, c_dims>& image,
 	      bool flipRAFlag, bool flipDecFlag, bool flipVFlag)
 {
   // CAVEAT: This code will break if c_dims ever changes from 3.
@@ -505,14 +520,13 @@ reflectPixels(const typename Image<PixelType, c_dims>::Pointer& image,
   if (!flipRAFlag and !flipDecFlag and !flipVFlag) return;
 
   // Make sure that we actually have the pixels loaded into the image:
-  image->Update();
+  image.Update();
 
   typedef Image<PixelType, c_dims> ImageType;
   typedef typename ImageType::IndexType IndexType;
   typedef typename ImageType::SizeType SizeType;
 
-  typename ImageType::RegionType allOfImage =
-    image->GetLargestPossibleRegion();
+  typename ImageType::RegionType allOfImage = image.GetLargestPossibleRegion();
   typename ImageType::SizeType imageSize = allOfImage.GetSize();
   IndexType imageOrigin = allOfImage.GetIndex();
 
@@ -583,13 +597,68 @@ reflectPixels(const typename Image<PixelType, c_dims>::Pointer& image,
 	      oppositePixelIndex[c_i] = flipRAFlag  ? raReverse_i  : ra_i;
 	      oppositePixelIndex[c_j] = flipDecFlag ? decReverse_i : dec_i;
 	      oppositePixelIndex[c_k] = flipVFlag   ? velReverse_i : vel_i;
-	      PixelType tmp = image->GetPixel(thisPixelIndex);
-	      image->SetPixel(thisPixelIndex,
-			      image->GetPixel(oppositePixelIndex));
-	      image->SetPixel(oppositePixelIndex, tmp);
+	      PixelType tmp = image.GetPixel(thisPixelIndex);
+	      image.SetPixel(thisPixelIndex,
+			      image.GetPixel(oppositePixelIndex));
+	      image.SetPixel(oppositePixelIndex, tmp);
 	    }
 	}
     }
+}
+
+
+//-----------------------------------------------------------------------------
+// writeImageInfo(): local template function
+//-----------------------------------------------------------------------------
+
+template <class PixelType>
+local proc void
+writeImageInfo(const Image<PixelType, c_dims>& image,
+	       ostream& out)
+{
+  typedef Image<PixelType, c_dims> ImageType;
+  typename ImageType::RegionType allOfImage = image.GetLargestPossibleRegion();
+  typename ImageType::SizeType imageSize = allOfImage.GetSize();
+  typename ImageType::IndexType imageOrigin = allOfImage.GetIndex();
+
+  const size_t c_i    = itk::FITSImageIO::c_i;
+  const size_t c_j    = itk::FITSImageIO::c_j;
+  const size_t c_k    = itk::FITSImageIO::c_k;
+
+  float middleIIndex = imageOrigin[c_i] + imageSize[c_i]/2.0 - 0.5;
+  float middleJIndex = imageOrigin[c_j] + imageSize[c_j]/2.0 - 0.5;
+  float middleKIndex = imageOrigin[c_k] + imageSize[c_k]/2.0 - 0.5;
+
+//   const size_t middleIIndex = imageOrigin[c_i] + ((imageSize[c_i] + 1) / 2) - 1;
+//   const size_t middleJIndex = imageOrigin[c_j] + ((imageSize[c_j] + 1) / 2) - 1;
+//   const size_t middleKIndex = imageOrigin[c_k] + ((imageSize[c_k] + 1) / 2) - 1;
+
+//   float middleRaIndexF  = isOdd(imageSize[c_i]) ? middleRaIndex  : middleRaIndex  + 0.5;
+//   float middleDecIndexF = isOdd(imageSize[c_j]) ? middleDecIndex : middleDecIndex + 0.5;
+//   float middleVelIndexF  = isOdd(imageSize[c_k]) ? middleVelIndex : middleVelIndex + 0.5;
+
+  out << "Image center in IJK coordinates with (0,0,0) origin: ("
+      << middleIIndex << ", "
+      << middleJIndex << ", "
+      << middleKIndex << ")\n";
+
+
+  if (itk::g_theFITSWCSTransform) {
+    typedef itk::FITSWCSTransform<double, c_dims> WCS;
+    // const WCS::ConstPointer wcs = image.GetWCSTransform();
+
+    // URGENT TODO: Fix this attrocity!
+    const WCS::ConstPointer wcs = (WCS*) itk::g_theFITSWCSTransform;
+    WCS::InputPointType ijkPoint;
+    ijkPoint[0] = middleIIndex;
+    ijkPoint[1] = middleJIndex;
+    ijkPoint[2] = middleKIndex;
+    WCS::OutputPointType wcsPoint = wcs->TransformPoint(ijkPoint);
+
+    out << "Image center in RA/Dec coordinates: ("
+	<< wcsPoint[0] << ", "
+	<< wcsPoint[1] << ")\n";
+  }
 }
 
 
@@ -618,7 +687,7 @@ convertInputFileToItkFile(const char* const inputFilepath,
     image = ::applyFlipImageFilter<PixelType>(image);
     image = ::applyFlipImageFilter<PixelType>(image);
   }
-  ::reflectPixels<PixelType>(image,
+  ::reflectPixels<PixelType>(*image,
 			     Cl::getFlipRAFlag(),
 			     Cl::getFlipDecFlag(),
 			     Cl::getFlipVFlag());
@@ -631,6 +700,8 @@ convertInputFileToItkFile(const char* const inputFilepath,
   } else {
     reader->Update();
   }
+
+  if (itk::FITSImageIO::GetVerbose()) ::writeImageInfo(*image, cout);
   
   return EXIT_SUCCESS;
 
