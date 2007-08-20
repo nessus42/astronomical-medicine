@@ -12,7 +12,7 @@
 //=============================================================================
 
 
-extern const char fits2itkVersion[] = "Version 0.4dev.7";
+extern const char fits2itkVersion[] = "Version 0.4dev.8";
 
 //=============================================================================
 // Change Log
@@ -341,9 +341,27 @@ extern const char fits2itkVersion[] = "Version 0.4dev.7";
 // vectors transformed into "approximate angular" space.  Or that's what I'm
 // calling it in the meantime.
 
+//---------------------------
+// Version 0.4dev.8pending
+//---------------------------
+
+// *** Tue Aug 14, 2007 ***
+
+// Cosmetic improvements to "--verbose" output.  Removed some extraneous "-D1"
+// debugging output.
+
+// *** Mon Aug 20, 2007 ***
+
+// Fixed a bug where the WCS information being returned was being shifted down
+// and to the left by one pixel due to the disparity between ITK's (0, 0)
+// origin and FITS's (1, 1) origin.
+
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
 //----------------------------------------------------------------------
 
 // TODO: Add an option to reorient to North, and to another to scale the pixels
-// to be equa-angular.
+// to be equiangular.
+
+// TODO: Make it so that fits2itk can read a 2D FITS file, and perhaps extrude
+// it into a third dimension.  Or at least read it as a single slice.

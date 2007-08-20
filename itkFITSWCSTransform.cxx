@@ -92,9 +92,23 @@ TransformPoint(const InputPointType &point) const
   if (m_isInverted) {
     int offscl;
     wcs2pix(wcs, point[0], point[1], &retval[0], &retval[1], &offscl);
+
+    // Adjust for the fact that the index origin for FITS is (1, 1, 1) and the
+    // index origin for ITK is (0, 0, 0):
+    retval[0] -= 1;
+    retval[1] -= 1;
+
+    // We don't do WCS for the velocity axis, so for now, we just set it to 0
+    // (TODO: Fix this):
     retval[2] = 0;
+
   } else {
-    pix2wcs(wcs, point[0], point[1], &retval[0], &retval[1]);
+    // The +1's below are to compensate for the fact that the index origin for
+    // FITS is (1, 1, 1) and the index origin for ITK is (0, 0, 0):
+    pix2wcs(wcs, point[0] + 1, point[1] + 1, &retval[0], &retval[1]);
+
+    // We don't do WCS for the velocity axis, so for now, we just set it to 0
+    // (TODO: Fix this):
     retval[2] = 0;
   }
   return retval;
