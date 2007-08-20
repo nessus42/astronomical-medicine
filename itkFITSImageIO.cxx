@@ -182,13 +182,16 @@ local proc inline double square(double x)
 
 
 //-----------------------------------------------------------------------------
-// multiply(): local proc
+// leftMultiply(): local proc
 //-----------------------------------------------------------------------------
 
+// `rightMatrix` is modified to be `leftMatrix` * `rightMatrix`.
+
 local proc void
-multiply(const double leftMatrix[c_dims][c_dims],
-	 vector<double> rightMatrix[c_dims])
+leftMultiply(vector<double> rightMatrix[c_dims],
+	     const double leftMatrix[c_dims][c_dims])
 {
+  // Initialize retval to a matrix of 0's:
   double retval[c_dims][c_dims];
   for (int row = 0; row < c_dims; ++row) {
     for (int col = 0; col < c_dims; ++col) {
@@ -196,6 +199,7 @@ multiply(const double leftMatrix[c_dims][c_dims],
     }
   }
 
+  // Perform the multiplication into `retval`:
   for (int row = 0; row < c_dims; ++row) {
     for (int col = 0; col < c_dims; ++col) {
       for (int i = 0; i < c_dims; ++i) {
@@ -204,9 +208,46 @@ multiply(const double leftMatrix[c_dims][c_dims],
     }
   }
 
+  // Copy retval into `rightMatrix`:
   for (int row = 0; row < c_dims; ++row) {
     for (int col = 0; col < c_dims; ++col) {
       rightMatrix[row][col] = retval[row][col];
+    }
+  }
+}
+
+
+//-----------------------------------------------------------------------------
+// rightMultiply(): local proc
+//-----------------------------------------------------------------------------
+
+// `leftMatrix` is modified to be `leftMatrix` * `rightMatrix`.
+
+local proc void
+rightMultiply(vector<double> leftMatrix[c_dims],
+	      const double rightMatrix[c_dims][c_dims])
+{
+  // Initialize retval to a matrix of 0's:
+  double retval[c_dims][c_dims];
+  for (int row = 0; row < c_dims; ++row) {
+    for (int col = 0; col < c_dims; ++col) {
+      retval[row][col] = 0;
+    }
+  }
+
+  // Perform the multiplication into `retval`:
+  for (int row = 0; row < c_dims; ++row) {
+    for (int col = 0; col < c_dims; ++col) {
+      for (int i = 0; i < c_dims; ++i) {
+	retval[row][col] += leftMatrix[row][i] * rightMatrix[i][col];
+      }
+    }
+  }
+
+  // Copy retval into `leftMatrix`:
+  for (int row = 0; row < c_dims; ++row) {
+    for (int col = 0; col < c_dims; ++col) {
+      leftMatrix[row][col] = retval[row][col];
     }
   }
 }
@@ -222,10 +263,10 @@ applySkyRotation(vector<double> changeOfBasisMatrix[c_dims], double degrees)
   if (degrees != 0) {
     const double s = sin(degrees/180 * PI);
     const double c = cos(degrees/180 * PI);
-    double rotationMatrix[c_dims][c_dims] = { c, 0, s,
-					      0, 1, 0,
+    double rotationMatrix[c_dims][c_dims] = { c,  0, s,
+					      0,  1, 0,
 					      -s, 0, c };
-    multiply(rotationMatrix, changeOfBasisMatrix);
+    rightMultiply(changeOfBasisMatrix, rotationMatrix);
   }
 }
 
@@ -366,13 +407,10 @@ FITSImageIO::getFitsHeader()
 method bool
 FITSImageIO::CanReadFile(const char* const filepath) 
 { 
-  debugPrint("Entering FITSImageIO::CanReadFile().")
-
   if (!filepath or *filepath == 0) {
     itkDebugMacro(<< "No filename specified.");
     return false;
   } else if (::checkExtension(filepath)) {
-    debugPrint("Exiting FITSImageIO::CanReadFile() with true.");
     return true;
   } else {
     itkDebugMacro(<<"The filename extension is not recognized");
@@ -696,8 +734,6 @@ FITSImageIO::ReadImageInformation()
                       << this->GetFileName() << "\" for reading: "
                       << ::getAllFitsErrorMessages(status) << '.');
   }
-
-  debugPrint("Entering FITSImageIO::ReadImageInformation().");
 
   // Get the dimensions and type of the FITS Primary Array:
   int numOfAxes;

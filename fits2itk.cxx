@@ -652,7 +652,7 @@ writeImageInfo(const Image<PixelType, c_dims>& image,
   float middleJIndex = imageOrigin[c_j] + imageSize[c_j]/2.0 - 0.5;
   float middleKIndex = imageOrigin[c_k] + imageSize[c_k]/2.0 - 0.5;
 
-  out << "Image center in IJK space with (0,0,0) origin: ("
+  out << "Image center, in IJK space with (0,0,0) origin: ("
       << middleIIndex << ", "
       << middleJIndex << ", "
       << middleKIndex << ")\n";
@@ -679,7 +679,7 @@ writeImageInfo(const Image<PixelType, c_dims>& image,
     const double decAtCenter = wcsCenter[decIndex];
 
 
-    out << "Image center in RA/Dec coordinates: ("
+    out << "Image center, in RA/Dec coordinates: ("
 	<< raAtCenter << ", " << decAtCenter << ")\n";
 
     // Calculate lengths of unit i and j vectors in RA/Dec space:
@@ -728,17 +728,17 @@ writeImageInfo(const Image<PixelType, c_dims>& image,
 //       cout << "wcsDownHalfAPixel=" << wcsDownHalfAPixel << "\n";
 //       cout << "wcsUpHalfAPixel=" << wcsUpHalfAPixel << "\n";
 
-      out << "Unit i vector in RA/Dec space: ("
+      out << "Unit i vector, in RA/Dec space: ("
 	  << raPerI << ", " << decPerI << ")\n";
-      out << "Unit j vector in RA/Dec space: ("
+      out << "Unit j vector, in RA/Dec space: ("
 	  << raPerJ << ", " << decPerJ << ")\n";
-      out << "Unit i vector in approximate angular space: ("
+      out << "Unit i vector, in approximate angular space: ("
 	  << raPerI * cos(degreesToRadians(decAtCenter)) << ", "
 	  << decPerI << ")\n";
-      out << "Unit j vector in approximate angular space: ("
+      out << "Unit j vector, in approximate angular space: ("
 	  << raPerJ * cos(degreesToRadians(decAtCenter)) << ", "
 	  << decPerJ << ")\n";
-      out << "Image rotation in degrees clockwise:  "
+      out << "Image rotation, in degrees clockwise:  "
 	  << radiansToDegrees(atan(-raPerJ/decPerJ)) << "\n";
     }
   }
