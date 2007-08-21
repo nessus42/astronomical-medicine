@@ -141,7 +141,7 @@ namespace {
     static bool		  _cv_flipDecFlag;
     static bool		  _cv_flipRAFlag;
     static bool		  _cv_flipVFlag;
-
+    static bool		  _cv_reorientNorth;
     static bool		  _cv_binomialBlurFlag;
     static bool           _cv_derivativeImageFilterFlag;
     static bool           _cv_flipImageFilterFlag;
@@ -170,7 +170,8 @@ namespace {
     static bool	       getFlipDecFlag() { return _cv_flipDecFlag; }
     static bool        getFlipRAFlag() { return _cv_flipRAFlag; }
     static bool	       getFlipVFlag() { return _cv_flipVFlag; }
-    
+    static bool	       getReorientNorth() { return _cv_reorientNorth; }
+
     static bool	       getBinomialBlurFlag()
                           { return _cv_binomialBlurFlag; }
     static bool        getDerivativeImageFilterFlag()
@@ -189,6 +190,7 @@ namespace {
   bool	      CommandLineParser::_cv_flipDecFlag = false;
   bool	      CommandLineParser::_cv_flipRAFlag = false;
   bool	      CommandLineParser::_cv_flipVFlag = false;
+  bool	      CommandLineParser::_cv_reorientNorth = false;
 
   bool	      CommandLineParser::_cv_binomialBlurFlag = false;
   bool        CommandLineParser::_cv_derivativeImageFilterFlag = false;
@@ -196,6 +198,145 @@ namespace {
   bool	      CommandLineParser::_cv_identityFlipFlag = false;
 
   typedef     CommandLineParser  Cl;
+
+} // namespace
+
+
+//=============================================================================
+// ImageInfo: local class
+//=============================================================================
+
+namespace {
+
+template <class ImageType>
+class ImageInfo
+{
+
+  typedef itk::FITSWCSTransform<double, ImageType::ImageDimension> WCS;
+
+public:
+  typedef typename WCS::InputPointType    IjkPoint;
+  typedef typename IjkPoint::VectorType   IjkVector;
+  typedef typename WCS::OutputPointType   WcsPoint;
+  typedef typename WcsPoint::VectorType   WcsVector;
+  typedef typename WCS::ConstPointer      WcsTransformConstPtr;
+
+
+private:
+
+  // Instance variables:
+  IjkPoint  _ijkCenter;
+  WcsPoint  _wcsCenter;
+  WcsVector _unitIWcsProjection;
+  WcsVector _unitJWcsProjection;
+  WcsVector _unitIApproximateAngularProjection;
+  WcsVector _unitJApproximateAngularProjection;
+  IjkVector _ijkNorthVector;
+  double    _ijkRotationFromNorthInDegreesClockwise;
+
+public:
+
+  // Constructors:
+  ImageInfo(const ImageType& image);
+
+  // Accessors:
+  IjkPoint  ijkCenter() const          { return _ijkCenter; }
+  WcsPoint  wcsCenter() const          { return _wcsCenter; }
+  WcsVector unitIWcsProjection() const { return _unitIWcsProjection; }
+  WcsVector unitJWcsProjection() const { return _unitJWcsProjection; }
+  WcsVector unitIApproximateAngularProjection() const
+               { return _unitIApproximateAngularProjection; }
+  WcsVector unitJApproximateAngularProjection() const
+               { return _unitJApproximateAngularProjection; }
+  IjkVector ijkNorthVector() const
+               { return _ijkNorthVector; }
+  double    ijkRotationFromNorthInDegreesClockwise() const
+               { return _ijkRotationFromNorthInDegreesClockwise; }
+  WcsTransformConstPtr getWcsTransform() const
+               { // URGENT TODO: Fix this attrocity!!!
+		 return (WCS*) itk::g_theFITSWCSTransform;
+	       }
+};
+
+
+ctor
+template <class ImageType>
+ImageInfo<ImageType>::ImageInfo(const ImageType& image)
+{
+  typename ImageType::RegionType allOfImage = image.GetLargestPossibleRegion();
+  typename ImageType::SizeType imageSize = allOfImage.GetSize();
+  typename ImageType::IndexType imageOrigin = allOfImage.GetIndex();
+
+  const size_t c_i    = itk::FITSImageIO::c_i;
+  const size_t c_j    = itk::FITSImageIO::c_j;
+  const size_t c_k    = itk::FITSImageIO::c_k;
+
+  _ijkCenter[c_i] = imageOrigin[c_i] + imageSize[c_i]/2.0 - 0.5;
+  _ijkCenter[c_j] = imageOrigin[c_j] + imageSize[c_j]/2.0 - 0.5;
+  _ijkCenter[c_k] = imageOrigin[c_k] + imageSize[c_k]/2.0 - 0.5;
+
+  WcsTransformConstPtr wcs = getWcsTransform();
+  _wcsCenter = wcs->TransformPoint(_ijkCenter);
+  
+  // TODO: It's confusing that in some situations V is 1 and dec is 2, and
+  // in others, dec is 1 and V is 2.  We need a better way to denote this.
+
+  const size_t ra  = 0;
+  const size_t dec = 1;
+  const size_t v   = 2;
+
+  // Calculate lengths of unit i and j vectors in RA/Dec space:
+  { 
+    IjkPoint ijkLeftHalfAPixel  = _ijkCenter;
+    IjkPoint ijkRightHalfAPixel = _ijkCenter;
+    IjkPoint ijkDownHalfAPixel  = _ijkCenter;
+    IjkPoint ijkUpHalfAPixel    = _ijkCenter;
+    ijkLeftHalfAPixel[c_i]  -= .5;
+    ijkRightHalfAPixel[c_i] += .5;
+    ijkDownHalfAPixel[c_j]  -= .5;
+    ijkUpHalfAPixel[c_j]    += .5;
+      
+    WcsPoint wcsLeftHalfAPixel  = wcs->TransformPoint(ijkLeftHalfAPixel);
+    WcsPoint wcsRightHalfAPixel = wcs->TransformPoint(ijkRightHalfAPixel);
+    WcsPoint wcsDownHalfAPixel  = wcs->TransformPoint(ijkDownHalfAPixel);
+    WcsPoint wcsUpHalfAPixel    = wcs->TransformPoint(ijkUpHalfAPixel);
+      
+    _unitIWcsProjection = wcsRightHalfAPixel - wcsLeftHalfAPixel;
+    _unitJWcsProjection = wcsUpHalfAPixel - wcsDownHalfAPixel;
+  }
+
+//  const double _raPerI  = wcsRightHalfAPixel[ra]  - wcsLeftHalfAPixel[ra];
+//  const double _decPerI = wcsRightHalfAPixel[dec] - wcsLeftHalfAPixel[dec];
+//  const double _raPerJ  = wcsUpHalfAPixel[ra]     - wcsDownHalfAPixel[ra];
+//  const double _decPerJ = wcsUpHalfAPixel[dec]    - wcsDownHalfAPixel[dec];
+
+  double raAngularScalingFactor = cos(degreesToRadians(_wcsCenter[dec]));
+  // _approximateAngularRaDegreesPerI = _raPerI * raAngularScalingFactor;
+  // _approximateAngularRaDegreesPerJ = _raPerJ * raAngularScalingFactor;
+
+  _unitIApproximateAngularProjection = _unitIWcsProjection;
+  _unitJApproximateAngularProjection = _unitJWcsProjection;
+  _unitIApproximateAngularProjection[ra] *= raAngularScalingFactor;
+  _unitJApproximateAngularProjection[ra] *= raAngularScalingFactor;
+
+  // Calcuate the image's rotation by finding a northward-oriented vector in
+  // WCS space, and then transforming it into IJK space.  We can then use trig
+  // to determine the amount of rotation of the image from north in IJK space:
+  typename WCS::Pointer inverseWcs = WCS::New();
+  wcs->GetInverse(inverseWcs);
+  WcsVector wcsNorthVector =
+    _unitJApproximateAngularProjection[dec] > _unitIWcsProjection[dec]
+    ? _unitJWcsProjection
+    : _unitIWcsProjection;
+  wcsNorthVector[ra] = 0;
+  WcsPoint wcsPointNorthOfCenter = _wcsCenter + wcsNorthVector;
+  IjkPoint ijkPointNorthOfCenter =
+    inverseWcs->TransformPoint(wcsPointNorthOfCenter);
+  _ijkNorthVector = ijkPointNorthOfCenter - _ijkCenter;
+  _ijkNorthVector[v] = 0;
+  _ijkRotationFromNorthInDegreesClockwise =
+    radiansToDegrees(atan(_ijkNorthVector[ra]/_ijkNorthVector[dec]));
+}
 
 } // namespace
 
@@ -218,6 +359,7 @@ parseCommandLine(const int argc, const char* const argv[])
   int flipRAFlag = false;
   int flipVFlag = false;
   int noWcsFlag = false;
+  int reorientNorthFlag = false;
   int ripOrientationFlag = false;
   int rotateSkyFlag = false;
   int scaleDecFlag = false;
@@ -233,6 +375,7 @@ parseCommandLine(const int argc, const char* const argv[])
     { "flip-ra", no_argument, &flipRAFlag, true },
     { "flip-v", no_argument, &flipVFlag, true },
     { "no-wcs", no_argument, &noWcsFlag, true},
+    { "reorient-north", no_argument, &reorientNorthFlag, true },
     { "rotate-sky", required_argument, &rotateSkyFlag,
       true },
     { "RIP", no_argument, &ripOrientationFlag, true },
@@ -341,6 +484,9 @@ parseCommandLine(const int argc, const char* const argv[])
 	} else if (noWcsFlag) {
 	  noWcsFlag = false;
 	  itk::FITSImageIO::SetSuppressWCS(true);
+	} else if (reorientNorthFlag) {
+	  reorientNorthFlag = false;
+	  _cv_reorientNorth = true;
 	} else if (ripOrientationFlag) {
 	  ripOrientationFlag = false;
 	  itk::FITSImageIO::SetRIPOrientation(true);
@@ -634,115 +780,42 @@ reflectPixels(Image<PixelType, c_dims>& image,
 // writeImageInfo(): local template function
 //-----------------------------------------------------------------------------
 
-template <class PixelType>
+template <class ImageType>
 local proc void
-writeImageInfo(const Image<PixelType, c_dims>& image,
-	       ostream& out)
+writeImageInfo(const ImageType& image, ostream& out)
 {
-  typedef Image<PixelType, c_dims> ImageType;
-  typename ImageType::RegionType allOfImage = image.GetLargestPossibleRegion();
-  typename ImageType::SizeType imageSize = allOfImage.GetSize();
-  typename ImageType::IndexType imageOrigin = allOfImage.GetIndex();
+  ImageInfo<ImageType> info(image);
 
-  const size_t c_i    = itk::FITSImageIO::c_i;
-  const size_t c_j    = itk::FITSImageIO::c_j;
-  const size_t c_k    = itk::FITSImageIO::c_k;
-
-  float middleIIndex = imageOrigin[c_i] + imageSize[c_i]/2.0 - 0.5;
-  float middleJIndex = imageOrigin[c_j] + imageSize[c_j]/2.0 - 0.5;
-  float middleKIndex = imageOrigin[c_k] + imageSize[c_k]/2.0 - 0.5;
-
-  out << "Image center, in IJK space with (0,0,0) origin: ("
-      << middleIIndex << ", "
-      << middleJIndex << ", "
-      << middleKIndex << ")\n";
-
-  if (itk::g_theFITSWCSTransform) {
-    typedef itk::FITSWCSTransform<double, c_dims> WCS;
-
-    // URGENT TODO: Fix this attrocity!
-    const WCS::ConstPointer wcs = (WCS*) itk::g_theFITSWCSTransform;
-
-    typedef WCS::InputPointType IjkPoint;
-    IjkPoint ijkCenter;
-    ijkCenter[c_i] = middleIIndex;
-    ijkCenter[c_j] = middleJIndex;
-    ijkCenter[c_k] = middleKIndex;
-
-    typedef WCS::OutputPointType WcsPoint;
-    WcsPoint wcsCenter = wcs->TransformPoint(ijkCenter);
-
-    const size_t raIndex  = 0;
-    const size_t decIndex = 1;
-
-    const double raAtCenter  = wcsCenter[raIndex];
-    const double decAtCenter = wcsCenter[decIndex];
-
-
-    out << "Image center, in RA/Dec coordinates: ("
-	<< raAtCenter << ", " << decAtCenter << ")\n";
-
-    // Calculate lengths of unit i and j vectors in RA/Dec space:
-    { 
-      IjkPoint ijkLeftHalfAPixel  = ijkCenter;
-      IjkPoint ijkRightHalfAPixel = ijkCenter;
-      IjkPoint ijkDownHalfAPixel  = ijkCenter;
-      IjkPoint ijkUpHalfAPixel    = ijkCenter;
-      ijkLeftHalfAPixel[c_i]  -= .5;
-      ijkRightHalfAPixel[c_i] += .5;
-      ijkDownHalfAPixel[c_j]  -= .5;
-      ijkUpHalfAPixel[c_j]    += .5;
-      
-      WcsPoint wcsLeftHalfAPixel  = wcs->TransformPoint(ijkLeftHalfAPixel);
-      WcsPoint wcsRightHalfAPixel = wcs->TransformPoint(ijkRightHalfAPixel);
-      WcsPoint wcsDownHalfAPixel  = wcs->TransformPoint(ijkDownHalfAPixel);
-      WcsPoint wcsUpHalfAPixel    = wcs->TransformPoint(ijkUpHalfAPixel);
-      
-      // TODO: It's confusing that in some situations V is 1 and dec is 2, and
-      // in others, dec is 1 and V is 2.  We need a better way to denote this.
-
-      const double raPerI = 
-	wcsRightHalfAPixel[raIndex]  - wcsLeftHalfAPixel[raIndex];
-      const double decPerI =
-	wcsRightHalfAPixel[decIndex] - wcsLeftHalfAPixel[decIndex];
-      const double raPerJ =
-	wcsUpHalfAPixel[raIndex]     - wcsDownHalfAPixel[raIndex];
-      const double decPerJ =
-	wcsUpHalfAPixel[decIndex]    - wcsDownHalfAPixel[decIndex];
-
-//       itk::Vector<double> unitJInWcs = wcsUpHalfAPixel - wcsDownHalfAPixel;
-//       cout << "unitJInWcs=" << unitJInWcs << "\n";
-
-//       cout << "raPerI=" << raPerI << "\n";
-//       cout << "decPerI=" << decPerI << "\n";
-//       cout << "raPerJ=" << raPerJ << "\n";
-//       cout << "decPerJ=" << decPerJ << "\n";
-
-//       cout << "ijkLeftHalfAPixel=" << ijkLeftHalfAPixel << "\n";
-//       cout << "ijkRightHalfAPixel=" << ijkRightHalfAPixel << "\n";
-//       cout << "ijkDownHalfAPixel=" << ijkDownHalfAPixel << "\n";
-//       cout << "ijkUpHalfAPixel=" << ijkUpHalfAPixel << "\n";
-
-//       cout << "wcsLeftHalfAPixel=" << wcsLeftHalfAPixel << "\n";
-//       cout << "wcsRightHalfAPixel=" << wcsRightHalfAPixel << "\n";
-//       cout << "wcsDownHalfAPixel=" << wcsDownHalfAPixel << "\n";
-//       cout << "wcsUpHalfAPixel=" << wcsUpHalfAPixel << "\n";
-
-      out << "Unit i vector, in RA/Dec space: ("
-	  << raPerI << ", " << decPerI << ")\n";
-      out << "Unit j vector, in RA/Dec space: ("
-	  << raPerJ << ", " << decPerJ << ")\n";
-      out << "Unit i vector, in approximate angular space: ("
-	  << raPerI * cos(degreesToRadians(decAtCenter)) << ", "
-	  << decPerI << ")\n";
-      out << "Unit j vector, in approximate angular space: ("
-	  << raPerJ * cos(degreesToRadians(decAtCenter)) << ", "
-	  << decPerJ << ")\n";
-      out << "Image rotation, in degrees clockwise:  "
-	  << radiansToDegrees(atan(-raPerJ/decPerJ)) << "\n";
-    }
-  }
+  out << "Image center, in IJK space with (0,0,0) origin: "
+      << info.ijkCenter() << "\n"
+      << "Image center, in RA/Dec coordinates: " << info.wcsCenter() << "\n"
+      << "Unit i vector, in RA/Dec space: "
+      << info.unitIWcsProjection() << "\n"
+      << "Unit j vector, in RA/Dec space: "
+      << info.unitJWcsProjection() << "\n"
+      << "Unit i vector, in approximate angular space: "
+      << info.unitIApproximateAngularProjection() << "\n"
+      << "Unit j vector, in approximate angular space: "
+      << info.unitJApproximateAngularProjection() << "\n"
+      << "North vector in IJK space: " << info.ijkNorthVector() << "\n"
+      << "Image rotation, in degrees clockwise:  "
+      << info.ijkRotationFromNorthInDegreesClockwise() << "\n";
 }
+
+
+//-----------------------------------------------------------------------------
+// reorientNorth(): local template function
+//-----------------------------------------------------------------------------
+
+template <class ImageType>
+local proc void
+reorientNorth(const ImageType& image)
+{
+  // YOU ARE HERE
+
+  ImageInfo<ImageType> info(image);
+}
+
 
 
 //-----------------------------------------------------------------------------
