@@ -12,7 +12,7 @@
 //=============================================================================
 
 
-extern const char fits2itkVersion[] = "Version 0.4dev.8";
+extern const char fits2itkVersion[] = "Version 0.4dev.9pending.0";
 
 //=============================================================================
 // Change Log
@@ -342,7 +342,7 @@ extern const char fits2itkVersion[] = "Version 0.4dev.8";
 // calling it in the meantime.
 
 //---------------------------
-// Version 0.4dev.8pending
+// Version 0.4dev.8
 //---------------------------
 
 // *** Tue Aug 14, 2007 ***
@@ -355,6 +355,16 @@ extern const char fits2itkVersion[] = "Version 0.4dev.8";
 // Fixed a bug where the WCS information being returned was being shifted down
 // and to the left by one pixel due to the disparity between ITK's (0, 0)
 // origin and FITS's (1, 1) origin.
+
+//---------------------------
+// Version 0.4dev.9pending.0
+//---------------------------
+
+// *** Mon Aug 20, 2007 ***
+
+// Refactored code to move calculation code out of writeImageInfo() and into
+// its own class, ImageInfo<ImageType>.
+
 
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
