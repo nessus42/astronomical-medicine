@@ -305,15 +305,7 @@ ImageInfo<ImageType>::ImageInfo(const ImageType& image)
     _unitJWcsProjection = wcsUpHalfAPixel - wcsDownHalfAPixel;
   }
 
-//  const double _raPerI  = wcsRightHalfAPixel[ra]  - wcsLeftHalfAPixel[ra];
-//  const double _decPerI = wcsRightHalfAPixel[dec] - wcsLeftHalfAPixel[dec];
-//  const double _raPerJ  = wcsUpHalfAPixel[ra]     - wcsDownHalfAPixel[ra];
-//  const double _decPerJ = wcsUpHalfAPixel[dec]    - wcsDownHalfAPixel[dec];
-
   double raAngularScalingFactor = cos(degreesToRadians(_wcsCenter[dec]));
-  // _approximateAngularRaDegreesPerI = _raPerI * raAngularScalingFactor;
-  // _approximateAngularRaDegreesPerJ = _raPerJ * raAngularScalingFactor;
-
   _unitIApproximateAngularProjection = _unitIWcsProjection;
   _unitJApproximateAngularProjection = _unitJWcsProjection;
   _unitIApproximateAngularProjection[ra] *= raAngularScalingFactor;
@@ -664,6 +656,17 @@ radiansToDegrees(double radians)
 
 
 //-----------------------------------------------------------------------------
+// cartesianLength(): local inline function
+//-----------------------------------------------------------------------------
+
+local proc inline double
+cartesianLength(double x, double y)
+{
+  return sqrt(x*x + y*y);
+}
+
+
+//-----------------------------------------------------------------------------
 // reflectPixels(): local template function
 //-----------------------------------------------------------------------------
 
@@ -785,21 +788,95 @@ local proc void
 writeImageInfo(const ImageType& image, ostream& out)
 {
   ImageInfo<ImageType> info(image);
-
-  out << "Image center, in IJK space with (0,0,0) origin: "
+  out << "Image center, in IJK space with (0, 0, 0) index origin: "
       << info.ijkCenter() << "\n"
       << "Image center, in RA/Dec coordinates: " << info.wcsCenter() << "\n"
-      << "Unit i vector, in RA/Dec space: "
+      << "Unit I vector, in RA/Dec: "
       << info.unitIWcsProjection() << "\n"
-      << "Unit j vector, in RA/Dec space: "
+      << "Unit J vector, in RA/Dec: "
       << info.unitJWcsProjection() << "\n"
-      << "Unit i vector, in approximate angular space: "
+      << "Unit I vector, in approximate angular space: "
       << info.unitIApproximateAngularProjection() << "\n"
-      << "Unit j vector, in approximate angular space: "
+      << "Unit J vector, in approximate angular space: "
       << info.unitJApproximateAngularProjection() << "\n"
+      << "Unit I length, in approximate angular space: "
+      << info.unitIApproximateAngularProjection().GetNorm() << "\n"
+      << "Unit J length, in approximate angular space: "
+      << info.unitJApproximateAngularProjection().GetNorm() << "\n"
       << "North vector in IJK space: " << info.ijkNorthVector() << "\n"
       << "Image rotation, in degrees clockwise:  "
       << info.ijkRotationFromNorthInDegreesClockwise() << "\n";
+}
+
+
+//-----------------------------------------------------------------------------
+// initializeCoordinateFrame(): local template function
+//-----------------------------------------------------------------------------
+
+template <class ImageType>
+local proc void
+initializeCoordinateFrame(ImageType& image)
+{
+  const size_t dims = ImageType::ImageDimension;
+
+  // Set the origin to (0, 0, 0):
+  typename ImageType::PointType origin;
+  for (size_t d = 0; d < dims; ++d) origin[d] = 0;
+  image.SetOrigin(origin);
+
+  // Set the spacing vector to (1, 1, 1):
+  typename ImageType::SpacingType spacing;
+  for (size_t d = 0; d < dims; ++d) spacing[d] = 1;
+  image.SetSpacing(spacing);
+
+  // Set the direction cosine matrix to properly RA, Dec, and V into LPS space:
+  const unsigned i = 0;
+  const unsigned j = 1;
+  const unsigned k = 2;
+  const unsigned l = 0;
+  const unsigned p = 1;
+  const unsigned s = 2;
+  typename ImageType::DirectionType direction;
+  direction(l, i) = 1;
+  direction(p, s) = 1;
+  direction(s, j) = 1;
+  image.SetDirection(direction);
+
+  // TODO: Replace the above constants with something somewhere that is more
+  // universal.
+
+  // TODO: Delete the following commented-out code.
+
+//   // Zero the spacing vector and the direction cosine matrix:
+//   typename ImageType::SpacingType spacing[dims];
+//   typename ImageType::DirectionType direction;
+//   for (size_t col = 0; col < dims; ++col) {
+//     spacing[col] = 0;
+//     direction[col].resize(dims);
+//     for (size_t row = 0; row < dims; ++row) direction[col][row] = 0;
+//   }
+//   image.SetSpacing(spacing);
+//   image.SetDirection(direction);
+
+}
+
+
+//-----------------------------------------------------------------------------
+// rotationMatrix(): local proc
+//-----------------------------------------------------------------------------
+
+local proc itk::Matrix<double, 3, 3>
+rotationMatrix(double degrees)
+{
+  const double s = sin(degrees/180 * M_PI);
+  const double c = cos(degrees/180 * M_PI);
+  itk::Matrix<double, 3, 3> retval;
+  retval(0, 0) = c;
+  retval(0, 1) = -s;
+  retval(1, 0) = s;
+  retval(1, 1) = c;
+  retval(2, 2) = 1;
+  return retval;
 }
 
 
@@ -809,11 +886,25 @@ writeImageInfo(const ImageType& image, ostream& out)
 
 template <class ImageType>
 local proc void
-reorientNorth(const ImageType& image)
+reorientNorth(ImageType& image)
 {
-  // YOU ARE HERE
-
   ImageInfo<ImageType> info(image);
+  initializeCoordinateFrame(image);
+
+  // Multiply the direction cosine matrix by a rotation matrix to compensate
+  // for image rotation:
+  image.SetDirection(
+     image.GetDirection() *
+     rotationMatrix(-info.ijkRotationFromNorthInDegreesClockwise()));
+
+  cout << "Rotated direction cosines: " << image.GetDirection() << endl; //d
+
+  // YOU ARE HERE, trying to figure out why rotation is not happening right.
+
+
+  // YOU ARE HERE: thinking about refactoring itkFitsImageIO to remove all
+  // matrix manipulation stuff out of it.
+  
 }
 
 
@@ -848,6 +939,13 @@ convertInputFileToItkFile(const char* const inputFilepath,
 			     Cl::getFlipDecFlag(),
 			     Cl::getFlipVFlag());
   if (outputFilepath) {
+
+    if (Cl::getReorientNorth()) {
+      // TODO: Figure out how to do this without reading in the entire image.
+      reader->Update();
+      ::reorientNorth(*image);
+    }
+
     typedef itk::ImageFileWriter<ImageType> WriterType;
     typename WriterType::Pointer writer = WriterType::New();
     writer->SetInput(image);

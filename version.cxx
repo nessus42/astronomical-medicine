@@ -12,7 +12,7 @@
 //=============================================================================
 
 
-extern const char fits2itkVersion[] = "Version 0.4dev.9pending.0";
+extern const char fits2itkVersion[] = "Version 0.4dev.9pending.1";
 
 //=============================================================================
 // Change Log
@@ -365,10 +365,24 @@ extern const char fits2itkVersion[] = "Version 0.4dev.9pending.0";
 // Refactored code to move calculation code out of writeImageInfo() and into
 // its own class, ImageInfo<ImageType>.
 
+//---------------------------
+// Version 0.4dev.9pending.1
+//---------------------------
+
+// *** Tue Aug 21, 2007 ***
+
+// Added angular length of unit i and j vectors to "--verbose" output.
+
+// Changed some code to use ITK Matrix objects and also implemented
+// "--reorient-north".
 
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
 //----------------------------------------------------------------------
+
+// TODO: Unfortunately, the rotation is happening in the wrong direction, and
+// also I had to do the matrix multiplication in the opposite order that I
+// thought I should.  Figure out what is going on with both of these.
 
 // TODO: Add an option to reorient to North, and to another to scale the pixels
 // to be equiangular.
