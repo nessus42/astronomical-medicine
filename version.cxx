@@ -12,7 +12,7 @@
 //=============================================================================
 
 
-extern const char fits2itkVersion[] = "Version 0.4dev.9pending.2";
+extern const char fits2itkVersion[] = "Version 0.4dev.9";
 
 //=============================================================================
 // Change Log
@@ -386,11 +386,17 @@ extern const char fits2itkVersion[] = "Version 0.4dev.9pending.2";
 // Also found and fixed a bug in which the image was being distorted due to
 // initializeCoordinateFrame() not calling image.SetDirection().
 
+//---------------------------
+// Version 0.4dev.9
+//---------------------------
+
+// *** Wed Aug 22, 2007 ***
+
+// Added the "--equiangular" option.
+
+// Also did some code refactoring.
+
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
 //----------------------------------------------------------------------
 
-// TODO: Add an option to recale the image to be approximately equiangular.
-
-// TODO: Make it so that fits2itk can read a 2D FITS file, and perhaps extrude
-// it into a third dimension.  Or at least read it as a single slice.
