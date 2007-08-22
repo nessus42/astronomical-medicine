@@ -134,6 +134,7 @@ namespace {
     // Private class variables:
     static const char*    _cv_inputFilepath;
     static const char*    _cv_outputFilepath;
+
     static bool           _cv_coerceToShorts;
     static bool           _cv_coerceToUnsignedShorts;
     static int		  _cv_debugLevel;
@@ -142,6 +143,8 @@ namespace {
     static bool		  _cv_flipRAFlag;
     static bool		  _cv_flipVFlag;
     static bool		  _cv_reorientNorth;
+    static bool		  _cv_transformToEquiangular;
+
     static bool		  _cv_binomialBlurFlag;
     static bool           _cv_derivativeImageFilterFlag;
     static bool           _cv_flipImageFilterFlag;
@@ -171,6 +174,8 @@ namespace {
     static bool        getFlipRAFlag() { return _cv_flipRAFlag; }
     static bool	       getFlipVFlag() { return _cv_flipVFlag; }
     static bool	       getReorientNorth() { return _cv_reorientNorth; }
+    static bool	       getTransformToEquiangular()
+                          { return _cv_transformToEquiangular; }
 
     static bool	       getBinomialBlurFlag()
                           { return _cv_binomialBlurFlag; }
@@ -191,6 +196,7 @@ namespace {
   bool	      CommandLineParser::_cv_flipRAFlag = false;
   bool	      CommandLineParser::_cv_flipVFlag = false;
   bool	      CommandLineParser::_cv_reorientNorth = false;
+  bool	      CommandLineParser::_cv_transformToEquiangular = false;
 
   bool	      CommandLineParser::_cv_binomialBlurFlag = false;
   bool        CommandLineParser::_cv_derivativeImageFilterFlag = false;
@@ -227,12 +233,12 @@ private:
   // Instance variables:
   IjkPoint  _ijkCenter;
   WcsPoint  _wcsCenter;
-  WcsVector _unitIWcsProjection;
-  WcsVector _unitJWcsProjection;
-  WcsVector _unitIApproximateAngularProjection;
-  WcsVector _unitJApproximateAngularProjection;
+  WcsVector _iWcsProjection;
+  WcsVector _jWcsProjection;
+  WcsVector _iApproximateAngularProjection;
+  WcsVector _jApproximateAngularProjection;
   IjkVector _ijkNorthVector;
-  double    _ijkRotationFromNorthInDegreesClockwise;
+  double    _rotationOfJFromIjkNorthVectorInDegrees;
 
 public:
 
@@ -242,16 +248,16 @@ public:
   // Accessors:
   IjkPoint  ijkCenter() const          { return _ijkCenter; }
   WcsPoint  wcsCenter() const          { return _wcsCenter; }
-  WcsVector unitIWcsProjection() const { return _unitIWcsProjection; }
-  WcsVector unitJWcsProjection() const { return _unitJWcsProjection; }
-  WcsVector unitIApproximateAngularProjection() const
-               { return _unitIApproximateAngularProjection; }
-  WcsVector unitJApproximateAngularProjection() const
-               { return _unitJApproximateAngularProjection; }
+  WcsVector iWcsProjection() const     { return _iWcsProjection; }
+  WcsVector jWcsProjection() const     { return _jWcsProjection; }
+  WcsVector iApproximateAngularProjection() const
+               { return _iApproximateAngularProjection; }
+  WcsVector jApproximateAngularProjection() const
+               { return _jApproximateAngularProjection; }
   IjkVector ijkNorthVector() const
                { return _ijkNorthVector; }
-  double    ijkRotationFromNorthInDegreesClockwise() const
-               { return _ijkRotationFromNorthInDegreesClockwise; }
+  double    rotationOfJFromIjkNorthVectorInDegrees() const
+               { return _rotationOfJFromIjkNorthVectorInDegrees; }
   WcsTransformConstPtr getWcsTransform() const
                { // URGENT TODO: Fix this attrocity!!!
 		 return (WCS*) itk::g_theFITSWCSTransform;
@@ -285,7 +291,7 @@ ImageInfo<ImageType>::ImageInfo(const ImageType& image)
   const size_t dec = 1;
   const size_t v   = 2;
 
-  // Calculate lengths of unit i and j vectors in RA/Dec space:
+  // Calculate lengths of i and j vectors in RA/Dec space:
   { 
     IjkPoint ijkLeftHalfAPixel  = _ijkCenter;
     IjkPoint ijkRightHalfAPixel = _ijkCenter;
@@ -301,15 +307,15 @@ ImageInfo<ImageType>::ImageInfo(const ImageType& image)
     WcsPoint wcsDownHalfAPixel  = wcs->TransformPoint(ijkDownHalfAPixel);
     WcsPoint wcsUpHalfAPixel    = wcs->TransformPoint(ijkUpHalfAPixel);
       
-    _unitIWcsProjection = wcsRightHalfAPixel - wcsLeftHalfAPixel;
-    _unitJWcsProjection = wcsUpHalfAPixel - wcsDownHalfAPixel;
+    _iWcsProjection = wcsRightHalfAPixel - wcsLeftHalfAPixel;
+    _jWcsProjection = wcsUpHalfAPixel - wcsDownHalfAPixel;
   }
 
   double raAngularScalingFactor = cos(degreesToRadians(_wcsCenter[dec]));
-  _unitIApproximateAngularProjection = _unitIWcsProjection;
-  _unitJApproximateAngularProjection = _unitJWcsProjection;
-  _unitIApproximateAngularProjection[ra] *= raAngularScalingFactor;
-  _unitJApproximateAngularProjection[ra] *= raAngularScalingFactor;
+  _iApproximateAngularProjection = _iWcsProjection;
+  _jApproximateAngularProjection = _jWcsProjection;
+  _iApproximateAngularProjection[ra] *= raAngularScalingFactor;
+  _jApproximateAngularProjection[ra] *= raAngularScalingFactor;
 
   // Calcuate the image's rotation by finding a northward-oriented vector in
   // WCS space, and then transforming it into IJK space.  We can then use trig
@@ -317,17 +323,17 @@ ImageInfo<ImageType>::ImageInfo(const ImageType& image)
   typename WCS::Pointer inverseWcs = WCS::New();
   wcs->GetInverse(inverseWcs);
   WcsVector wcsNorthVector =
-    _unitJApproximateAngularProjection[dec] > _unitIWcsProjection[dec]
-    ? _unitJWcsProjection
-    : _unitIWcsProjection;
+    _jApproximateAngularProjection[dec] > _iWcsProjection[dec]
+    ? _jWcsProjection
+    : _iWcsProjection;
   wcsNorthVector[ra] = 0;
   WcsPoint wcsPointNorthOfCenter = _wcsCenter + wcsNorthVector;
   IjkPoint ijkPointNorthOfCenter =
     inverseWcs->TransformPoint(wcsPointNorthOfCenter);
   _ijkNorthVector = ijkPointNorthOfCenter - _ijkCenter;
   _ijkNorthVector[v] = 0;
-  _ijkRotationFromNorthInDegreesClockwise =
-    radiansToDegrees(atan(_ijkNorthVector[ra]/_ijkNorthVector[dec]));
+  _rotationOfJFromIjkNorthVectorInDegrees =
+    radiansToDegrees(atan(_ijkNorthVector[c_i]/_ijkNorthVector[c_j]));
 }
 
 } // namespace
@@ -347,6 +353,7 @@ parseCommandLine(const int argc, const char* const argv[])
   const int cBase10 = 10;
   string extendedOption;
   int verboseHelpFlag = false;
+  int equiangularFlag = false;
   int flipDecFlag = false;
   int flipRAFlag = false;
   int flipVFlag = false;
@@ -362,6 +369,7 @@ parseCommandLine(const int argc, const char* const argv[])
   const char shortopts[] = "Aa:D:fhnN:o:Rr:Ss:Uv:";
 
   struct option longopts[] = {
+    { "equiangular", no_argument, &equiangularFlag, true },
     { "help", no_argument, &verboseHelpFlag, true },
     { "flip-dec", no_argument, &flipDecFlag, true },
     { "flip-ra", no_argument, &flipRAFlag, true },
@@ -464,6 +472,9 @@ parseCommandLine(const int argc, const char* const argv[])
 	// Parse long options:
 	if (verboseHelpFlag) {
 	  ::verboseUsage();
+	} else if (equiangularFlag) {
+	  equiangularFlag =  false;
+	  _cv_transformToEquiangular = true;
 	} else if (flipDecFlag) {
 	  flipDecFlag = false;
 	  _cv_flipDecFlag = true;
@@ -787,25 +798,25 @@ template <class ImageType>
 local proc void
 writeImageInfo(const ImageType& image, ostream& out)
 {
-  ImageInfo<ImageType> info(image);
-  out << "Image center, in IJK space with (0, 0, 0) index origin: "
+  const ImageInfo<ImageType> info(image);
+  out << "Image center, in IJK space with (0,0,0) index origin: "
       << info.ijkCenter() << "\n"
-      << "Image center, in RA/Dec coordinates: " << info.wcsCenter() << "\n"
-      << "Unit I vector, in RA/Dec: "
-      << info.unitIWcsProjection() << "\n"
-      << "Unit J vector, in RA/Dec: "
-      << info.unitJWcsProjection() << "\n"
-      << "Unit I vector, in approximate angular space: "
-      << info.unitIApproximateAngularProjection() << "\n"
-      << "Unit J vector, in approximate angular space: "
-      << info.unitJApproximateAngularProjection() << "\n"
-      << "Unit I length, in approximate angular space: "
-      << info.unitIApproximateAngularProjection().GetNorm() << "\n"
-      << "Unit J length, in approximate angular space: "
-      << info.unitJApproximateAngularProjection().GetNorm() << "\n"
+      << "Image center, in RA/Dec: " << info.wcsCenter() << "\n"
+      << "I vector, in RA/Dec: "
+      << info.iWcsProjection() << "\n"
+      << "J vector, in RA/Dec: "
+      << info.jWcsProjection() << "\n"
+      << "I vector, in approximate angular space: "
+      << info.iApproximateAngularProjection() << "\n"
+      << "J vector, in approximate angular space: "
+      << info.jApproximateAngularProjection() << "\n"
+      << "|I|, in approximate angular space: "
+      << info.iApproximateAngularProjection().GetNorm() << "\n"
+      << "|J|, in approximate angular space: "
+      << info.jApproximateAngularProjection().GetNorm() << "\n"
       << "North vector in IJK space: " << info.ijkNorthVector() << "\n"
-      << "Image rotation, in degrees clockwise:  "
-      << info.ijkRotationFromNorthInDegreesClockwise() << "\n"
+      << "Rotation of J from North:  "
+      << info.rotationOfJFromIjkNorthVectorInDegrees() << "\n"
       << "Direction cosines:\n"
       << image.GetDirection()
       << "Image spacing: " << image.GetSpacing() << "\n"
@@ -872,6 +883,34 @@ rotationMatrix(double degrees)
 
 
 //-----------------------------------------------------------------------------
+// transformToEquiangular(): local template proc
+//-----------------------------------------------------------------------------
+
+template <class ImageType>
+local proc void
+transformToEquiangular(ImageType& image)
+{
+  
+  // TODO: We should stop making an ImageInfo inside every function that needs
+  // it, and instead subclass ImageType, or something, and calculate the
+  // information once.
+  
+  const ImageInfo<ImageType> info(image);
+  const double iAngleLen = info.iApproximateAngularProjection().GetNorm();
+  const double jAngleLen = info.jApproximateAngularProjection().GetNorm();
+  typename ImageType::SpacingType spacing = image.GetSpacing();
+
+  // spacing[1] *= 2 * jAngleLen/iAngleLen; //d Remove the 2
+
+  spacing[0] = iAngleLen * 1000000;
+  spacing[1] = jAngleLen * 1000000;
+  spacing[2] = (iAngleLen + jAngleLen) / 2 * 1000000;
+
+  image.SetSpacing(spacing);
+}
+
+
+//-----------------------------------------------------------------------------
 // reorientNorth(): local template function
 //-----------------------------------------------------------------------------
 
@@ -879,14 +918,13 @@ template <class ImageType>
 local proc void
 reorientNorth(ImageType& image)
 {
-  ImageInfo<ImageType> info(image);
-  initializeCoordinateFrame(image);
+  const ImageInfo<ImageType> info(image);
 
   // Multiply the direction cosine matrix by a rotation matrix to compensate
   // for image rotation:
   image.SetDirection(
      image.GetDirection() *
-     rotationMatrix(info.ijkRotationFromNorthInDegreesClockwise()));
+     rotationMatrix(info.rotationOfJFromIjkNorthVectorInDegrees()));
 
   // YOU ARE HERE: thinking about refactoring itkFitsImageIO to remove all
   // matrix manipulation stuff out of it.
@@ -924,14 +962,17 @@ convertInputFileToItkFile(const char* const inputFilepath,
 			     Cl::getFlipDecFlag(),
 			     Cl::getFlipVFlag());
 
-  if (Cl::getReorientNorth()) {
+
+  if (Cl::getReorientNorth() or Cl::getTransformToEquiangular()) {
     // TODO: Figure out how to do this without reading in the entire image.
     reader->Update();
-    ::reorientNorth(*image);
+    ::initializeCoordinateFrame(*image);
+
+    if (Cl::getReorientNorth())          ::reorientNorth(*image);
+    if (Cl::getTransformToEquiangular()) ::transformToEquiangular(*image);
   }
 
   if (outputFilepath) {
-
     typedef itk::ImageFileWriter<ImageType> WriterType;
     typename WriterType::Pointer writer = WriterType::New();
     writer->SetInput(image);
