@@ -12,7 +12,7 @@
 //=============================================================================
 
 
-extern const char fits2itkVersion[] = "Version 0.4dev.9pending.1";
+extern const char fits2itkVersion[] = "Version 0.4dev.9pending.2";
 
 //=============================================================================
 // Change Log
@@ -376,16 +376,21 @@ extern const char fits2itkVersion[] = "Version 0.4dev.9pending.1";
 // Changed some code to use ITK Matrix objects and also implemented
 // "--reorient-north".
 
+//---------------------------
+// Version 0.4dev.9pending.2
+//---------------------------
+
+// Figured out everything there is to know about coordinate frame
+// transformations and used this knowledge to fix the fact that the rotation
+// was happening in the wrong direction, and rotating into the velocity axis.
+// Also found and fixed a bug in which the image was being distorted due to
+// initializeCoordinateFrame() not calling image.SetDirection().
+
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
 //----------------------------------------------------------------------
 
-// TODO: Unfortunately, the rotation is happening in the wrong direction, and
-// also I had to do the matrix multiplication in the opposite order that I
-// thought I should.  Figure out what is going on with both of these.
-
-// TODO: Add an option to reorient to North, and to another to scale the pixels
-// to be equiangular.
+// TODO: Add an option to recale the image to be approximately equiangular.
 
 // TODO: Make it so that fits2itk can read a 2D FITS file, and perhaps extrude
 // it into a third dimension.  Or at least read it as a single slice.
