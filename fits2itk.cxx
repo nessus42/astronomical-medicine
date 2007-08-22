@@ -805,7 +805,12 @@ writeImageInfo(const ImageType& image, ostream& out)
       << info.unitJApproximateAngularProjection().GetNorm() << "\n"
       << "North vector in IJK space: " << info.ijkNorthVector() << "\n"
       << "Image rotation, in degrees clockwise:  "
-      << info.ijkRotationFromNorthInDegreesClockwise() << "\n";
+      << info.ijkRotationFromNorthInDegreesClockwise() << "\n"
+      << "Direction cosines:\n"
+      << image.GetDirection()
+      << "Image spacing: " << image.GetSpacing() << "\n"
+      << "Image origin: " << image.GetOrigin() << "\n"
+    ;
 }
 
 
@@ -829,35 +834,21 @@ initializeCoordinateFrame(ImageType& image)
   for (size_t d = 0; d < dims; ++d) spacing[d] = 1;
   image.SetSpacing(spacing);
 
-  // Set the direction cosine matrix to properly RA, Dec, and V into LPS space:
+  // TODO: Replace these constants with something somewhere that is more
+  // globally accessible.
   const unsigned i = 0;
   const unsigned j = 1;
   const unsigned k = 2;
   const unsigned l = 0;
   const unsigned p = 1;
   const unsigned s = 2;
+
+  // Set the direction cosine matrix to properly RA, Dec, and V into LPS space:
   typename ImageType::DirectionType direction;
   direction(l, i) = 1;
   direction(p, s) = 1;
   direction(s, j) = 1;
   image.SetDirection(direction);
-
-  // TODO: Replace the above constants with something somewhere that is more
-  // universal.
-
-  // TODO: Delete the following commented-out code.
-
-//   // Zero the spacing vector and the direction cosine matrix:
-//   typename ImageType::SpacingType spacing[dims];
-//   typename ImageType::DirectionType direction;
-//   for (size_t col = 0; col < dims; ++col) {
-//     spacing[col] = 0;
-//     direction[col].resize(dims);
-//     for (size_t row = 0; row < dims; ++row) direction[col][row] = 0;
-//   }
-//   image.SetSpacing(spacing);
-//   image.SetDirection(direction);
-
 }
 
 
@@ -895,18 +886,12 @@ reorientNorth(ImageType& image)
   // for image rotation:
   image.SetDirection(
      image.GetDirection() *
-     rotationMatrix(-info.ijkRotationFromNorthInDegreesClockwise()));
-
-  cout << "Rotated direction cosines: " << image.GetDirection() << endl; //d
-
-  // YOU ARE HERE, trying to figure out why rotation is not happening right.
-
+     rotationMatrix(info.ijkRotationFromNorthInDegreesClockwise()));
 
   // YOU ARE HERE: thinking about refactoring itkFitsImageIO to remove all
   // matrix manipulation stuff out of it.
   
 }
-
 
 
 //-----------------------------------------------------------------------------
@@ -938,13 +923,14 @@ convertInputFileToItkFile(const char* const inputFilepath,
 			     Cl::getFlipRAFlag(),
 			     Cl::getFlipDecFlag(),
 			     Cl::getFlipVFlag());
-  if (outputFilepath) {
 
-    if (Cl::getReorientNorth()) {
-      // TODO: Figure out how to do this without reading in the entire image.
-      reader->Update();
-      ::reorientNorth(*image);
-    }
+  if (Cl::getReorientNorth()) {
+    // TODO: Figure out how to do this without reading in the entire image.
+    reader->Update();
+    ::reorientNorth(*image);
+  }
+
+  if (outputFilepath) {
 
     typedef itk::ImageFileWriter<ImageType> WriterType;
     typename WriterType::Pointer writer = WriterType::New();
