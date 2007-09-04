@@ -233,12 +233,13 @@ private:
   // Instance variables:
   IjkPoint  _ijkCenter;
   WcsPoint  _wcsCenter;
-  WcsVector _iWcsProjection;
-  WcsVector _jWcsProjection;
-  WcsVector _iApproximateAngularProjection;
-  WcsVector _jApproximateAngularProjection;
+  WcsVector _unitIInWcs;
+  WcsVector _unitJInWcs;
+  WcsVector _unitIInApproximateAngularSpace;
+  WcsVector _unitJInApproximateAngularSpace;
   IjkVector _ijkNorthVector;
   double    _rotationOfJFromIjkNorthVectorInDegrees;
+  double    _raAngularScalingFactor;
 
 public:
 
@@ -248,16 +249,18 @@ public:
   // Accessors:
   IjkPoint  ijkCenter() const          { return _ijkCenter; }
   WcsPoint  wcsCenter() const          { return _wcsCenter; }
-  WcsVector iWcsProjection() const     { return _iWcsProjection; }
-  WcsVector jWcsProjection() const     { return _jWcsProjection; }
-  WcsVector iApproximateAngularProjection() const
-               { return _iApproximateAngularProjection; }
-  WcsVector jApproximateAngularProjection() const
-               { return _jApproximateAngularProjection; }
+  WcsVector unitIInWcs() const     { return _unitIInWcs; }
+  WcsVector unitJInWcs() const     { return _unitJInWcs; }
+  WcsVector unitIInApproximateAngularSpace() const
+               { return _unitIInApproximateAngularSpace; }
+  WcsVector unitJInApproximateAngularSpace() const
+               { return _unitJInApproximateAngularSpace; }
   IjkVector ijkNorthVector() const
                { return _ijkNorthVector; }
   double    rotationOfJFromIjkNorthVectorInDegrees() const
                { return _rotationOfJFromIjkNorthVectorInDegrees; }
+  double    raAngularScalingFactor() const
+               { return _raAngularScalingFactor; }
   WcsTransformConstPtr getWcsTransform() const
                { // URGENT TODO: Fix this attrocity!!!
 		 return (WCS*) itk::g_theFITSWCSTransform;
@@ -273,9 +276,9 @@ ImageInfo<ImageType>::ImageInfo(const ImageType& image)
   typename ImageType::SizeType imageSize = allOfImage.GetSize();
   typename ImageType::IndexType imageOrigin = allOfImage.GetIndex();
 
-  const size_t c_i    = itk::FITSImageIO::c_i;
-  const size_t c_j    = itk::FITSImageIO::c_j;
-  const size_t c_k    = itk::FITSImageIO::c_k;
+  enum { c_i = itk::FITSImageIO::c_i,
+	 c_j = itk::FITSImageIO::c_j,
+	 c_k = itk::FITSImageIO::c_k };
 
   _ijkCenter[c_i] = imageOrigin[c_i] + imageSize[c_i]/2.0 - 0.5;
   _ijkCenter[c_j] = imageOrigin[c_j] + imageSize[c_j]/2.0 - 0.5;
@@ -287,9 +290,7 @@ ImageInfo<ImageType>::ImageInfo(const ImageType& image)
   // TODO: It's confusing that in some situations V is 1 and dec is 2, and
   // in others, dec is 1 and V is 2.  We need a better way to denote this.
 
-  const size_t ra  = 0;
-  const size_t dec = 1;
-  const size_t v   = 2;
+  enum {ra, dec, v};
 
   // Calculate lengths of i and j vectors in RA/Dec space:
   { 
@@ -307,33 +308,54 @@ ImageInfo<ImageType>::ImageInfo(const ImageType& image)
     WcsPoint wcsDownHalfAPixel  = wcs->TransformPoint(ijkDownHalfAPixel);
     WcsPoint wcsUpHalfAPixel    = wcs->TransformPoint(ijkUpHalfAPixel);
       
-    _iWcsProjection = wcsRightHalfAPixel - wcsLeftHalfAPixel;
-    _jWcsProjection = wcsUpHalfAPixel - wcsDownHalfAPixel;
+    _unitIInWcs = wcsRightHalfAPixel - wcsLeftHalfAPixel;
+    _unitJInWcs = wcsUpHalfAPixel - wcsDownHalfAPixel;
   }
 
-  double raAngularScalingFactor = cos(degreesToRadians(_wcsCenter[dec]));
-  _iApproximateAngularProjection = _iWcsProjection;
-  _jApproximateAngularProjection = _jWcsProjection;
-  _iApproximateAngularProjection[ra] *= raAngularScalingFactor;
-  _jApproximateAngularProjection[ra] *= raAngularScalingFactor;
+  _raAngularScalingFactor = cos(degreesToRadians(_wcsCenter[dec]));
+  _unitIInApproximateAngularSpace = _unitIInWcs;
+  _unitJInApproximateAngularSpace = _unitJInWcs;
+  _unitIInApproximateAngularSpace[ra] *= _raAngularScalingFactor;
+  _unitJInApproximateAngularSpace[ra] *= _raAngularScalingFactor;
 
-  // Calcuate the image's rotation by finding a northward-oriented vector in
+  // Calculate the image's rotation by finding a northward-oriented vector in
   // WCS space, and then transforming it into IJK space.  We can then use trig
   // to determine the amount of rotation of the image from north in IJK space:
-  typename WCS::Pointer inverseWcs = WCS::New();
-  wcs->GetInverse(inverseWcs);
-  WcsVector wcsNorthVector =
-    _jApproximateAngularProjection[dec] > _iWcsProjection[dec]
-    ? _jWcsProjection
-    : _iWcsProjection;
-  wcsNorthVector[ra] = 0;
-  WcsPoint wcsPointNorthOfCenter = _wcsCenter + wcsNorthVector;
-  IjkPoint ijkPointNorthOfCenter =
-    inverseWcs->TransformPoint(wcsPointNorthOfCenter);
-  _ijkNorthVector = ijkPointNorthOfCenter - _ijkCenter;
-  _ijkNorthVector[v] = 0;
-  _rotationOfJFromIjkNorthVectorInDegrees =
-    radiansToDegrees(atan(_ijkNorthVector[c_i]/_ijkNorthVector[c_j]));
+  {
+    typename WCS::Pointer inverseWcs = WCS::New();
+    wcs->GetInverse(inverseWcs);
+
+    // We calculate wcsNorthVector, just for the purpose of getting a Dec
+    // increment that is about the size of a pixel or so.  We could, of course,
+    // accomplish much the same thing just by selecting an arbitrary small
+    // increment northward, but then it might be too small or it might be too
+    // big for the image:
+    WcsVector wcsNorthVector =
+      fabs(_unitJInWcs[dec]) > fabs(_unitIInWcs[dec])
+      ? _unitJInWcs
+      : _unitIInWcs;
+    wcsNorthVector[ra] = 0;
+    wcsNorthVector[dec] = fabs(wcsNorthVector[dec]);
+
+    // We now add the northward increment vector to our center point expressed
+    // in RA/Dec coordinates.  This gives us a slightly northward point in WCS
+    // coordinates, and we then use an inverse WCS transform to get the IJK
+    // pixel position (with floating point IJK index values) of this
+    // fastidiously calculated northward point:
+    WcsPoint wcsPointNorthOfCenter = _wcsCenter + wcsNorthVector;
+    IjkPoint ijkPointNorthOfCenter =
+      inverseWcs->TransformPoint(wcsPointNorthOfCenter);
+
+    // We then subtract the center point in IJK coordinates from the northward
+    // point to get a northward pointing vector in IJK coordinates:
+    _ijkNorthVector = ijkPointNorthOfCenter - _ijkCenter;
+    _ijkNorthVector[v] = 0;
+
+    // And finally, with the northward pointing vector in IJK coordinates, we
+    // can determine how much the image is rotated from north:
+    _rotationOfJFromIjkNorthVectorInDegrees =
+      radiansToDegrees(atan2(-1 * _ijkNorthVector[c_i], _ijkNorthVector[c_j]));
+  }
 }
 
 } // namespace
@@ -803,17 +825,17 @@ writeImageInfo(const ImageType& image, ostream& out)
       << info.ijkCenter() << "\n"
       << "Image center, in RA/Dec: " << info.wcsCenter() << "\n"
       << "I vector, in RA/Dec: "
-      << info.iWcsProjection() << "\n"
+      << info.unitIInWcs() << "\n"
       << "J vector, in RA/Dec: "
-      << info.jWcsProjection() << "\n"
+      << info.unitJInWcs() << "\n"
       << "I vector, in approximate angular space: "
-      << info.iApproximateAngularProjection() << "\n"
+      << info.unitIInApproximateAngularSpace() << "\n"
       << "J vector, in approximate angular space: "
-      << info.jApproximateAngularProjection() << "\n"
+      << info.unitJInApproximateAngularSpace() << "\n"
       << "|I|, in approximate angular space: "
-      << info.iApproximateAngularProjection().GetNorm() << "\n"
+      << info.unitIInApproximateAngularSpace().GetNorm() << "\n"
       << "|J|, in approximate angular space: "
-      << info.jApproximateAngularProjection().GetNorm() << "\n"
+      << info.unitJInApproximateAngularSpace().GetNorm() << "\n"
       << "North vector in IJK space: " << info.ijkNorthVector() << "\n"
       << "Rotation of J from North:  "
       << info.rotationOfJFromIjkNorthVectorInDegrees() << "\n"
@@ -826,12 +848,12 @@ writeImageInfo(const ImageType& image, ostream& out)
 
 
 //-----------------------------------------------------------------------------
-// initializeCoordinateFrame(): local template function
+// initializeChangeOfBasis(): local template function
 //-----------------------------------------------------------------------------
 
 template <class ImageType>
 local proc void
-initializeCoordinateFrame(ImageType& image)
+initializeChangeOfBasis(ImageType& image)
 {
   const size_t dims = ImageType::ImageDimension;
 
@@ -847,18 +869,15 @@ initializeCoordinateFrame(ImageType& image)
 
   // TODO: Replace these constants with something somewhere that is more
   // globally accessible.
-  const unsigned i = 0;
-  const unsigned j = 1;
-  const unsigned k = 2;
-  const unsigned l = 0;
-  const unsigned p = 1;
-  const unsigned s = 2;
+  enum {ra, dec, v};
+  enum {l, p, s};
 
-  // Set the direction cosine matrix to properly RA, Dec, and V into LPS space:
+  // Set the direction cosine matrix to properly orient RA, Dec, and V into LPS
+  // space:
   typename ImageType::DirectionType direction;
-  direction(l, i) = 1;
-  direction(p, s) = 1;
-  direction(s, j) = 1;
+  direction(l, ra) = -1;
+  direction(p, v) = 1;
+  direction(s, dec) = 1;
   image.SetDirection(direction);
 }
 
@@ -883,12 +902,85 @@ rotationMatrix(double degrees)
 
 
 //-----------------------------------------------------------------------------
-// transformToEquiangular(): local template proc
+// rightConcatinateTransformation(): local template proc
 //-----------------------------------------------------------------------------
 
 template <class ImageType>
 local proc void
-transformToEquiangular(ImageType& image)
+rightConcatinateTransformation(ImageType& image,
+			       const itk::Matrix<double, 3, 3>& m)
+{
+  typename ImageType::SpacingType spacingMultiplier;
+  for (size_t col = 0; col < 3; ++col) {
+    spacingMultiplier[col] = sqrt(pow(m(0, col), 2) +
+				  pow(m(1, col), 2) +
+				  pow(m(2, col), 2));
+  }
+  cout << "Spacing Before: " << image.GetSpacing() << endl; //d
+  image.SetSpacing(image.GetSpacing() * spacingMultiplier);
+  cout << "Spacing After: "  << image.GetSpacing() << endl; //d
+
+//   Spacing oldSpacing = image.GetSpacing();
+//   Spacing newSpacing;
+//   for (size_t col = 0; col < 3; ++col) {
+//     newSpacing = oldSpacing[col] * multiplier[col];
+//   }
+//   image.SetSpacing(newSpacing);
+
+  itk::Matrix<double, 3, 3> directionMultiplier;
+  for (size_t row = 0; row < 3; ++row) {
+    for (size_t col = 0; col < 3; ++col) {
+      directionMultiplier(row, col) = m(row, col) / spacingMultiplier[col]; 
+    }
+  }
+  cout << "Direction Before: " << image.GetDirection() << endl; //d
+  image.SetDirection(image.GetDirection() * directionMultiplier);
+  cout << "Direction After: "  << image.GetDirection() << endl; //d
+  }
+}
+
+
+//-----------------------------------------------------------------------------
+// transformToNorthOrientedEquiangular(): local template proc
+//-----------------------------------------------------------------------------
+
+template <class ImageType>
+local proc void
+transformToNorthOrientedEquiangular(ImageType& image)
+{
+  
+  // TODO: We should stop making an ImageInfo inside every function that needs
+  // it, and instead subclass ImageType, or something, and calculate the
+  // information once.
+  
+  enum {ra, dec};
+  const ImageInfo<ImageType> info(image);
+
+  itk::Matrix<double, 3, 3> m;
+
+  m(0, 0) = info.unitIInApproximateAngularSpace()[ra] * 1000 * 1000;
+  m(0, 1) = info.unitIInApproximateAngularSpace()[dec] * 1000 * 1000;
+  m(0, 2) = 0;
+
+  m(1, 0) = info.unitJInApproximateAngularSpace()[ra] * 1000 * 1000;
+  m(1, 1) = info.unitJInApproximateAngularSpace()[dec] * 1000 * 1000;
+  m(1, 2) = 0;
+
+  m(2, 0) = 0;
+  m(2, 1) = 0;
+  m(2, 2) = 1;
+
+  ::rightConcatinateTransformation(image, m);
+}
+
+
+//-----------------------------------------------------------------------------
+// transformToUnreorientedEquiangular(): local template proc
+//-----------------------------------------------------------------------------
+
+template <class ImageType>
+local proc void
+transformToUnreorientedEquiangular(ImageType& image)
 {
   
   // TODO: We should stop making an ImageInfo inside every function that needs
@@ -896,15 +988,13 @@ transformToEquiangular(ImageType& image)
   // information once.
   
   const ImageInfo<ImageType> info(image);
-  const double iAngleLen = info.iApproximateAngularProjection().GetNorm();
-  const double jAngleLen = info.jApproximateAngularProjection().GetNorm();
-  typename ImageType::SpacingType spacing = image.GetSpacing();
+  const double iAngleLen = info.unitIInApproximateAngularSpace().GetNorm();
+  const double jAngleLen = info.unitJInApproximateAngularSpace().GetNorm();
 
-  // spacing[1] *= 2 * jAngleLen/iAngleLen; //d Remove the 2
-
-  spacing[0] = iAngleLen * 1000000;
-  spacing[1] = jAngleLen * 1000000;
-  spacing[2] = (iAngleLen + jAngleLen) / 2 * 1000000;
+  typename ImageType::SpacingType spacing;
+  spacing[0] = iAngleLen * 1000 * 1000;
+  spacing[1] = jAngleLen * 1000 * 1000;
+  spacing[2] = (iAngleLen + jAngleLen) / 2 * 1000 * 1000;
 
   image.SetSpacing(spacing);
 }
@@ -924,7 +1014,8 @@ reorientNorth(ImageType& image)
   // for image rotation:
   image.SetDirection(
      image.GetDirection() *
-     rotationMatrix(info.rotationOfJFromIjkNorthVectorInDegrees()));
+     rotationMatrix(-1 * info.rotationOfJFromIjkNorthVectorInDegrees())
+     );
 
   // YOU ARE HERE: thinking about refactoring itkFitsImageIO to remove all
   // matrix manipulation stuff out of it.
@@ -966,11 +1057,17 @@ convertInputFileToItkFile(const char* const inputFilepath,
   if (Cl::getReorientNorth() or Cl::getTransformToEquiangular()) {
     // TODO: Figure out how to do this without reading in the entire image.
     reader->Update();
-    ::initializeCoordinateFrame(*image);
+    ::initializeChangeOfBasis(*image);
 
-    if (Cl::getReorientNorth())          ::reorientNorth(*image);
-    if (Cl::getTransformToEquiangular()) ::transformToEquiangular(*image);
-  }
+    if (Cl::getTransformToEquiangular()) {
+      if (Cl::getReorientNorth()) {
+	::transformToNorthOrientedEquiangular(*image);
+      } else {
+	::transformToUnreorientedEquiangular(*image);
+      }
+    } else if (Cl::getReorientNorth()) {
+      ::reorientNorth(*image);
+    }
 
   if (outputFilepath) {
     typedef itk::ImageFileWriter<ImageType> WriterType;

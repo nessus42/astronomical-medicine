@@ -12,7 +12,7 @@
 //=============================================================================
 
 
-extern const char fits2itkVersion[] = "Version 0.4dev.9";
+extern const char fits2itkVersion[] = "Version 0.4dev.10";
 
 //=============================================================================
 // Change Log
@@ -396,7 +396,19 @@ extern const char fits2itkVersion[] = "Version 0.4dev.9";
 
 // Also did some code refactoring.
 
+ //---------------------------
+// Version 0.4dev.10pending
+//---------------------------
+
+// *** Wed Aug 29, 2007 ***
+
+// Fixed the coordinate frame transformations associated with "--equiangular"
+// and "--reorient-north" after spending a week coming to grok them more fully.
+
+// *** Fri Aug 31, 2007 ***
+
+// Changed the names of some variables and methods to make more sense.
+
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
 //----------------------------------------------------------------------
-
