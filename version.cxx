@@ -12,7 +12,7 @@
 //=============================================================================
 
 
-extern const char fits2itkVersion[] = "Version 0.4dev.10";
+extern const char fits2itkVersion[] = "Version 0.4dev.11";
 
 //=============================================================================
 // Change Log
@@ -396,8 +396,8 @@ extern const char fits2itkVersion[] = "Version 0.4dev.10";
 
 // Also did some code refactoring.
 
- //---------------------------
-// Version 0.4dev.10pending
+//---------------------------
+// Version 0.4dev.10
 //---------------------------
 
 // *** Wed Aug 29, 2007 ***
@@ -408,6 +408,21 @@ extern const char fits2itkVersion[] = "Version 0.4dev.10";
 // *** Fri Aug 31, 2007 ***
 
 // Changed the names of some variables and methods to make more sense.
+
+//---------------------------
+// Version 0.4dev.11
+//---------------------------
+
+// *** Fri Sep  7, 2007 ***
+
+// Modified CMakeLists.txt so that itk::FITSImageIO is a dynamic library.
+
+// Also, merged in the changes to CMakeLists.txt that I made during NAMIC
+// Programming Week.  These changes make the usage message files depend on the
+// fits2itk executable, rather than on version.o
+
+// Now that I've accomplished this, I need to figure out how to make
+// FITSImageIO be "runtime loaded library", rather than a "dependent library".
 
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
