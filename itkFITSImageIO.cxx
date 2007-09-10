@@ -18,7 +18,6 @@
 #include <string>
 
 #include <itkExceptionObject.h>
-#include <itkByteSwapper.h>
 #include <itkMetaDataObject.h>
 #include <itksys/RegularExpression.hxx>
 
