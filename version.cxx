@@ -12,7 +12,7 @@
 //=============================================================================
 
 
-extern const char fits2itkVersion[] = "Version 0.4dev.10";
+extern const char fits2itkVersion[] = "Version 0.4dev.10.1";
 
 //=============================================================================
 // Change Log
@@ -396,8 +396,8 @@ extern const char fits2itkVersion[] = "Version 0.4dev.10";
 
 // Also did some code refactoring.
 
- //---------------------------
-// Version 0.4dev.10pending
+//---------------------------
+// Version 0.4dev.10
 //---------------------------
 
 // *** Wed Aug 29, 2007 ***
@@ -408,6 +408,16 @@ extern const char fits2itkVersion[] = "Version 0.4dev.10";
 // *** Fri Aug 31, 2007 ***
 
 // Changed the names of some variables and methods to make more sense.
+
+//---------------------------
+// Version 0.4dev.10.1
+//---------------------------
+
+// *** Tue Sep 11, 2007 ***
+
+// I discovered that if you didn't specify either "--equiangular" or
+// "--reorient-north", the program was not actually doing anything due to a
+// misplaced "}".  This version has that issue fixed.
 
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***

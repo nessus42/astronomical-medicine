@@ -594,9 +594,6 @@ parseExtendedOption(const char* const option)
 // Local functions
 //=============================================================================
 
-namespace {
-
-
 //-----------------------------------------------------------------------------
 // applyMeanFilter(): local template function
 //-----------------------------------------------------------------------------
@@ -936,7 +933,6 @@ rightConcatinateTransformation(ImageType& image,
   cout << "Direction Before: " << image.GetDirection() << endl; //d
   image.SetDirection(image.GetDirection() * directionMultiplier);
   cout << "Direction After: "  << image.GetDirection() << endl; //d
-  }
 }
 
 
@@ -1068,6 +1064,7 @@ convertInputFileToItkFile(const char* const inputFilepath,
     } else if (Cl::getReorientNorth()) {
       ::reorientNorth(*image);
     }
+  }
 
   if (outputFilepath) {
     typedef itk::ImageFileWriter<ImageType> WriterType;
@@ -1097,9 +1094,8 @@ convertInputFileToItkFile(const char* const inputFilepath,
   //   } 
 }
 
-
 //-----------------------------------------------------------------------------
-} // END local functions
+// END local functions
 //-----------------------------------------------------------------------------
 
 
