@@ -17,6 +17,8 @@ set (itkFITSImageIO_source_files
 # Specify the source files that constitute the fits2itk executable:
 set (fits2itk_source_files
   fits2itk.cxx
+  version.cxx #d
+  itkFITSWCSTransform.cxx #d
   )
 
 
@@ -73,21 +75,22 @@ add_executable (fits2itk
 
 
 # Specify the dll's that we need to build:
-add_library(itkFITSImageIO SHARED
+add_library(itkFITSImageIO MODULE
   ${itkFITSImageIO_source_files}
   )
 
 
 # Specify the libaries that are used by our dll:
 target_link_libraries(itkFITSImageIO
-  cfitsio ITKIO ITKCommon da_util libwcs pathToExecutable
+  cfitsio ITKIO ITKCommon da_util libwcs 
   )
 
 
 # Specify the libraries that are used by the fits2itk program...
 target_link_libraries (fits2itk
-  itkFITSImageIO
-  )
+   # itkFITSImageIO
+   da_util pathToExecutable ITKIO ITKCommon libwcs
+   )
 
 
 # BEGIN building the CFITSIO library, using it's own autoconf-based build

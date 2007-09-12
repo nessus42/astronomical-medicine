@@ -11,8 +11,7 @@
 // See LICENSE.txt for for details.
 //=============================================================================
 
-
-extern const char fits2itkVersion[] = "Version 0.4dev.11";
+extern const char fits2itkVersion[] = "Version 0.4dev.12pending";
 
 //=============================================================================
 // Change Log
@@ -421,9 +420,20 @@ extern const char fits2itkVersion[] = "Version 0.4dev.11";
 // Programming Week.  These changes make the usage message files depend on the
 // fits2itk executable, rather than on version.o
 
-// Now that I've accomplished this, I need to figure out how to make
-// FITSImageIO be "runtime loaded library", rather than a "dependent library".
+//---------------------------
+// Version 0.4dev.12pending
+//---------------------------
+
+// With this version I made FITSImageIO be a "runtime loaded library", rather
+// than a "dependent library".  I.e., on the Mac a ".so" file, rather than a
+// ".dylib" file.  I.e., it's loaded at run-time, under the control of the
+// program (by ITK via $ITK_AUTOLOAD_PATH), rather than being a shared library
+// automatically dynamically linked before program execution.
+
+// This version is just a first stab, as the code is currently a mess and has
+// lots of stuff commented out (using "//d") in order to make it work.
 
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
 //----------------------------------------------------------------------
+
