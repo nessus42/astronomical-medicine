@@ -12,7 +12,7 @@
 //=============================================================================
 
 
-extern const char fits2itkVersion[] = "Version 0.4dev.10.1";
+extern const char fits2itkVersion[] = "Version 0.4dev.10.2";
 
 //=============================================================================
 // Change Log
@@ -418,6 +418,18 @@ extern const char fits2itkVersion[] = "Version 0.4dev.10.1";
 // I discovered that if you didn't specify either "--equiangular" or
 // "--reorient-north", the program was not actually doing anything due to a
 // misplaced "}".  This version has that issue fixed.
+
+//---------------------------
+// Version 0.4dev.10.2
+//---------------------------
+
+// *** Thu Sep 13, 2007 ***
+
+// Jens pointed out a bug in my new coordinate transformation stuff.  I had to
+// revamp things a bit to address this issue.  I also added rotation of the
+// unit I vector from west to the "--verbose" outout.  If this is not equal to
+// the rotation of the unit J vector from north, then the pixels are
+// parallelograms.
 
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***

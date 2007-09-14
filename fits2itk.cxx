@@ -124,6 +124,25 @@ checkEndptr(const char* endptr)
    }
 
 
+//-----------------------------------------------------------------------------
+// rotationMatrix(): local proc
+//-----------------------------------------------------------------------------
+
+local proc itk::Matrix<double, 3, 3>
+rotationMatrix(double degrees)
+{
+  const double s = sin(degrees/180 * M_PI);
+  const double c = cos(degrees/180 * M_PI);
+  itk::Matrix<double, 3, 3> retval;
+  retval(0, 0) = c;
+  retval(0, 1) = -s;
+  retval(1, 0) = s;
+  retval(1, 1) = c;
+  retval(2, 2) = 1;
+  return retval;
+}
+
+
 //=============================================================================
 // CommandLineParser: local class
 //=============================================================================
@@ -238,7 +257,10 @@ private:
   WcsVector _unitIInApproximateAngularSpace;
   WcsVector _unitJInApproximateAngularSpace;
   IjkVector _ijkNorthVector;
+  IjkVector _ijkEastVector;
+  bool	    _isImageFlipped;
   double    _rotationOfJFromIjkNorthVectorInDegrees;
+  double    _rotationOfIFromIjkWestVectorInDegrees;
   double    _raAngularScalingFactor;
 
 public:
@@ -257,8 +279,13 @@ public:
                { return _unitJInApproximateAngularSpace; }
   IjkVector ijkNorthVector() const
                { return _ijkNorthVector; }
+  IjkVector ijkEastVector() const
+               { return _ijkEastVector(); }
+  bool      isImageFlipped() const { return _isImageFlipped; }
   double    rotationOfJFromIjkNorthVectorInDegrees() const
                { return _rotationOfJFromIjkNorthVectorInDegrees; }
+  double    rotationOfIFromIjkWestVectorInDegrees() const
+               { return _rotationOfIFromIjkWestVectorInDegrees; }
   double    raAngularScalingFactor() const
                { return _raAngularScalingFactor; }
   WcsTransformConstPtr getWcsTransform() const
@@ -271,6 +298,7 @@ public:
 ctor
 template <class ImageType>
 ImageInfo<ImageType>::ImageInfo(const ImageType& image)
+  : _isImageFlipped(false)
 {
   typename ImageType::RegionType allOfImage = image.GetLargestPossibleRegion();
   typename ImageType::SizeType imageSize = allOfImage.GetSize();
@@ -290,7 +318,7 @@ ImageInfo<ImageType>::ImageInfo(const ImageType& image)
   // TODO: It's confusing that in some situations V is 1 and dec is 2, and
   // in others, dec is 1 and V is 2.  We need a better way to denote this.
 
-  enum {ra, dec, v};
+  enum {ra, dec, vel};
 
   // Calculate lengths of i and j vectors in RA/Dec space:
   { 
@@ -349,12 +377,57 @@ ImageInfo<ImageType>::ImageInfo(const ImageType& image)
     // We then subtract the center point in IJK coordinates from the northward
     // point to get a northward pointing vector in IJK coordinates:
     _ijkNorthVector = ijkPointNorthOfCenter - _ijkCenter;
-    _ijkNorthVector[v] = 0;
+    _ijkNorthVector[vel] = 0;
 
     // And finally, with the northward pointing vector in IJK coordinates, we
     // can determine how much the image is rotated from north:
     _rotationOfJFromIjkNorthVectorInDegrees =
       radiansToDegrees(atan2(-1 * _ijkNorthVector[c_i], _ijkNorthVector[c_j]));
+  }
+
+  // Do the same as above, only for west, rather than north.  Because our WCS
+  // coordinate frame may not have orthogonal basis vectors, this may end up
+  // giving a different result, however.  We are doing this calculation, only
+  // for informational purposes:
+  {
+    typename WCS::Pointer inverseWcs = WCS::New();
+    wcs->GetInverse(inverseWcs);
+    WcsVector wcsEastVector =
+      fabs(_unitJInWcs[ra]) > fabs(_unitIInWcs[ra])
+      ? _unitJInWcs
+      : _unitIInWcs;
+    wcsEastVector[dec] = 0;
+    wcsEastVector[ra] = fabs(wcsEastVector[ra]);
+    WcsPoint wcsPointEastOfCenter = _wcsCenter + wcsEastVector;
+    IjkPoint ijkPointEastOfCenter =
+      inverseWcs->TransformPoint(wcsPointEastOfCenter);
+    _ijkEastVector = ijkPointEastOfCenter - _ijkCenter;
+    _ijkEastVector[vel] = 0;
+    IjkVector ijkWestVector = _ijkEastVector * -1;
+    _rotationOfIFromIjkWestVectorInDegrees
+      = radiansToDegrees(atan2(ijkWestVector[c_j], ijkWestVector[c_i]));
+  }
+
+  // Figure out whether or not the image is flipped.  We do this by calculating
+  // a putative east vector and then testing to see if is pointing easterly or
+  // westerly.  If it is pointing westerly, then we know that the image is
+  // flipped.
+
+  // We calculate the putative east vector by rotating ijkNorthVector by 90
+  // degrees.  (Note that on a map of the Earth, this would point us west, not
+  // east, but on the sky it should point us east.  Also, note that as
+  // relationship between IJK space and celestial coordinates may not be an
+  // orthogonal transformation, this "east" vector may not point us due east,
+  // but should point in a direction that increases in RA coordinates.)  Once
+  // we have the putative IJK east vector, we add it to our center point, and
+  // see if it moved us in an eastward or westward direction in WCS space:
+  {
+    IjkVector putativeIjkEastVector = rotationMatrix(90) * _ijkNorthVector;
+    IjkPoint putativeIjkEastOfCenter = _ijkCenter + putativeIjkEastVector;
+    WcsPoint putativeWcsEastOfCenter
+      = wcs->TransformPoint(putativeIjkEastOfCenter);
+    WcsVector putativeWcsEastVector = putativeWcsEastOfCenter - _wcsCenter;
+    if (putativeWcsEastVector[ra] < 0) _isImageFlipped = true;
   }
 }
 
@@ -836,11 +909,33 @@ writeImageInfo(const ImageType& image, ostream& out)
       << "North vector in IJK space: " << info.ijkNorthVector() << "\n"
       << "Rotation of J from North:  "
       << info.rotationOfJFromIjkNorthVectorInDegrees() << "\n"
+      << "Rotation of I from West: "
+      << info.rotationOfIFromIjkWestVectorInDegrees() << "\n"
       << "Direction cosines:\n"
       << image.GetDirection()
       << "Image spacing: " << image.GetSpacing() << "\n"
       << "Image origin: " << image.GetOrigin() << "\n"
     ;
+}
+
+
+//-----------------------------------------------------------------------------
+// toLpsPermutationMatrix(): local proc
+//-----------------------------------------------------------------------------
+
+local proc itk::Matrix<double, 3, 3>
+toLpsPermutationMatrix()
+{
+  // TODO: Replace these constants with something somewhere that is more
+  // globally accessible.
+  enum {horizontal, vertical, depth};
+  enum {l, p, s};
+
+  itk::Matrix<double, 3, 3> retval;
+  retval(l, horizontal) = 1;
+  retval(s, vertical) = 1;
+  retval(p, depth) = 1;
+  return retval;
 }
 
 
@@ -864,36 +959,23 @@ initializeChangeOfBasis(ImageType& image)
   for (size_t d = 0; d < dims; ++d) spacing[d] = 1;
   image.SetSpacing(spacing);
 
-  // TODO: Replace these constants with something somewhere that is more
-  // globally accessible.
-  enum {ra, dec, v};
-  enum {l, p, s};
-
-  // Set the direction cosine matrix to properly orient RA, Dec, and V into LPS
+  // Set the direction cosine matrix to properly permute the axes into LPS
   // space:
-  typename ImageType::DirectionType direction;
-  direction(l, ra) = -1;
-  direction(p, v) = 1;
-  direction(s, dec) = 1;
-  image.SetDirection(direction);
+  image.SetDirection(toLpsPermutationMatrix());
 }
 
 
 //-----------------------------------------------------------------------------
-// rotationMatrix(): local proc
+// scalingMatrix(): local proc
 //-----------------------------------------------------------------------------
 
 local proc itk::Matrix<double, 3, 3>
-rotationMatrix(double degrees)
+scalingMatrix(double sx, double sy, double sz)
 {
-  const double s = sin(degrees/180 * M_PI);
-  const double c = cos(degrees/180 * M_PI);
   itk::Matrix<double, 3, 3> retval;
-  retval(0, 0) = c;
-  retval(0, 1) = -s;
-  retval(1, 0) = s;
-  retval(1, 1) = c;
-  retval(2, 2) = 1;
+  retval(0, 0) = sx;
+  retval(1, 1) = sy;
+  retval(2, 2) = sz;
   return retval;
 }
 
@@ -907,15 +989,22 @@ local proc void
 rightConcatinateTransformation(ImageType& image,
 			       const itk::Matrix<double, 3, 3>& m)
 {
+  // cout << "Transformation Matrix:\n" << m << endl; //d
+
   typename ImageType::SpacingType spacingMultiplier;
   for (size_t col = 0; col < 3; ++col) {
     spacingMultiplier[col] = sqrt(pow(m(0, col), 2) +
 				  pow(m(1, col), 2) +
 				  pow(m(2, col), 2));
   }
-  cout << "Spacing Before: " << image.GetSpacing() << endl; //d
-  image.SetSpacing(image.GetSpacing() * spacingMultiplier);
-  cout << "Spacing After: "  << image.GetSpacing() << endl; //d
+  // cout << "Spacing Multiplier: " << spacingMultiplier << endl; //d
+  // cout << "Spacing Before: " << image.GetSpacing() << endl; //d
+  typename ImageType::SpacingType spacing = image.GetSpacing();
+  for (size_t spacingIndex = 0; spacingIndex < 3; ++spacingIndex) {
+    spacing[spacingIndex] *= spacingMultiplier[spacingIndex];
+  }
+  image.SetSpacing(spacing);
+  // cout << "Spacing After: "  << image.GetSpacing() << endl; //d
 
 //   Spacing oldSpacing = image.GetSpacing();
 //   Spacing newSpacing;
@@ -930,9 +1019,9 @@ rightConcatinateTransformation(ImageType& image,
       directionMultiplier(row, col) = m(row, col) / spacingMultiplier[col]; 
     }
   }
-  cout << "Direction Before: " << image.GetDirection() << endl; //d
+  // cout << "Direction Before:\n" << image.GetDirection() << endl; //d
   image.SetDirection(image.GetDirection() * directionMultiplier);
-  cout << "Direction After: "  << image.GetDirection() << endl; //d
+  // cout << "Direction After:\n"  << image.GetDirection() << endl; //d
 }
 
 
@@ -949,24 +1038,32 @@ transformToNorthOrientedEquiangular(ImageType& image)
   // it, and instead subclass ImageType, or something, and calculate the
   // information once.
   
-  enum {ra, dec};
+  enum {ra, dec, vel};
+  enum {i, j, k };
   const ImageInfo<ImageType> info(image);
+
+  const double iAngleLen = info.unitIInApproximateAngularSpace().GetNorm();
+  const double jAngleLen = info.unitJInApproximateAngularSpace().GetNorm();
+  const double angularScale = 1000 * 1000;
 
   itk::Matrix<double, 3, 3> m;
 
-  m(0, 0) = info.unitIInApproximateAngularSpace()[ra] * 1000 * 1000;
-  m(0, 1) = info.unitIInApproximateAngularSpace()[dec] * 1000 * 1000;
-  m(0, 2) = 0;
+  m(ra,  i) = info.unitIInApproximateAngularSpace()[ra] * angularScale;
+  m(dec, i) = info.unitIInApproximateAngularSpace()[dec] * angularScale;
+  m(vel, i) = 0;
 
-  m(1, 0) = info.unitJInApproximateAngularSpace()[ra] * 1000 * 1000;
-  m(1, 1) = info.unitJInApproximateAngularSpace()[dec] * 1000 * 1000;
-  m(1, 2) = 0;
+  m(ra,  j) = info.unitJInApproximateAngularSpace()[ra] * angularScale;
+  m(dec, j) = info.unitJInApproximateAngularSpace()[dec] * angularScale;
+  m(vel, j) = 0;
 
-  m(2, 0) = 0;
-  m(2, 1) = 0;
-  m(2, 2) = 1;
+  m(ra,  k) = 0;
+  m(dec, k) = 0;
+  m(vel, k) = (iAngleLen + jAngleLen) * 0.5 * angularScale;
 
-  ::rightConcatinateTransformation(image, m);
+  rightConcatinateTransformation(
+     image,
+     scalingMatrix(-1, 1, 1) * m
+     );
 }
 
 
@@ -982,17 +1079,19 @@ transformToUnreorientedEquiangular(ImageType& image)
   // TODO: We should stop making an ImageInfo inside every function that needs
   // it, and instead subclass ImageType, or something, and calculate the
   // information once.
-  
+
+  enum {ra, dec};
   const ImageInfo<ImageType> info(image);
   const double iAngleLen = info.unitIInApproximateAngularSpace().GetNorm();
   const double jAngleLen = info.unitJInApproximateAngularSpace().GetNorm();
+  const double flipFactor = info.isImageFlipped() ? -1 : 1;
+  const double angularScale = 1000 * 1000;
 
-  typename ImageType::SpacingType spacing;
-  spacing[0] = iAngleLen * 1000 * 1000;
-  spacing[1] = jAngleLen * 1000 * 1000;
-  spacing[2] = (iAngleLen + jAngleLen) / 2 * 1000 * 1000;
-
-  image.SetSpacing(spacing);
+  rightConcatinateTransformation(
+     image,
+     scalingMatrix(iAngleLen * angularScale * flipFactor,
+		   jAngleLen * angularScale,
+		   (iAngleLen + jAngleLen) * .5 * angularScale));
 }
 
 
@@ -1005,17 +1104,12 @@ local proc void
 reorientNorth(ImageType& image)
 {
   const ImageInfo<ImageType> info(image);
-
-  // Multiply the direction cosine matrix by a rotation matrix to compensate
-  // for image rotation:
-  image.SetDirection(
-     image.GetDirection() *
-     rotationMatrix(-1 * info.rotationOfJFromIjkNorthVectorInDegrees())
-     );
-
-  // YOU ARE HERE: thinking about refactoring itkFitsImageIO to remove all
-  // matrix manipulation stuff out of it.
+  const double raScale = info.isImageFlipped() ? -1 : 1;
   
+  rightConcatinateTransformation(
+     image,
+     (scalingMatrix(raScale, 1, 1) *
+      rotationMatrix(-1 * info.rotationOfJFromIjkNorthVectorInDegrees())));
 }
 
 
@@ -1054,16 +1148,14 @@ convertInputFileToItkFile(const char* const inputFilepath,
     // TODO: Figure out how to do this without reading in the entire image.
     reader->Update();
     ::initializeChangeOfBasis(*image);
+  }
 
-    if (Cl::getTransformToEquiangular()) {
-      if (Cl::getReorientNorth()) {
-	::transformToNorthOrientedEquiangular(*image);
-      } else {
-	::transformToUnreorientedEquiangular(*image);
-      }
-    } else if (Cl::getReorientNorth()) {
-      ::reorientNorth(*image);
-    }
+  if (Cl::getTransformToEquiangular() and Cl::getReorientNorth()) {
+    ::transformToNorthOrientedEquiangular(*image);
+  } else if (Cl::getTransformToEquiangular()) {
+    ::transformToUnreorientedEquiangular(*image);
+  } else if (Cl::getReorientNorth()) {
+    ::reorientNorth(*image);
   }
 
   if (outputFilepath) {
