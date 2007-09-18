@@ -77,8 +77,14 @@ static void
 fatalError(const char* const message)
 {
   if (getArgc()) {
-    const char* progname = basename(getArgv()[0]);
+    char* const programPath = strdup(getArgv()[0]);
+    if (!programPath) {
+      fprintf(stderr, "%s: FATAL ERROR: Out of RAM!\n", getArgv()[0]);
+      exit(1);
+    }
+    const char* progname = basename(programPath);
     if (progname != NULL) fprintf(stderr, "%s: ", progname);
+    free(programPath);
   }
   fprintf(stderr, "FATAL ERROR: %s\n", message);
   exit(1);
@@ -90,7 +96,7 @@ fatalError(const char* const message)
 //=============================================================================
 
 static int fs_argc = 0;
-static const char* const* fs_argv;
+static const char* const* fs_argv = 0;
 
 //-----------------------------------------------------------------------------
 // Exported global functions:

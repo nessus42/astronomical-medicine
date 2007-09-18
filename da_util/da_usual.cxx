@@ -143,7 +143,13 @@ proc string
 programName()
 {
   if (_programName.empty()) {
-    _programName = ::basename(::pathToExecutable());
+    char* programPath = strdup(pathToExecutable());
+    if (!programPath) {
+      fprintf(stderr, "%s: FATAL ERROR: Out of RAM!\n", pathToExecutable());
+      exit(1);
+    }
+    _programName = basename(programPath);
+    free(programPath);
   }
   return _programName;
 }
