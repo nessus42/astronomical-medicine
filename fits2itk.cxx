@@ -409,8 +409,8 @@ ImageInfo<ImageType>::ImageInfo(const ImageType& image)
   }
 
   // Figure out whether or not the image is flipped.  We do this by calculating
-  // a putative east vector and then testing to see if is pointing easterly or
-  // westerly.  If it is pointing westerly, then we know that the image is
+  // a putative east vector and then testing to see if it is pointing easterly
+  // or westerly.  If it is pointing westerly, then we know that the image is
   // flipped.
 
   // We calculate the putative east vector by rotating ijkNorthVector by 90
