@@ -61,8 +61,9 @@ const int c_dims = itk::FITSImageIO::c_dims;
 local proc void
 usage1(bool exitWithFailureP, bool verboseUsageP)
 {
-//  if (daProgramName().size()) cerr << basename(daProgramName().c_str());
-//  else cerr << "fits2itk";
+//   if (da::programName().size()) {
+//     cerr << basename(da::programName().c_str());
+//   } else cerr << "fits2itk"; //d
   
   ostream& out = exitWithFailureP ? cerr : cout;
   out << "fits2itk " << fits2itkVersion << "\n\n";
