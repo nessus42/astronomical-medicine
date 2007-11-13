@@ -11,7 +11,7 @@
 // See LICENSE.txt for for details.
 //=============================================================================
 
-extern const char fits2itkVersion[] = "Version 0.4dev.12pending";
+extern const char fits2itkVersion[] = "Version 0.4dev.12pending.1";
 
 //=============================================================================
 // Change Log
@@ -424,16 +424,37 @@ extern const char fits2itkVersion[] = "Version 0.4dev.12pending";
 // Version 0.4dev.12pending
 //---------------------------
 
-// With this version I made FITSImageIO be a "runtime loaded library", rather
-// than a "dependent library".  I.e., on the Mac a ".so" file, rather than a
-// ".dylib" file.  I.e., it's loaded at run-time, under the control of the
-// program (by ITK via $ITK_AUTOLOAD_PATH), rather than being a shared library
-// automatically dynamically linked before program execution.
+// Added support for loading FITSImageIO as a "dynamically loaded library",
+// rather than as a "dependent shared library" or as a statically linked
+// library.  I tried out this support with Slicer and it worked (at least
+// nominally) but I did not yet succeed in making fits2itk dynamically load
+// FITSImageIO.
 
-// This version is just a first stab, as the code is currently a mess and has
-// lots of stuff commented out (using "//d") in order to make it work.
+//---------------------------
+// Version 0.4dev.12pending.1
+//---------------------------
+
+// *** Tue Nov 13, 2007 ***
+
+// With this version I made FITSImageIO be a "dynamically loaded library".
+// rather than a dependent library.  I.e., now FITSImageIO is loaded at
+// runtime, under the control of fits2itk.
+
+// (Well, actually not directly under the control of fits2itk, because, as it
+// turns out, the only way to get this to work was to set the environment
+// variable $ITK_AUTOLOAD_PATH so that ITK could find libitkFITSImageIO.so as a
+// plugin.  Other approaches I tried would either fail to register
+// FITSImageIOFactory in the real ITK universe, as it either would end up
+// registered in a hidden parallel dynamically-loaded namespace, or it would
+// cause core dumps due to data structures in ObjectFactoryBase not being
+// initialized properly.)
+
+// This version is really just a first stab at all this, as the code is
+// currently a mess and has lots of stuff commented out (using "//d") in order
+// to make it work.  The reason for this is that many of the fits2itk command
+// line options worked by calling static methods of FITSImageIO, but now that
+// FITSImageIO is dynamically loaded, these methods are not easily accessible.
 
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
 //----------------------------------------------------------------------
-
