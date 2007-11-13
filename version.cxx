@@ -11,7 +11,7 @@
 // See LICENSE.txt for for details.
 //=============================================================================
 
-extern const char fits2itkVersion[] = "Version 0.4dev.12pending.1";
+extern const char fits2itkVersion[] = "Version 0.4dev.12pending.2";
 
 //=============================================================================
 // Change Log
@@ -455,6 +455,21 @@ extern const char fits2itkVersion[] = "Version 0.4dev.12pending.1";
 // line options worked by calling static methods of FITSImageIO, but now that
 // FITSImageIO is dynamically loaded, these methods are not easily accessible.
 
+//---------------------------
+// Version 0.4dev.12pending.2
+//---------------------------
+
+// *** Tue Nov 13, 2007 ***
+
+// Uncommented out stuff that depended only on the FITSImageIO header on not on
+// any of its code.
+
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
 //----------------------------------------------------------------------
+
+
+// *** Tue Nov 13, 2007 ***
+
+// Working on going through all of the code annotated with "//d" as a first
+// pass at making things sane again.

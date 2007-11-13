@@ -36,18 +36,6 @@ using std::auto_ptr;
 #include <string>
 using std::string;
 
-#include <itkFITSImageIOFactory.h> //d
-#include <itkFITSImageIO.h> //d
-
-#include <itkObjectFactoryBase.h>
-using itk::ObjectFactoryBase;
-
-#include <itkDynamicLoader.h>
-using itk::LibHandle;
-using itk::DynamicLoader;
-
-#include <itkFITSWCSTransform.h> //d
-
 #include <itkImage.h>
 using itk::Image;
 
@@ -61,13 +49,18 @@ using itk::Image;
 // #include <itkBinaryMedianImageFilter.h>
 // #include <itkGradientAnisotropicDiffusionImageFilter.h>
 
+#include <itkFITSImageIO.h>
+using itk::FITSImageIO;
+
+#include <itkFITSWCSTransform.h>
+using itk::FITSWCSTransform;
+
 #include <pathToExecutable.h>
 #include <da_util.h>
 #include <da_sugar.h>
 
 extern const char fits2itkVersion[];
-//d const int c_dims = itk::FITSImageIO::c_dims;
-const int c_dims = 3; //d
+const int c_dims = FITSImageIO::c_dims;
 
 //-----------------------------------------------------------------------------
 // usage()
@@ -233,7 +226,7 @@ template <class ImageType>
 class ImageInfo
 {
 
-  typedef itk::FITSWCSTransform<double, ImageType::ImageDimension> WCS;
+  typedef FITSWCSTransform<double, ImageType::ImageDimension> WCS;
 
 public:
   typedef typename WCS::InputPointType    IjkPoint;
@@ -292,11 +285,9 @@ ImageInfo<ImageType>::ImageInfo(const ImageType& image)
   typename ImageType::SizeType imageSize = allOfImage.GetSize();
   typename ImageType::IndexType imageOrigin = allOfImage.GetIndex();
 
-//d   enum { c_i = itk::FITSImageIO::c_i,
-//d 	 c_j = itk::FITSImageIO::c_j,
-//d 	 c_k = itk::FITSImageIO::c_k };
-
-  enum { c_i, c_j, c_k };
+  enum { c_i = FITSImageIO::c_i,
+ 	 c_j = FITSImageIO::c_j,
+ 	 c_k = FITSImageIO::c_k };
 
   _ijkCenter[c_i] = imageOrigin[c_i] + imageSize[c_i]/2.0 - 0.5;
   _ijkCenter[c_j] = imageOrigin[c_j] + imageSize[c_j]/2.0 - 0.5;
@@ -437,29 +428,29 @@ parseCommandLine(const int argc, const char* const argv[])
       switch (optionChar) {
 
       case 'A':
-	//d itk::FITSImageIO::SetAutoScaleVelocityAxis(true);
+	//d FITSImageIO::SetAutoScaleVelocityAxis(true);
 	break;
 
       case 'a':
-	//d itk::FITSImageIO::SetScaleAllAxes(strtod(optarg, &endptr));
+	//d FITSImageIO::SetScaleAllAxes(strtod(optarg, &endptr));
 	::checkEndptr(endptr);
 	break;
 
 // 	// TODO: Implement this
 //       case 'd':
-// 	// itk::FITSImageIO::SetScaleDec(strtod(optarg, &endptr));
+// 	// FITSImageIO::SetScaleDec(strtod(optarg, &endptr));
 // 	// ::checkEndptr(endptr);
 // 	break;
 
       case 'D':
 	_cv_debugLevel = strtol(optarg, null, cBase10);
-	//d itk::FITSImageIO::SetDebugLevel(_cv_debugLevel);
+	//d FITSImageIO::SetDebugLevel(_cv_debugLevel);
 	break;
 
       case 'h': ::usage(false);
 
       case 'N':
-	//d itk::FITSImageIO::SetNullValue(strtod(optarg, &endptr));
+	//d FITSImageIO::SetNullValue(strtod(optarg, &endptr));
 	::checkEndptr(endptr);
 	break;
 
@@ -472,7 +463,7 @@ parseCommandLine(const int argc, const char* const argv[])
 	break;
 
       case 'r':
-	//d itk::FITSImageIO::SetScaleRA(strtod(optarg, &endptr));
+	//d FITSImageIO::SetScaleRA(strtod(optarg, &endptr));
 	::checkEndptr(endptr);
 	break;
 
@@ -481,7 +472,7 @@ parseCommandLine(const int argc, const char* const argv[])
         break;
 
       case 's':
-        //d itk::FITSImageIO::SetScaleVoxelValues(strtod(optarg, &endptr));
+        //d FITSImageIO::SetScaleVoxelValues(strtod(optarg, &endptr));
 	::checkEndptr(endptr);
         break;
 
@@ -490,7 +481,7 @@ parseCommandLine(const int argc, const char* const argv[])
         break;
 
       case 'v':
-        //d itk::FITSImageIO::SetScaleVelocity(strtod(optarg, &endptr));
+        //d FITSImageIO::SetScaleVelocity(strtod(optarg, &endptr));
 	::checkEndptr(endptr);
         break;
 
@@ -526,31 +517,31 @@ parseCommandLine(const int argc, const char* const argv[])
 	  _cv_flipVFlag = true;
 	} else if (noWcsFlag) {
 	  noWcsFlag = false;
-	  //d itk::FITSImageIO::SetSuppressWCS(true);
+	  //d FITSImageIO::SetSuppressWCS(true);
 	} else if (reorientNorthFlag) {
 	  reorientNorthFlag = false;
 	  _cv_reorientNorth = true;
 	} else if (ripOrientationFlag) {
 	  ripOrientationFlag = false;
-	  //d itk::FITSImageIO::SetRIPOrientation(true);
-	  //d itk::FITSImageIO::SetSuppressWCS(true);
+	  //d FITSImageIO::SetRIPOrientation(true);
+	  //d FITSImageIO::SetSuppressWCS(true);
 	} else if (rotateSkyFlag) {
 	  rotateSkyFlag = false;
-	  //d itk::FITSImageIO::SetRotateSky(strtod(optarg, &endptr));
+	  //d FITSImageIO::SetRotateSky(strtod(optarg, &endptr));
 	  ::checkEndptr(endptr);
 	} else if (scaleDecFlag) {
 	  scaleDecFlag = false;
-	  //d itk::FITSImageIO::SetScaleDec(strtod(optarg, &endptr));
+	  //d FITSImageIO::SetScaleDec(strtod(optarg, &endptr));
 	  ::checkEndptr(endptr);
 	} else if (typicalFlag) {
 	  typicalFlag = false;
-	  //d itk::FITSImageIO::SetAutoScaleVelocityAxis(true);
-	  //d itk::FITSImageIO::SetScaleAllAxes(1000);
-	  //d itk::FITSImageIO::SetScaleRA(-1);
-	  //d itk::FITSImageIO::SetScaleVoxelValues(1000);
+	  //d FITSImageIO::SetAutoScaleVelocityAxis(true);
+	  //d FITSImageIO::SetScaleAllAxes(1000);
+	  //d FITSImageIO::SetScaleRA(-1);
+	  //d FITSImageIO::SetScaleVoxelValues(1000);
 	} else if (verboseFlag) {
 	  verboseFlag = false;
-	  //d itk::FITSImageIO::SetVerbose(true);
+	  //d FITSImageIO::SetVerbose(true);
 	} else {
 	  ::usage();
 	}
@@ -573,8 +564,8 @@ parseCommandLine(const int argc, const char* const argv[])
 
   // Do some sanity checking to make sure that the options specified are
   // consistent with each other:
-//d   if (itk::FITSImageIO::GetSuppressWCS() and
-//d       itk::FITSImageIO::GetAutoScaleVelocityAxis())
+//d   if (FITSImageIO::GetSuppressWCS() and
+//d       FITSImageIO::GetAutoScaleVelocityAxis())
 //d     {
 //d       da::warning("Velocity axis auto-scaling does not work when WCS\n"
 //d 		  "     is suppressed.");
@@ -601,7 +592,7 @@ parseExtendedOption(const char* const option)
   } else if (optionStr == "binomialBlur") {
     _cv_binomialBlurFlag = true;
   } else if (optionStr == "suppressMetaDataDictionary") {
-    //d itk::FITSImageIO::SetSuppressMetaDataDictionary(true);
+    //d FITSImageIO::SetSuppressMetaDataDictionary(true);
   } else if (optionStr == "identityFlip") {
     _cv_identityFlipFlag = true;
   } else ::usage();
@@ -750,11 +741,9 @@ reflectPixels(Image<PixelType, c_dims>& image,
   typename ImageType::SizeType imageSize = allOfImage.GetSize();
   IndexType imageOrigin = allOfImage.GetIndex();
 
-  //d const size_t c_i    = itk::FITSImageIO::c_i;
-  //d const size_t c_j    = itk::FITSImageIO::c_j;
-  //d const size_t c_k    = itk::FITSImageIO::c_k;
-
-  enum { c_i, c_j, c_k };  //d 
+  enum { c_i = FITSImageIO::c_i,
+	 c_j = FITSImageIO::c_j,
+	 c_k = FITSImageIO::c_k };
 
   const size_t minRaIndex  = imageOrigin[c_i];
   const size_t minDecIndex = imageOrigin[c_j];
@@ -1096,7 +1085,7 @@ convertInputFileToItkFile(const char* const inputFilepath,
     reader->Update();
   }
 
-  //d if (itk::FITSImageIO::GetVerbose()) ::writeImageInfo(*image, cout);
+  //d if (FITSImageIO::GetVerbose()) ::writeImageInfo(*image, cout);
   
   return EXIT_SUCCESS;
 
@@ -1150,7 +1139,7 @@ main(const int argc, const char* const argv[])
   // This is how we used to register FITSImageIOFactory, before we changed to
   //dynamic loading:
   //
-  // itk::FITSImageIOFactory::RegisterOneFactory();
+  // FITSImageIOFactory::RegisterOneFactory();
 
   int status = -666;   // If the following code is correct, this value will
                        // always get overwritten.
