@@ -17,13 +17,15 @@
 #include "itkCreateObjectFunction.h"
 #include "itkFITSImageIO.h"
 #include "itkVersion.h"
+#include "da_usual.h"
 
 #include <iostream> //d
 using std::cerr;    //d 
 using std::endl;    //d  
 
-namespace itk
+/*BEGIN*/ namespace itk
 {
+
 
 /*ctor*/
 FITSImageIOFactory::FITSImageIOFactory()
@@ -56,7 +58,18 @@ FITSImageIOFactory::GetDescription() const
   return "FITS ImageIO Factory, allows the loading of FITS images into ITK";
 }
 
-} // end namespace itk
+// This function is not used when we dynamically load FITSImageIOFactory, but
+// don't delete this function, just in case we go back to static linking of this
+// class:
+
+// /*static method*/ void
+// FITSImageIOFactory::RegisterOneFactory()
+// {
+//   FITSImageIOFactory::Pointer FITSFactory = FITSImageIOFactory::New();
+//   ObjectFactoryBase::RegisterFactory(FITSFactory);
+// }
+
+} // END namespace itk
 
 
 // Function that is called when the shared library is loaded by
@@ -65,8 +78,6 @@ FITSImageIOFactory::GetDescription() const
 /*proc*/ extern "C" itk::ObjectFactoryBase*
 itkLoad()
 {
-  cerr << "Hello, I'm your friendly neighborhood itkLoad()" << endl; //d
-  
   static itk::FITSImageIOFactory::Pointer f = itk::FITSImageIOFactory::New();
   return f;
 }

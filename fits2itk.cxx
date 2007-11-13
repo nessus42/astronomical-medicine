@@ -19,23 +19,35 @@
 #include <dlfcn.h>                         // For dlopen()
 #include <libgen.h>			   // For basename()
 #include <getopt.h>
+#include <stdlib.h>			   // For getenv(), setenv()
 #include <sys/param.h>                     // For MAXPATHLEN
-
 #include <cassert>
 #include <cmath>
+
 #include <fstream>
 using std::ifstream;
 using std::istream;
 using std::ostream;
 using std::ios;
+
 #include <memory>
 using std::auto_ptr;
+
 #include <string>
 using std::string;
 
-//d #include <itkFITSImageIOFactory.h>
-//d #include <itkFITSImageIO.h>
+#include <itkFITSImageIOFactory.h> //d
+#include <itkFITSImageIO.h> //d
+
+#include <itkObjectFactoryBase.h>
+using itk::ObjectFactoryBase;
+
+#include <itkDynamicLoader.h>
+using itk::LibHandle;
+using itk::DynamicLoader;
+
 #include <itkFITSWCSTransform.h> //d
+
 #include <itkImage.h>
 using itk::Image;
 
@@ -43,6 +55,7 @@ using itk::Image;
 #include <itkImageFileWriter.h>
 #include <itkFlipImageFilter.h>
 #include <itkBinomialBlurImageFilter.h>
+
 // #include <itkDerivativeImageFilter.h>
 // #include <itkMeanImageFilter.h>
 // #include <itkBinaryMedianImageFilter.h>
@@ -1114,13 +1127,30 @@ convertInputFileToItkFile(const char* const inputFilepath,
 proc int
 main(const int argc, const char* const argv[])
 {
-  //d dlopen("libitkFITSImageIO.dylib", RTLD_NOW); 
-
   ::setArgv(argc, argv);
+
+  // Set the environment variable $ITK_AUTOLOAD_PATH so that
+  // ObjectFactoryBase::LoadLibrariesInPath() can find FITSImageIOFactory:
+  {
+#ifdef _WIN32
+    const char pathSeparator = ';';
+#else
+    const char pathSeparator = ':';
+#endif
+  
+    const char* oldAutoloadPath = getenv("ITK_AUTOLOAD_PATH");
+    const string newAutoloadPath = oldAutoloadPath
+      ? string(pathToExecutableDir()) + pathSeparator + oldAutoloadPath
+      : string(pathToExecutableDir());
+    setenv("ITK_AUTOLOAD_PATH", newAutoloadPath.c_str(), true);
+  }
+
   Cl::parseCommandLine(argc, argv);
 
-  // Register FITS one factory with the ImageIOFactory.
-  //d itk::FITSImageIOFactory::RegisterOneFactory();
+  // This is how we used to register FITSImageIOFactory, before we changed to
+  //dynamic loading:
+  //
+  // itk::FITSImageIOFactory::RegisterOneFactory();
 
   int status = -666;   // If the following code is correct, this value will
                        // always get overwritten.
@@ -1138,4 +1168,6 @@ main(const int argc, const char* const argv[])
 		Cl::getOutputFilepath());
   }
   return status;
+
 }
+

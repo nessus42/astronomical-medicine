@@ -45,11 +45,7 @@ public:
   itkTypeMacro(FITSImageIOFactory, ObjectFactoryBase);
 
   // Register one factory of this type:
-  static void RegisterOneFactory(void)
-  {
-    FITSImageIOFactory::Pointer FITSFactory = FITSImageIOFactory::New();
-    ObjectFactoryBase::RegisterFactory(FITSFactory);
-  }
+  // static void RegisterOneFactory();
 
 protected:
   FITSImageIOFactory();

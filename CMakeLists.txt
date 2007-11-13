@@ -78,24 +78,27 @@ add_executable (fits2itk
 add_library(itkFITSImageIO MODULE
   ${itkFITSImageIO_source_files}
   )
+# add_library(itkFITSImageIO SHARED #d
+#   ${itkFITSImageIO_source_files} #d
+#   ) #d
+
 
 
 # Specify the libaries that are used by our dll:
 target_link_libraries(itkFITSImageIO
-  cfitsio ITKIO ITKCommon da_util libwcs 
+  da_util cfitsio libwcs ITKIO ITKCommon 
   )
 
 
 # Specify the libraries that are used by the fits2itk program...
 target_link_libraries (fits2itk
-   # itkFITSImageIO
-   da_util pathToExecutable ITKIO ITKCommon libwcs
-   )
+  # itkFITSImageIO #d
+  da_util pathToExecutable libwcs ITKIO ITKCommon
+  )
 
 
 # BEGIN building the CFITSIO library, using it's own autoconf-based build
 # system.
-
 
 # Please note that you can only call `set_source_files_properties` once for
 # each soure file.  (If you call it again later, the next call will completely
