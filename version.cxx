@@ -11,7 +11,7 @@
 // See LICENSE.txt for for details.
 //=============================================================================
 
-extern const char fits2itkVersion[] = "Version 0.4dev.12pending.2";
+extern const char fits2itkVersion[] = "Version 0.4dev.12pending.3";
 
 //=============================================================================
 // Change Log
@@ -461,15 +461,21 @@ extern const char fits2itkVersion[] = "Version 0.4dev.12pending.2";
 
 // *** Tue Nov 13, 2007 ***
 
-// Uncommented out stuff that depended only on the FITSImageIO header on not on
-// any of its code.
+// Uncommented out stuff in fits2itk that depended only on the FITSImageIO
+// header and not on any of FITSImageIO's code.
+
+//---------------------------
+// Version 0.4dev.12pending.3
+//---------------------------
+
+// *** Thu Nov 15, 2007 ***
+
+// Moved all of the image manipulating stuff out of fits2itk.cxx
+// into itkFITSImageUtil.{cxx,txx,h}.
 
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
 //----------------------------------------------------------------------
-
-
-// *** Tue Nov 13, 2007 ***
 
 // Working on going through all of the code annotated with "//d" as a first
 // pass at making things sane again.

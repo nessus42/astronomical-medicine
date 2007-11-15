@@ -16,13 +16,6 @@
 #ifndef __itkFITSImageIO_h
 #define __itkFITSImageIO_h
 
-// TODO: Delete the following pragma.  I'm pretty sure that it's not
-// needed, as it's included in itkWin32Header.h:
-
-// #ifdef _MSC_VER
-// #pragma warning ( disable : 4786 )
-// #endif
-
 #include <fstream>
 #include <string>
 #include <assert.h>
@@ -32,28 +25,15 @@
 
 #include <itkFITSWCSTransform.h>
 
-
+// BEGIN
 namespace itk
 {
-
-//   namespace fitsio {
-//     void _calcCoordinateFrame(
-// 	 const std::string& fitsHeader,
-// 	 const long lengthOfAxisInPixels[],
-// 	 double origin[],
-// 	 double spacing[],
-// 	 std::vector<double> directionCosines[],
-// 	 FITSWCSTransform<double, c_dims>::Pointer& transform);
-//   }
-
 
 // URGENT TODO: Fix this attrocity!  Pass the information in the
 // meta-data dictionary, or something, instead.  This won't work right if the
 // program uses more than one FITS Image!
 
 extern void* g_theFITSWCSTransform;
-
-
 
 //*****************************************************************************
 //*****                                                                   *****
@@ -196,6 +176,6 @@ private:
   std::string getFitsHeader();
 };
 
-} // end namespace itk
+} // END namespace itk
 
 #endif // __itkFITSImageIO_h

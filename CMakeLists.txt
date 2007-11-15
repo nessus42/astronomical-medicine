@@ -18,6 +18,7 @@ set (itkFITSImageIO_source_files
 set (fits2itk_source_files
   fits2itk.cxx
   version.cxx #d
+  itkFITSImageUtils.cxx
   itkFITSWCSTransform.cxx #d
   )
 
