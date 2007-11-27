@@ -25,6 +25,8 @@
 
 #include <itkFITSWCSTransform.h>
 
+#include <itkFITSImageIOFactory.h> //d
+
 // BEGIN
 namespace itk
 {
@@ -70,60 +72,60 @@ public:
   itkTypeMacro(FITSImageIO, ImageIOBase);
 
   // Static setter methods:
-  static void SetSuppressWCS(bool flag)
-                 { _cv_suppressWCS = flag; }
-  static void SetDebugLevel(int debugLevel)
-                 { _cv_debugLevel = debugLevel; }
-  static void SetRIPOrientation(bool flag)
-                 { _cv_RIPOrientationFlag = flag; }
-  static void SetRotateSky(double degrees)
-                 { _cv_rotateSky = degrees; }
-  static void SetScaleVelocity(double scalingFactor)
-                 { _cv_scaleVelocity = scalingFactor; }
-  static void SetAutoScaleVelocityAxis(bool flag)
-                 { _cv_autoScaleVelocityAxis = flag; }
-  static void SetScaleVoxelValues(double scalingFactor)
-                 { _cv_scaleVoxelValues = scalingFactor; }
-  static void SetScaleAllAxes(double scalingFactor)
-                 { _cv_scaleAllAxes = scalingFactor; }
-  static void SetScaleDec(double scalingFactor)
-                 { _cv_scaleDec = scalingFactor; }
-  static void SetScaleRA(double scalingFactor)
-                 { _cv_scaleRA = scalingFactor; }
-  static void SetNullValue(double nullValue)
-                 { _cv_nullValue = nullValue; }
-  static void SetSuppressMetaDataDictionary(bool flag)
-                 { _cv_suppressMetaDataDictionary = flag; }
-  static void SetVerbose(bool flag)
-                 { _cv_verbose = flag; }
+  static void deprecated_SetSuppressWCS(bool flag)
+                 { _cv_deprecated_suppressWCS = flag; }
+  static void deprecated_SetDebugLevel(int debugLevel)
+                 { _cv_deprecated_debugLevel = debugLevel; }
+  static void deprecated_SetRIPOrientation(bool flag)
+                 { _cv_deprecated_RIPOrientationFlag = flag; }
+  static void deprecated_SetRotateSky(double degrees)
+                 { _cv_deprecated_rotateSky = degrees; }
+  static void deprecated_SetScaleVelocity(double scalingFactor)
+                 { _cv_deprecated_scaleVelocity = scalingFactor; }
+  static void deprecated_SetAutoScaleVelocityAxis(bool flag)
+                 { _cv_deprecated_autoScaleVelocityAxis = flag; }
+  static void deprecated_SetScaleVoxelValues(double scalingFactor)
+                 { _cv_deprecated_scaleVoxelValues = scalingFactor; }
+  static void deprecated_SetScaleAllAxes(double scalingFactor)
+                 { _cv_deprecated_scaleAllAxes = scalingFactor; }
+  static void deprecated_SetScaleDec(double scalingFactor)
+                 { _cv_deprecated_scaleDec = scalingFactor; }
+  static void deprecated_SetScaleRA(double scalingFactor)
+                 { _cv_deprecated_scaleRA = scalingFactor; }
+  static void deprecated_SetNullValue(double nullValue)
+                 { _cv_deprecated_nullValue = nullValue; }
+  static void deprecated_SetSuppressMetaDataDictionary(bool flag)
+                 { _cv_deprecated_suppressMetaDataDictionary = flag; }
+  static void deprecated_SetVerbose(bool flag)
+                 { _cv_deprecated_verbose = flag; }
 					
   // Static getter methods:
-  static bool   GetSuppressWCS()
-                  { return _cv_suppressWCS; }
-  static int    GetDebugLevel()
-                  { return _cv_debugLevel; }
-  static bool   GetRIPOrientation()
-                  { return _cv_RIPOrientationFlag; }
-  static double GetRotateSky()
-                  { return _cv_rotateSky; }
-  static double GetScaleVelocity()
-                  { return _cv_scaleVelocity; }
-  static bool   GetAutoScaleVelocityAxis()
-                  { return _cv_autoScaleVelocityAxis; }
-  static double GetScaleVoxelValues()
-                  { return _cv_scaleVoxelValues; }
-  static double GetScaleAllAxes()
-                  { return _cv_scaleAllAxes; }
-  static double GetScaleDec()
-                  { return _cv_scaleDec; }
-  static double GetScaleRA()
-                  { return _cv_scaleRA; }
-  static double GetNullValue()
-                  { return _cv_nullValue; }
-  static bool   GetSuppressMetaDataDictionary()
-                  { return _cv_suppressMetaDataDictionary; }
-  static bool   GetVerbose()
-                  { return _cv_verbose; }
+  static bool   deprecated_GetSuppressWCS()
+                  { return _cv_deprecated_suppressWCS; }
+  static int    deprecated_GetDebugLevel()
+                  { return _cv_deprecated_debugLevel; }
+  static bool   deprecated_GetRIPOrientation()
+                  { return _cv_deprecated_RIPOrientationFlag; }
+  static double deprecated_GetRotateSky()
+                  { return _cv_deprecated_rotateSky; }
+  static double deprecated_GetScaleVelocity()
+                  { return _cv_deprecated_scaleVelocity; }
+  static bool   deprecated_GetAutoScaleVelocityAxis()
+                  { return _cv_deprecated_autoScaleVelocityAxis; }
+  static double deprecated_GetScaleVoxelValues()
+                  { return _cv_deprecated_scaleVoxelValues; }
+  static double deprecated_GetScaleAllAxes()
+                  { return _cv_deprecated_scaleAllAxes; }
+  static double deprecated_GetScaleDec()
+                  { return _cv_deprecated_scaleDec; }
+  static double deprecated_GetScaleRA()
+                  { return _cv_deprecated_scaleRA; }
+  static double deprecated_GetNullValue()
+                  { return _cv_deprecated_nullValue; }
+  static bool   deprecated_GetSuppressMetaDataDictionary()
+                  { return _cv_deprecated_suppressMetaDataDictionary; }
+  static bool   deprecated_GetVerbose()
+                  { return _cv_deprecated_verbose; }
 
   // Virtual methods implementing pure virtual methods of ImageIOBase:
   virtual bool CanReadFile(const char* filename);
@@ -137,6 +139,7 @@ protected:
 
   // Constructors, etc:
   FITSImageIO() {};
+  ~FITSImageIO();   //d
 
   // Virtual methods overriding partially implemented methods of ImageIOBase:
   virtual void PrintSelf(std::ostream& os, Indent indent) const;
@@ -152,21 +155,21 @@ private:
 				// when m_fitsFile is closed.
 
   // Private class variables:   // TODO
-  static int    _cv_debugLevel;
-  static bool   _cv_suppressWCS;
-  static double _cv_nullValue;
-  static bool   _cv_RIPOrientationFlag;
-  static double _cv_rotateSky;
-  static double _cv_rollRA;
-  static double _cv_rollDec;
-  static double _cv_scaleVoxelValues;
-  static double _cv_scaleRA;
-  static double _cv_scaleDec;
-  static double _cv_scaleVelocity;
-  static bool   _cv_autoScaleVelocityAxis;
-  static double _cv_scaleAllAxes;
-  static bool   _cv_suppressMetaDataDictionary;
-  static bool	_cv_verbose;
+  static int    _cv_deprecated_debugLevel;
+  static bool   _cv_deprecated_suppressWCS;
+  static double _cv_deprecated_nullValue;
+  static bool   _cv_deprecated_RIPOrientationFlag;
+  static double _cv_deprecated_rotateSky;
+  static double _cv_deprecated_rollRA;
+  static double _cv_deprecated_rollDec;
+  static double _cv_deprecated_scaleVoxelValues;
+  static double _cv_deprecated_scaleRA;
+  static double _cv_deprecated_scaleDec;
+  static double _cv_deprecated_scaleVelocity;
+  static bool   _cv_deprecated_autoScaleVelocityAxis;
+  static double _cv_deprecated_scaleAllAxes;
+  static bool   _cv_deprecated_suppressMetaDataDictionary;
+  static bool	_cv_deprecated_verbose;
 
   // Deactivate object copying:
   FITSImageIO(const Self&);      // Intentionally not implemented.

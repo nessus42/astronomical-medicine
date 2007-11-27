@@ -26,13 +26,24 @@ using std::cerr;
 using std::endl;
 using std::string;
 
-namespace da {
-
-// File-scope variables:
-local string _programName;
+namespace douglasAlan {
 
 //-----------------------------------------------------------------------------
-// runTimeError(): procedure
+// Internal variables
+//-----------------------------------------------------------------------------
+
+// File-scope variables:
+local string f_programName;
+
+
+namespace internal {
+   int debugLevel = 0;
+   int verbosityLevel = 0;
+}
+
+
+//-----------------------------------------------------------------------------
+// runTimeError(): function
 //-----------------------------------------------------------------------------
 
 proc void proc
@@ -46,24 +57,27 @@ runTimeError(const string& message)
 
 
 //-----------------------------------------------------------------------------
-// _internalError(): procedure used by the error() macro
+// internalError(): internal function used by the error() macro
 //-----------------------------------------------------------------------------
 
-proc void 
-_internalError(const string& message, const char* filename,
-	       const int line_number)
-{
-  cerr << endl;
-  if (!programName().empty()) cerr << programName() << ": ";
-  cerr << "FATAL INTERNAL ERROR: " << message << endl
-       << "  File: " << filename << endl
-       << "  Line: " << line_number << endl;
-  abort();
+namespace internal {
+
+  proc void
+  internalError(const string& message, const char* filename,
+		const int line_number)
+  {
+    cerr << endl;
+    if (!programName().empty()) cerr << programName() << ": ";
+    cerr << "FATAL INTERNAL ERROR: " << message << endl
+	 << "  File: " << filename << endl
+	 << "  Line: " << line_number << endl;
+    abort();
+  }
 }
 
 
 //-----------------------------------------------------------------------------
-// heapError(): procedure used by the checkHeap() procedure
+// heapError(): function used by the checkHeap() function
 //-----------------------------------------------------------------------------
 
 proc void 
@@ -77,13 +91,12 @@ heapError()
 
 
 //-----------------------------------------------------------------------------
-// _assertm(): procedure used by the assertm() macro
+// assertm(): internal function used by the assertm() macro
 //-----------------------------------------------------------------------------
 
-// TODO: get rid of the * const's here and in runTimeError()
-
+namespace internal {
 proc void 
-_assertm(const string& expr, const string& message,
+assertm_(const string& expr, const string& message,
 	 const string& filename, const unsigned line_number)
 {
   cerr << endl;
@@ -94,11 +107,11 @@ _assertm(const string& expr, const string& message,
        << "  File: " << filename << endl
        << "  Line: " << line_number << endl;
   abort();
-}
+} }
 
 
 //-----------------------------------------------------------------------------
-// badInvariant(): procedure
+// badInvariant(): function
 //-----------------------------------------------------------------------------
 
 //# daBadInvariant() prints out an error message saying that the rep invariant
@@ -112,7 +125,7 @@ badInvariant()
 
 
 //-----------------------------------------------------------------------------
-// breakpoint(): procedure
+// breakpoint(): function
 //-----------------------------------------------------------------------------
 
 //# breakpoint() is a NOP for compiling in a breakpoint.
@@ -123,34 +136,59 @@ breakpoint()
 
 
 //-----------------------------------------------------------------------------
-// setProgramName(): procedure
+// setProgramName(): function
 //-----------------------------------------------------------------------------
 
 proc void
-setProgramName(const string& progname)
+setProgramName(const string& progName)
 {
-  assertm(_programName.empty(),
+  assertm(f_programName.empty(),
           "setProgramName() must not be invoked more than once");
-  _programName = progname;
+  f_programName = progName;
 }
 
 
 //-----------------------------------------------------------------------------
-// programName(): procedure
+// programName(): function
 //-----------------------------------------------------------------------------
 
 proc string
 programName()
 {
-  if (_programName.empty()) {
-    _programName = ::basename(::pathToExecutable());
+  if (f_programName.empty()) {
+    f_programName = basename(pathToExecutable());
   }
-  return _programName;
+  return f_programName;
+}
+
+//-----------------------------------------------------------------------------
+// setDebugLevel(): function
+//-----------------------------------------------------------------------------
+
+proc void
+setDebugLevel(int debugLevel)
+{
+  assertm(!debugLevel,
+	  "setDebugLevel() must not be be invoked more than once");
+  internal::debugLevel = debugLevel;
 }
 
 
 //-----------------------------------------------------------------------------
-// warning(): procedure
+// setVerbosityLevel(): function
+//-----------------------------------------------------------------------------
+
+proc void
+setVerbosityLevel(int verbosityLevel)
+{
+  assertm(!verbosityLevel,
+	  "setVerbosityLevel() must not be be invoked more than once");
+  internal::verbosityLevel = verbosityLevel;
+}
+
+
+//-----------------------------------------------------------------------------
+// warning(): function
 //-----------------------------------------------------------------------------
 
 proc void
@@ -162,20 +200,20 @@ warning(const string& warningMessage)
 
 
 //-----------------------------------------------------------------------------
-// syscallWarning(): procedure
+// syscallWarning(): function
 //-----------------------------------------------------------------------------
 
 proc void
 syscallWarning(const string& warningMessage)
 {
-  if (!programName().empty()) cerr << programName() << ": ";
+  if (programName().empty()) cerr << programName() << ": ";
   cerr << "WARNING: " << warningMessage << ": ";
   perror("");
 }
 
 
 //-----------------------------------------------------------------------------
-// syscallError(): procedure
+// syscallError(): function
 //-----------------------------------------------------------------------------
 
 proc void
@@ -192,7 +230,7 @@ syscallError(const string& errorMessage)
 
 
 //-----------------------------------------------------------------------------
-// syscallErrorMessage(): procedure
+// syscallErrorMessage(): function
 //-----------------------------------------------------------------------------
 
 proc const char*
@@ -205,7 +243,7 @@ syscallErrorMessage()
 
 
 //-----------------------------------------------------------------------------
-// raiseHeapExhaustedException(): procedure
+// raiseHeapExhaustedException(): function
 //-----------------------------------------------------------------------------
 
 proc void
@@ -214,4 +252,4 @@ raiseHeapExhaustedException()
   error("Heap exhausted!");
 }
 
-} // end namespace da
+} // end namespace douglas_alan

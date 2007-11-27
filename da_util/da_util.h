@@ -27,7 +27,7 @@
 #include <da_usual.h>
 
 
-namespace da {
+namespace douglasAlan {
 
 //-----------------------------------------------------------------------------
 // Global functions
@@ -35,7 +35,7 @@ namespace da {
 
 enum ErrorAction { dieOnError, raiseExceptionOnError, returnCodeOnError};
 
-SuccessFlag
+douglasAlan::SuccessFlag
 copyStream(std::istream& srcStream, std::ostream& destStream,
 	   ErrorAction errorAction=raiseExceptionOnError,
 	   size_t bufferSize=8192)

@@ -42,6 +42,15 @@ using itk::Image;
 #include <itkImageFileReader.h>
 #include <itkImageFileWriter.h>
 
+
+// For showFactoryClasses():    //d
+#include <itkObjectFactoryBase.h>
+using itk::ObjectFactoryBase;
+#include <list>
+using std::list;
+#include <itkFITSImageIOFactory.h>
+using itk::FITSImageIOFactory;
+
 #include <itkFITSImageIO.h>
 using itk::FITSImageIO;
 
@@ -59,7 +68,9 @@ using itk::fits::reorientNorth;
 
 #include <pathToExecutable.h>
 #include <da_util.h>
+
 #include <da_sugar.h>
+using da::setDebugLevel;
 
 extern const char fits2itkVersion[];
 const int c_dims = FITSImageIO::c_dims;
@@ -123,107 +134,84 @@ checkEndptr(const char* endptr)
 }
 
 
-//-----------------------------------------------------------------------------
-// debugPrint(): local macro
-//-----------------------------------------------------------------------------
-
-#define debugPrint(message) \
-   { if (Cl::getDebugLevel()) { \
-        cerr << message << endl; \
-     } \
-   }
-
-
 //=============================================================================
 // CommandLineParser: local class
 //=============================================================================
 
+// BEGIN local namespace
 namespace {
+
   class CommandLineParser {
 
-    // Private class variables:
-    static const char*    _cv_inputFilepath;
-    static const char*    _cv_outputFilepath;
+    // Instance variables:
+    const char*    _inputFilepath;
+    const char*    _outputFilepath;
 
-    static bool           _cv_coerceToShorts;
-    static bool           _cv_coerceToUnsignedShorts;
-    static int		  _cv_debugLevel;
-    static bool		  _cv_dontWrite;
-    static bool		  _cv_flipDecFlag;
-    static bool		  _cv_flipRAFlag;
-    static bool		  _cv_flipVFlag;
-    static bool		  _cv_reorientNorth;
-    static bool		  _cv_transformToEquiangular;
+    bool           _coerceToShorts;
+    bool           _coerceToUnsignedShorts;
+    int		   _debugLevel;
+    bool	   _dontWrite;
+    bool	   _flipDecFlag;
+    bool	   _flipRAFlag;
+    bool	   _flipVFlag;
+    bool	   _reorientNorth;
+    bool	   _transformToEquiangular;
 
-    static bool		  _cv_binomialBlurFlag;
-    static bool           _cv_derivativeImageFilterFlag;
-    static bool           _cv_flipImageFilterFlag;
-    static bool		  _cv_identityFlipFlag;
+    bool	   _binomialBlurFlag;
+    bool           _derivativeImageFilterFlag;
+    bool           _flipImageFilterFlag;
+    bool	   _identityFlipFlag;
 
     // Private non-virtual methods:
-    static void        parseExtendedOption(const char* const option);
-
-    // Deactivate constructor:
-    CommandLineParser();
+    void        parseExtendedOption(const char* const option);
 
   public:
     
-    // Class methods:
-    static void        parseCommandLine(const int argc,
-					const char* const argv[]);
+    // Constructor:
+    CommandLineParser(const int argc, const char* const argv[]);
 
     // Class accessors:
-    static const char* getInputFilepath()  { return _cv_inputFilepath;}
-    static const char* getOutputFilepath() { return _cv_outputFilepath; }
-    static bool        getCoerceToShorts() { return _cv_coerceToShorts; }
-    static bool        getCoerceToUnsignedShorts()
-                          { return _cv_coerceToUnsignedShorts; }
-    static int         getDebugLevel() { return _cv_debugLevel; }
-    static bool	       getDontWrite() { return _cv_dontWrite; }
-    static bool	       getFlipDecFlag() { return _cv_flipDecFlag; }
-    static bool        getFlipRAFlag() { return _cv_flipRAFlag; }
-    static bool	       getFlipVFlag() { return _cv_flipVFlag; }
-    static bool	       getReorientNorth() { return _cv_reorientNorth; }
-    static bool	       getTransformToEquiangular()
-                          { return _cv_transformToEquiangular; }
+    const char* getInputFilepath()  { return _inputFilepath;}
+    const char* getOutputFilepath() { return _outputFilepath; }
+    bool        getCoerceToShorts() { return _coerceToShorts; }
+    bool        getCoerceToUnsignedShorts()
+                          { return _coerceToUnsignedShorts; }
+    int         getDebugLevel() { return _debugLevel; }
+    bool	getDontWrite() { return _dontWrite; }
+    bool	getFlipDecFlag() { return _flipDecFlag; }
+    bool        getFlipRAFlag() { return _flipRAFlag; }
+    bool	getFlipVFlag() { return _flipVFlag; }
+    bool	getReorientNorth() { return _reorientNorth; }
+    bool	getTransformToEquiangular()
+                          { return _transformToEquiangular; }
 
-    static bool	       getBinomialBlurFlag()
-                          { return _cv_binomialBlurFlag; }
-    static bool        getDerivativeImageFilterFlag()
-                          { return _cv_derivativeImageFilterFlag; }
-    static bool        getFlipImageFilterFlag()
-                          { return _cv_flipImageFilterFlag; }
-    static bool	       getIdentityFlipFlag() { return _cv_identityFlipFlag; }
+    bool	getBinomialBlurFlag()
+                          { return _binomialBlurFlag; }
+    bool        getDerivativeImageFilterFlag()
+                          { return _derivativeImageFilterFlag; }
+    bool        getFlipImageFilterFlag()
+                          { return _flipImageFilterFlag; }
+    bool	getIdentityFlipFlag() { return _identityFlipFlag; }
   };
 
-  const char* CommandLineParser::_cv_inputFilepath = 0;
-  const char* CommandLineParser::_cv_outputFilepath = 0;
-  bool	      CommandLineParser::_cv_coerceToShorts = false;
-  bool        CommandLineParser::_cv_coerceToUnsignedShorts = false;
-  int  	      CommandLineParser::_cv_debugLevel = 0;
-  bool	      CommandLineParser::_cv_dontWrite = false;
-  bool	      CommandLineParser::_cv_flipDecFlag = false;
-  bool	      CommandLineParser::_cv_flipRAFlag = false;
-  bool	      CommandLineParser::_cv_flipVFlag = false;
-  bool	      CommandLineParser::_cv_reorientNorth = false;
-  bool	      CommandLineParser::_cv_transformToEquiangular = false;
 
-  bool	      CommandLineParser::_cv_binomialBlurFlag = false;
-  bool        CommandLineParser::_cv_derivativeImageFilterFlag = false;
-  bool        CommandLineParser::_cv_flipImageFilterFlag = false;
-  bool	      CommandLineParser::_cv_identityFlipFlag = false;
-
-  typedef     CommandLineParser  Cl;
-
-} // namespace
-
-
-//-----------------------------------------------------------------------------
-// parseCommandLine(): class method
-//-----------------------------------------------------------------------------
-
-method void CommandLineParser::
-parseCommandLine(const int argc, const char* const argv[])
+ctor
+CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
+  : _inputFilepath(0),
+    _outputFilepath(0),
+    _coerceToShorts(false),
+    _coerceToUnsignedShorts(false),
+    _debugLevel(0),
+    _dontWrite(false),
+    _flipDecFlag(false),
+    _flipRAFlag(false),
+    _flipVFlag(false),
+    _reorientNorth(false),
+    _transformToEquiangular(false),
+    _binomialBlurFlag(false),
+    _derivativeImageFilterFlag(false),
+    _flipImageFilterFlag(false),
+    _identityFlipFlag(false)
 {
   opterr = true;
   char* endptr;
@@ -245,7 +233,7 @@ parseCommandLine(const int argc, const char* const argv[])
   int verboseFlag = false;
 
   // Specify the allowed options:
-  const char shortopts[] = "Aa:D:fhnN:o:Rr:Ss:Uv:";
+  const char shortopts[] = "a:D:fhnN:o:Rr:Ss:Uv:";
 
   struct option longopts[] = {
     { "equiangular", no_argument, &equiangularFlag, true },
@@ -275,24 +263,15 @@ parseCommandLine(const int argc, const char* const argv[])
     {
       switch (optionChar) {
 
-      case 'A':
-	//d FITSImageIO::SetAutoScaleVelocityAxis(true);
-	break;
-
       case 'a':
+	// XXX: You need to figure out a new way to scale all axes.
+
 	//d FITSImageIO::SetScaleAllAxes(strtod(optarg, &endptr));
 	::checkEndptr(endptr);
 	break;
 
-// 	// TODO: Implement this
-//       case 'd':
-// 	// FITSImageIO::SetScaleDec(strtod(optarg, &endptr));
-// 	// ::checkEndptr(endptr);
-// 	break;
-
       case 'D':
-	_cv_debugLevel = strtol(optarg, null, cBase10);
-	//d FITSImageIO::SetDebugLevel(_cv_debugLevel);
+	setDebugLevel(strtol(optarg, null, cBase10));
 	break;
 
       case 'h': usage(false);
@@ -303,11 +282,11 @@ parseCommandLine(const int argc, const char* const argv[])
 	break;
 
       case 'n':
-	_cv_dontWrite = true;
+	_dontWrite = true;
 	break;
 
       case 'o':
-	Cl::parseExtendedOption(optarg);
+	this->parseExtendedOption(optarg);
 	break;
 
       case 'r':
@@ -316,7 +295,7 @@ parseCommandLine(const int argc, const char* const argv[])
 	break;
 
       case 'S':
-        _cv_coerceToShorts = true;
+        _coerceToShorts = true;
         break;
 
       case 's':
@@ -325,7 +304,7 @@ parseCommandLine(const int argc, const char* const argv[])
         break;
 
       case 'U':
-        _cv_coerceToUnsignedShorts = true;
+        _coerceToUnsignedShorts = true;
         break;
 
       case 'v':
@@ -353,22 +332,22 @@ parseCommandLine(const int argc, const char* const argv[])
 	  verboseUsage();
 	} else if (equiangularFlag) {
 	  equiangularFlag =  false;
-	  _cv_transformToEquiangular = true;
+	  _transformToEquiangular = true;
 	} else if (flipDecFlag) {
 	  flipDecFlag = false;
-	  _cv_flipDecFlag = true;
+	  _flipDecFlag = true;
 	} else if (flipRAFlag) {
 	  flipRAFlag = false;
-	  _cv_flipRAFlag = true;
+	  _flipRAFlag = true;
 	} else if (flipVFlag) {
 	  flipVFlag = false;
-	  _cv_flipVFlag = true;
+	  _flipVFlag = true;
 	} else if (noWcsFlag) {
 	  noWcsFlag = false;
 	  //d FITSImageIO::SetSuppressWCS(true);
 	} else if (reorientNorthFlag) {
 	  reorientNorthFlag = false;
-	  _cv_reorientNorth = true;
+	  _reorientNorth = true;
 	} else if (ripOrientationFlag) {
 	  ripOrientationFlag = false;
 	  //d FITSImageIO::SetRIPOrientation(true);
@@ -402,13 +381,13 @@ parseCommandLine(const int argc, const char* const argv[])
     } // while
 
   // Parse the command line positional arguments:
-  if (_cv_dontWrite) {
+  if (_dontWrite) {
     if (argc - ::optind != 1) usage();
   } else {
     if (argc - ::optind != 2) usage();
-    _cv_outputFilepath = argv[::optind + 1];
+    _outputFilepath = argv[::optind + 1];
   }
-  _cv_inputFilepath = argv[::optind];
+  _inputFilepath = argv[::optind];
 
   // Do some sanity checking to make sure that the options specified are
   // consistent with each other:
@@ -419,8 +398,7 @@ parseCommandLine(const int argc, const char* const argv[])
 //d 		  "     is suppressed.");
 //d     }
 }
-
-
+  
 //-----------------------------------------------------------------------------
 // parseExtendedOption(): private non-virtual method
 //-----------------------------------------------------------------------------
@@ -434,17 +412,20 @@ parseExtendedOption(const char* const option)
   debugPrint("extendedOption=" << option);
   string optionStr = option;
   if (optionStr == "derivativeImageFilter") {
-    _cv_derivativeImageFilterFlag = true;
+    _derivativeImageFilterFlag = true;
   } else if (optionStr == "flipImageFilter") {
-    _cv_flipImageFilterFlag = true;
+    _flipImageFilterFlag = true;
   } else if (optionStr == "binomialBlur") {
-    _cv_binomialBlurFlag = true;
+    _binomialBlurFlag = true;
   } else if (optionStr == "suppressMetaDataDictionary") {
     //d FITSImageIO::SetSuppressMetaDataDictionary(true);
   } else if (optionStr == "identityFlip") {
-    _cv_identityFlipFlag = true;
+    _identityFlipFlag = true;
   } else usage();
 }
+
+
+} // END local namespace
 
 
 //=============================================================================
@@ -452,64 +433,99 @@ parseExtendedOption(const char* const option)
 //=============================================================================
 
 //-----------------------------------------------------------------------------
+// showFactoryClasses(): local function
+//-----------------------------------------------------------------------------
+
+proc void
+showFactoryClasses()
+{
+  cout << "Registered ITK factory classes: ";
+  typedef list<ObjectFactoryBase*> List;
+  typedef List::iterator Iter;
+  List factories = ObjectFactoryBase::GetRegisteredFactories();
+  for (Iter factoryIter = factories.begin();
+       factoryIter != factories.end();
+       ++factoryIter)
+    {
+//       if (dynamic_cast<FITSImageIOFactory*>(*factoryIter)) {
+// 	cout << " YAAAAAAAAAAAAY!!!!!!!!!!!!!!!!! ";
+//       }
+      const char* const nameOfClass = (*factoryIter)->GetNameOfClass();
+      if (strcmp(nameOfClass, "FITSImageIOFactory") == 0) {
+	cout << " YAAAAAAY!!!! ";
+	const FITSImageIOFactory* factory =
+	  (const FITSImageIOFactory*) *factoryIter;
+	factory->SetTestValue(10);
+	factory->GetTestValue();
+      } else {
+	cout << nameOfClass << " ";
+      }
+    }
+  cout << endl;
+  cout << "Test Value1=" << FITSImageIOFactory::_cv_testValue << endl;
+}
+
+
+//-----------------------------------------------------------------------------
 // convertInputFileToItkFile(): local template function
 //-----------------------------------------------------------------------------
 
 template <class PixelType>
 local proc int
-convertInputFileToItkFile(const char* const inputFilepath,
-			  const char* const outputFilepath)
+convertInputFileToItkFile(CommandLineParser& cl)
 {
   typedef itk::Image<PixelType, c_dims> ImageType;
   typedef itk::ImageFileReader<ImageType> ReaderType;
 
   typename ReaderType::Pointer reader = ReaderType::New();
-  reader->SetFileName(inputFilepath);
+  showFactoryClasses(); //d
+  reader->SetFileName(cl.getInputFilepath());
   typename ImageType::Pointer image = reader->GetOutput();
-  if (Cl::getFlipImageFilterFlag()) {
+  if (cl.getFlipImageFilterFlag()) {
     image = applyFlipImageFilter<PixelType>(image);
   }
-  if (Cl::getBinomialBlurFlag()) {
+  if (cl.getBinomialBlurFlag()) {
     image = applyBinomialBlurFilter<PixelType>(image);
   }
-  if (Cl::getIdentityFlipFlag()) {
+  if (cl.getIdentityFlipFlag()) {
     image = applyFlipImageFilter<PixelType>(image);
     image = applyFlipImageFilter<PixelType>(image);
   }
   reflectPixels<PixelType>(*image,
-			     Cl::getFlipRAFlag(),
-			     Cl::getFlipDecFlag(),
-			     Cl::getFlipVFlag());
+			     cl.getFlipRAFlag(),
+			     cl.getFlipDecFlag(),
+			     cl.getFlipVFlag());
 
 
-  if (Cl::getReorientNorth() or Cl::getTransformToEquiangular()) {
+  if (cl.getReorientNorth() or cl.getTransformToEquiangular()) {
     // TODO: Figure out how to do this without reading in the entire image.
     reader->Update();
     initializeChangeOfBasis(*image);
 
-    if (Cl::getTransformToEquiangular()) {
-      if (Cl::getReorientNorth()) {
+    if (cl.getTransformToEquiangular()) {
+      if (cl.getReorientNorth()) {
 	transformToNorthOrientedEquiangular(*image);
       } else {
 	transformToUnreorientedEquiangular(*image);
       }
-    } else if (Cl::getReorientNorth()) {
+    } else if (cl.getReorientNorth()) {
       reorientNorth(*image);
     }
   }
 
-  if (outputFilepath) {
+  if (cl.getOutputFilepath()) {
     typedef itk::ImageFileWriter<ImageType> WriterType;
     typename WriterType::Pointer writer = WriterType::New();
     writer->SetInput(image);
-    writer->SetFileName(outputFilepath);
+    writer->SetFileName(cl.getOutputFilepath());
     writer->Update();
   } else {
     reader->Update();
   }
 
   //d if (FITSImageIO::GetVerbose()) ::writeImageInfo(*image, cout);
-  
+
+  showFactoryClasses(); //d
   return EXIT_SUCCESS;
 
   // Note: The above call to writer->Update() might raise an execption.  If we
@@ -557,7 +573,8 @@ main(const int argc, const char* const argv[])
     setenv("ITK_AUTOLOAD_PATH", newAutoloadPath.c_str(), true);
   }
 
-  Cl::parseCommandLine(argc, argv);
+  CommandLineParser cl(argc, argv);
+  da::setDebugLevel(cl.getDebugLevel());
 
   // This is how we used to register FITSImageIOFactory, before we changed to
   //dynamic loading:
@@ -566,18 +583,12 @@ main(const int argc, const char* const argv[])
 
   int status = -666;   // If the following code is correct, this value will
                        // always get overwritten.
-  if (Cl::getCoerceToShorts()) {
-    status = convertInputFileToItkFile<short>(
-	        Cl::getInputFilepath(),
-	        Cl::getOutputFilepath());
-  } else if (Cl::getCoerceToUnsignedShorts()) {
-    status = convertInputFileToItkFile<unsigned short>(
-	        Cl::getInputFilepath(),
-		Cl::getOutputFilepath());
+  if (cl.getCoerceToShorts()) {
+    status = convertInputFileToItkFile<short>(cl);
+  } else if (cl.getCoerceToUnsignedShorts()) {
+    status = convertInputFileToItkFile<unsigned short>(cl);
   } else {
-    status = convertInputFileToItkFile<float>(
-                Cl::getInputFilepath(),
-		Cl::getOutputFilepath());
+    status = convertInputFileToItkFile<float>(cl);
   }
   return status;
 

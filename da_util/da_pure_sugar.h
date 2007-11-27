@@ -27,9 +27,12 @@
 //# Aliases I use in my .cxx files to make my code prettier:
 
 #define assertm         daAssertm
+#define debugPrint      daDebugPrint
 #define error           daError
 #define ifDebug         daIfDebug
 #define superDebug      daSuperDebug
+
+namespace da = douglasAlan;
 
 using da::checkHeap;
 using da::runTimeError;

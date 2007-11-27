@@ -11,7 +11,7 @@
 // See LICENSE.txt for for details.
 //=============================================================================
 
-extern const char fits2itkVersion[] = "Version 0.4dev.12pending.3";
+extern const char fits2itkVersion[] = "Version 0.4dev.12pending.4";
 
 //=============================================================================
 // Change Log
@@ -473,9 +473,25 @@ extern const char fits2itkVersion[] = "Version 0.4dev.12pending.3";
 // Moved all of the image manipulating stuff out of fits2itk.cxx
 // into itkFITSImageUtil.{cxx,txx,h}.
 
+//---------------------------
+// Version 0.4dev.12pending.4
+//---------------------------
+
+// *** Tue Nov 27, 2007 ***
+
+// This version is a check in of what I had done before trying the following
+// experiment:
+
+// I want to see if I can load FITSImageIO in main() and then also have it
+// later loaded automatically by ITK's ObjectFactoryBase.  In theory, both
+// dlopen's should get the same version of FITSImageIO, and they should share
+// the same static state.  I guess we shall see.
+
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
 //----------------------------------------------------------------------
 
 // Working on going through all of the code annotated with "//d" as a first
 // pass at making things sane again.
+
+// To see the options that are going to be in the next version, see NOTES.txt.

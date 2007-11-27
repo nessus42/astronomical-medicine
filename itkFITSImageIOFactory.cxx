@@ -13,19 +13,15 @@
 // See LICENSE.txt for for details.
 //=============================================================================
 
-#include "itkFITSImageIOFactory.h"
-#include "itkCreateObjectFunction.h"
-#include "itkFITSImageIO.h"
-#include "itkVersion.h"
-#include "da_usual.h"
+#include <itkFITSImageIOFactory.h>
+#include <itkCreateObjectFunction.h>
+#include <itkFITSImageIO.h>
+#include <itkVersion.h>
+#include <da_usual.h>
 
-#include <iostream> //d
-using std::cerr;    //d 
-using std::endl;    //d  
-
-/*BEGIN*/ namespace itk
+// BEGIN
+namespace itk
 {
-
 
 /*ctor*/
 FITSImageIOFactory::FITSImageIOFactory()

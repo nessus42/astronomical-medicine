@@ -20,6 +20,10 @@ set (fits2itk_source_files
   version.cxx #d
   itkFITSImageUtils.cxx
   itkFITSWCSTransform.cxx #d
+
+  # Used by showFactoryClasses():   #d
+  # itkFITSImageIO.cxx
+  # itkFITSImageIOFactory.cxx
   )
 
 
@@ -93,8 +97,10 @@ target_link_libraries(itkFITSImageIO
 
 # Specify the libraries that are used by the fits2itk program...
 target_link_libraries (fits2itk
-  # itkFITSImageIO #d
   da_util pathToExecutable libwcs ITKIO ITKCommon
+
+  # Used by showFactoryClasses():   #d
+  # cfitsio
   )
 
 

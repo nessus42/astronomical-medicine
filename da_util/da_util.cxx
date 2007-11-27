@@ -38,7 +38,22 @@ using std::string;
 #include <da_util.h>
 #include <da_sugar.h>
 
-namespace da {
+// For showFactoryClasses() //d
+#include <itkFITSImageIOFactory.h>
+int itk::FITSImageIOFactory::_cv_testValue = 0; //d
+void //d
+itk::FITSImageIOFactory::SetTestValue(int value)
+{ _cv_testValue = value; } //d
+
+int //d
+itk::FITSImageIOFactory::GetTestValue()
+{ return _cv_testValue; } //d
+
+
+
+
+
+namespace douglasAlan {
 
 
 ctor
@@ -93,7 +108,7 @@ copyStream(istream& srcStream, ostream& destStream,
 	  string errorMessage =
 	    "Exception while copying help file to terminal: ";
 	  errorMessage += e.what();
-	  da::syscallError(errorMessage);
+	  syscallError(errorMessage);
 	}
       case raiseExceptionOnError: throw;
       case returnCodeOnError: break;
@@ -120,7 +135,7 @@ openFileForReading(const char* const filepath,
     errorMessage += "\" for reading";
     switch (errorAction) {
     case dieOnError:
-      da::syscallError(errorMessage);
+      syscallError(errorMessage);
     case raiseExceptionOnError:
       const char* syserror = syscallErrorMessage();
       if (syserror) {
@@ -149,7 +164,7 @@ openFileForWriting(const char* const filepath,
     errorMessage += "\" for writing";
     switch (errorAction) {
     case dieOnError:
-      da::syscallError(errorMessage);
+      syscallError(errorMessage);
     case raiseExceptionOnError:
       const char* syserror = syscallErrorMessage();
       if (syserror) {
