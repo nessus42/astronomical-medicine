@@ -14,34 +14,66 @@
 #define DA_USUAL_H
 
 #include <assert.h>
+#include <iostream>
 #include <string>
 
-namespace da {
+// BEGIN
+namespace douglasAlan {
+
+//=============================================================================
+// Global constants
+//=============================================================================
 
 enum SuccessFlag { succeeded, failed };
 
-// Global procedures:
 
-void            runTimeError(const std::string& message);
-void            _internalError(const std::string& message,
-			       const char* filename,
-			       int line_number);
-void            _assertm(const std::string&, const std::string&,
-			 const std::string&, unsigned);
+//=============================================================================
+// Global functions
+//=============================================================================
+
+// Global functions:
 void            breakpoint();
+void            runTimeError(const std::string& message);
 void            heapError();
+std::string     programName();
 void            raiseHeapExhaustedException();
-void            setProgramName(const std::string& progname);
+void		setDebugLevel(int debugLevel);
+void		setVerbosityLevel(int verbosityLevel);
 void            syscallWarning(const std::string& warningMessage);
 void            syscallError(const std::string& errorMessage);
 const char*     syscallErrorMessage();
-std::string     programName();
 void            warning(const std::string& warning);
 
 
 //-----------------------------------------------------------------------------
-// Freer: concrete data type
+// Internal functions
 //-----------------------------------------------------------------------------
+
+namespace internal {
+
+  void          internalError(const std::string& message,
+			      const char* filename,
+			      int line_number);
+  void          assertm_(const std::string&, const std::string&,
+			 const std::string&, unsigned);
+}
+
+
+//-----------------------------------------------------------------------------
+// Internal variables
+//-----------------------------------------------------------------------------
+
+namespace internal {
+
+  extern int debugLevel;
+  extern int verbosityLevel;
+
+}
+
+
+//=============================================================================
+// Freer: concrete data type
+//=============================================================================
 
 //! Frees a malloced object via RAII.
 
@@ -59,19 +91,62 @@ public:
 };
 
 
-//-----------------------------------------------------------------------------
-// nop(): global inline procedure
-//-----------------------------------------------------------------------------
+//=============================================================================
+// nop(): inline function
+//=============================================================================
 
 //# nop() does absolutely nothing.
 
-inline void
+/*proc*/ inline void
 nop()
 {}
 
-//-----------------------------------------------------------------------------
+
+//=============================================================================
+// getDebugLevel(): inline function
+//=============================================================================
+
+/*proc*/ inline int
+getDebugLevel()
+{
+  return internal::debugLevel;
+}
+
+
+//=============================================================================
+// getDebugLevel(): inline function
+//=============================================================================
+
+/*proc*/ inline int
+getVerbosityLevel()
+{
+  return internal::verbosityLevel;
+}
+
+
+//=============================================================================
+// debugPrint(): macro
+//=============================================================================
+
+#define daDebugPrint(message) \
+   { if (douglasAlan::internal::debugLevel) \
+        std::cerr << message << std::endl; }
+
+//=============================================================================
+// printIfVerbose(): local macro
+//=============================================================================
+
+
+#define daPrintIfVerbose(message) \
+   { if (douglasAlan::internal::verbosityLevel) { \
+        std::cout << message << '\n'; \
+     } \
+   }
+
+
+//=============================================================================
 // DA_NDEBUG: macro
-//-----------------------------------------------------------------------------
+//=============================================================================
 
 //# If NDEBUG is defined, then we define DA_NDEBUG to be true, otherwise
 //# we define DA_NDEBUG to be false.
@@ -83,9 +158,9 @@ nop()
 #endif // NDEBUG
 
 
-//-----------------------------------------------------------------------------
+//=============================================================================
 // daIfDebug(): macro
-//-----------------------------------------------------------------------------
+//=============================================================================
 
 //# This macro only evaluates the argument if NDEBUG is not defined.
 
@@ -97,9 +172,9 @@ nop()
 #endif // NDEBUG
 
 
-//-----------------------------------------------------------------------------
+//=============================================================================
 // daSuperDebug(): macro
-//-----------------------------------------------------------------------------
+//=============================================================================
 
 //# This macro only evaluates the argument if SUPER_DEBUG is defined.
 
@@ -111,11 +186,11 @@ nop()
 #endif // SUPER_DEBUG
 
 
-//-----------------------------------------------------------------------------
-// daCheckHeap(): global inline template procedure
-//-----------------------------------------------------------------------------
+//=============================================================================
+// daCheckHeap(): inline template function
+//=============================================================================
 
-//# This template procedure is kind of like the 'assert' macro, except that the
+//# This template function is kind of like the 'assert' macro, except that the
 //# argument is always evaluated, the result of evaluating the argument is
 //# returned, and if the result of evaluating the argument is false, then
 //# the error message that is output indicates that the heap is exhausted.
@@ -128,9 +203,9 @@ checkHeap(T arg)
 }
 
 
-//-----------------------------------------------------------------------------
+//=============================================================================
 // daAssertm(): macro
-//-----------------------------------------------------------------------------
+//=============================================================================
 
 //# daAssertm() is just like the 'assert' macro, except that it takes an extra
 //# argument, which is an error message to output if the assertion fails.
@@ -139,36 +214,41 @@ checkHeap(T arg)
 #   define daAssertm(ignore1, ignore2)
 #else
 #   define daAssertm(expr, message) \
-        if (expr); else da::_assertm(#expr, message, __FILE__, __LINE__)
+        if (expr); else douglasAlan::internal::assertm_(#expr, message, \
+					                __FILE__, __LINE__)
 #endif // NDEBUG
 
 
-//-----------------------------------------------------------------------------
+//=============================================================================
 // daError(): macro
-//-----------------------------------------------------------------------------
+//=============================================================================
 
 //# daError() generates a fatal error, writing the string 'message' to 'cerr'
 //# to let the user have some idea of what went wrong.
 
 #define daError(message) \
-        da::_internalError(message, __FILE__, __LINE__)
+        douglasAlan::internal::internalError(message, __FILE__, __LINE__)
 
 
-//-----------------------------------------------------------------------------
+//=============================================================================
 // daCheckSyscall(): macro
-//-----------------------------------------------------------------------------
+//=============================================================================
 
 #define daCheckSyscall(expr, warningMessage) \
-   if ((expr) != succeeded) da::syscallWarning(warningMessage); else da::nop()
+   if ((expr) != succeeded) { \
+       douglasAlan::syscallWarning(warningMessage) \
+       } else douglasAlan::nop()
 
-//-----------------------------------------------------------------------------
+
+//=============================================================================
 // daCheckSyscallE(): macro
-//-----------------------------------------------------------------------------
+//=============================================================================
 
 #define daCheckSyscallE(expr, errorMessage) \
-   if ((expr) != succeeded) da::syscallError(errorMessage); else da::nop()
+   if ((expr) != succeeded) douglasAlan::syscallError(errorMessage); \
+   else douglasAlan::nop()
 
 
-} // end namespace da
+} // END namespace douglasAlan
 
 #endif // DA_USUAL_H

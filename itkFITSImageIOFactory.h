@@ -13,11 +13,11 @@
 // See LICENSE.txt for for details.
 //=============================================================================
 
-#ifndef __itkFITSImageIOFactory_h
-#define __itkFITSImageIOFactory_h
+#ifndef _itkFITSImageIOFactory_h
+#define _itkFITSImageIOFactory_h
 
-#include "itkObjectFactoryBase.h"
-#include "itkImageIOBase.h"
+#include <itkObjectFactoryBase.h>
+#include <itkImageIOBase.h>
 
 namespace itk
 {
@@ -46,6 +46,11 @@ public:
 
   // Register one factory of this type:
   // static void RegisterOneFactory();
+
+  // These methods are only here for testing: //d
+  static int _cv_testValue ; //d
+  static void SetTestValue(int value); //d
+  static int GetTestValue(); //d
 
 protected:
   FITSImageIOFactory();

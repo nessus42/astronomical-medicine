@@ -24,6 +24,7 @@
 #include <wcs.h>
 
 #include <itkFITSImageIO.h>
+#include <itkFITSImageIOFactory.h> //d For showFactoryClasses()
 #include <grparser.h> // for FITS NGP_MAX_ARRAY_DIM
 
 #include <da_sugar.h>
@@ -57,28 +58,6 @@ const size_t c_k    = itk::FITSImageIO::c_k;
 //*****************************************************************************
 //*****              Local procedures and classes                         *****
 //*****************************************************************************
-
-//-----------------------------------------------------------------------------
-// debugPrint(): local macro
-//-----------------------------------------------------------------------------
-
-#define debugPrint(message) \
-   { if (FITSImageIO::GetDebugLevel()) { \
-        cerr << message << endl; \
-     } \
-   }
-
-
-//-----------------------------------------------------------------------------
-// printIfVerbose(): local macro
-//-----------------------------------------------------------------------------
-
-#define printIfVerbose(message) \
-   { if (FITSImageIO::GetVerbose()) { \
-        cout << message << '\n'; \
-     } \
-   }
-
 
 //-----------------------------------------------------------------------------
 // max(): local template proc
@@ -340,28 +319,36 @@ applyScaleToAllAxes(vector<double> changeOfBasisMatrix[c_dims],
 
 namespace itk {
 
+dtor //d
+FITSImageIO::~FITSImageIO()  //d
+{ //d
+  std::cerr << "FOO:" << FITSImageIOFactory::GetTestValue() << std::endl; //d
+} //d
+
+
 //-----------------------------------------------------------------------------
 // Private class variables
 //-----------------------------------------------------------------------------
 
-int FITSImageIO::_cv_debugLevel = 0;
-double FITSImageIO::_cv_nullValue = 0.0; // The default of 0.0 causes NaN's
+int FITSImageIO::_cv_deprecated_debugLevel = 0;
+double FITSImageIO::_cv_deprecated_nullValue = 0.0;
+                                         // The default of 0.0 causes NaN's
                                          // to be left as NaN's, rather than
                                          // converted to 0.0, as one would
                                          // naively expect.
-bool   FITSImageIO::_cv_suppressWCS = false;
-bool   FITSImageIO::_cv_RIPOrientationFlag = false;
-double FITSImageIO::_cv_rotateSky = 0;     
-double FITSImageIO::_cv_rollRA = 0;
-double FITSImageIO::_cv_rollDec = 0;
-double FITSImageIO::_cv_scaleVoxelValues = 1;
-double FITSImageIO::_cv_scaleRA = 1;
-double FITSImageIO::_cv_scaleDec = 1;
-bool   FITSImageIO::_cv_autoScaleVelocityAxis = false;
-double FITSImageIO::_cv_scaleVelocity = 1;
-double FITSImageIO::_cv_scaleAllAxes = 1;
-bool   FITSImageIO::_cv_suppressMetaDataDictionary = false;
-bool   FITSImageIO::_cv_verbose = false;
+bool   FITSImageIO::_cv_deprecated_suppressWCS = false;
+bool   FITSImageIO::_cv_deprecated_RIPOrientationFlag = false;
+double FITSImageIO::_cv_deprecated_rotateSky = 0;     
+double FITSImageIO::_cv_deprecated_rollRA = 0;
+double FITSImageIO::_cv_deprecated_rollDec = 0;
+double FITSImageIO::_cv_deprecated_scaleVoxelValues = 1;
+double FITSImageIO::_cv_deprecated_scaleRA = 1;
+double FITSImageIO::_cv_deprecated_scaleDec = 1;
+bool   FITSImageIO::_cv_deprecated_autoScaleVelocityAxis = false;
+double FITSImageIO::_cv_deprecated_scaleVelocity = 1;
+double FITSImageIO::_cv_deprecated_scaleAllAxes = 1;
+bool   FITSImageIO::_cv_deprecated_suppressMetaDataDictionary = false;
+bool   FITSImageIO::_cv_deprecated_verbose = false;
 
 
 //=============================================================================
@@ -453,15 +440,16 @@ FITSImageIO::CanWriteFile(const char* const name)
 
 
 //-----------------------------------------------------------------------------
-// calcWCSCoordinateFrame(): local proc
+// deprecated_calcWCSCoordinateFrame(): local proc
 //-----------------------------------------------------------------------------
 
 local void 
-calcWCSCoordinateFrame(const string& fitsHeader,
-		       const long lengthsOfAxesInPixels[],
-		       double origin[],
-		       vector<double> changeOfBasisMatrix[],
-		       FITSWCSTransform<double, c_dims>::Pointer& transform)
+deprecated_calcWCSCoordinateFrame(
+     const string& fitsHeader,
+     const long lengthsOfAxesInPixels[],
+     double origin[],
+     vector<double> changeOfBasisMatrix[],
+     FITSWCSTransform<double, c_dims>::Pointer& transform)
 {
   WorldCoor* wcs = wcsinit(fitsHeader.c_str());
   const ConstRcMallocPointer<WorldCoor> wcsRcPtr = wcs;
@@ -482,7 +470,7 @@ calcWCSCoordinateFrame(const string& fitsHeader,
   debugPrint("LR: RA=" << lowerRightRA << ' ' << "Dec=" << lowerRightDec);
 
   // If we are in debug output mode, then test out the FITSWCSTransform object:
-  if (FITSImageIO::GetDebugLevel()) {
+  if (FITSImageIO::deprecated_GetDebugLevel()) {
     WCSTransform::Pointer inverseTransform = WCSTransform::New();
     transform->GetInverse(inverseTransform);
     WCSTransform::InputPointType ijkPoint;
@@ -576,7 +564,7 @@ calcWCSCoordinateFrame(const string& fitsHeader,
 
   double velocityPerK;
 
-  if (FITSImageIO::GetAutoScaleVelocityAxis()) {
+  if (FITSImageIO::deprecated_GetAutoScaleVelocityAxis()) {
 
     // Calculate length of each side of the sky rectangle in RA/Dec
     // coordinates:
@@ -630,16 +618,17 @@ calcWCSCoordinateFrame(const string& fitsHeader,
 
 
 //-----------------------------------------------------------------------------
-// calcCoordinateFrame(): local proc
+// deprecated_calcCoordinateFrame(): local proc
 //-----------------------------------------------------------------------------
 
 local void
-calcCoordinateFrame(const string& fitsHeader,
-		    const long lengthsOfAxesInPixels[],
-		    double origin[],
-		    double spacing[],
-		    vector<double> directionCosines[],
-		    FITSWCSTransform<double, c_dims>::Pointer& transform)
+deprecated_calcCoordinateFrame(
+     const string& fitsHeader,
+     const long lengthsOfAxesInPixels[],
+     double origin[],
+     double spacing[],
+     vector<double> directionCosines[],
+     FITSWCSTransform<double, c_dims>::Pointer& transform)
 {
   // Initialize the origin to be (0, 0, 0).  It will remain so only in the
   // default case:
@@ -655,7 +644,7 @@ calcCoordinateFrame(const string& fitsHeader,
   for (int axis = 0; axis < c_dims; ++axis) {
     changeOfBasisMatrix[axis].resize(c_dims);
   }
-  if (FITSImageIO::GetRIPOrientation()) {
+  if (FITSImageIO::deprecated_GetRIPOrientation()) {
     changeOfBasisMatrix[c_ra ][c_i] = 1;
     changeOfBasisMatrix[c_dec][c_j] = 1;
     changeOfBasisMatrix[c_vel][c_k] = -1;
@@ -665,12 +654,13 @@ calcCoordinateFrame(const string& fitsHeader,
     changeOfBasisMatrix[c_vel][c_k] = 1;
   }
 
-  if (!FITSImageIO::GetSuppressWCS()) {
-    calcWCSCoordinateFrame(fitsHeader, lengthsOfAxesInPixels, origin,
-			   changeOfBasisMatrix, transform);
+  if (!FITSImageIO::deprecated_GetSuppressWCS()) {
+    deprecated_calcWCSCoordinateFrame(
+       fitsHeader, lengthsOfAxesInPixels,
+       origin,changeOfBasisMatrix, transform);
   }
 
-  if (FITSImageIO::GetDebugLevel()) {
+  if (FITSImageIO::deprecated_GetDebugLevel()) {
     cerr << "Change-of-basis matrix:\n";
     for (int row = 0; row < c_dims; ++row) {
       for (int col = 0; col < c_dims; ++col) {
@@ -680,11 +670,15 @@ calcCoordinateFrame(const string& fitsHeader,
     }
   }
 
-  applySkyRotation(changeOfBasisMatrix, FITSImageIO::GetRotateSky());
-  applyRAScale(changeOfBasisMatrix, FITSImageIO::GetScaleRA());
-  applyDecScale(changeOfBasisMatrix, FITSImageIO::GetScaleDec());
-  applyVelocityScale(changeOfBasisMatrix, FITSImageIO::GetScaleVelocity());
-  applyScaleToAllAxes(changeOfBasisMatrix, FITSImageIO::GetScaleAllAxes());
+  applySkyRotation(changeOfBasisMatrix,
+		   FITSImageIO::deprecated_GetRotateSky());
+  applyRAScale(changeOfBasisMatrix,
+	       FITSImageIO::deprecated_GetScaleRA());
+  applyDecScale(changeOfBasisMatrix, FITSImageIO::deprecated_GetScaleDec());
+  applyVelocityScale(changeOfBasisMatrix,
+		     FITSImageIO::deprecated_GetScaleVelocity());
+  applyScaleToAllAxes(changeOfBasisMatrix,
+		      FITSImageIO::deprecated_GetScaleAllAxes());
 
 
   { // Create a direction cosine matrix and spacing vector by factoring the
@@ -748,7 +742,7 @@ FITSImageIO::ReadImageInformation()
   }
 
   debugPrint("NAXIS=" << numOfAxes);
-  if (_cv_debugLevel) {
+  if (_cv_deprecated_debugLevel) {
     cerr << "DIMS=";
     for (long i = 0; i < numOfAxes; ++i) {
       cerr << " " << lengthsOfAxesInPixels[i];
@@ -775,8 +769,8 @@ FITSImageIO::ReadImageInformation()
   double origin[c_dims];
   double spacing[c_dims];
   vector<double> directionCosines[c_dims];
-  itk::calcCoordinateFrame(fitsHeader, lengthsOfAxesInPixels, origin,
-			   spacing, directionCosines, m_WCSTransform);
+  deprecated_calcCoordinateFrame(fitsHeader, lengthsOfAxesInPixels, origin,
+				 spacing, directionCosines, m_WCSTransform);
 
   // URGENT TODO: Fix this attrocity!
   g_theFITSWCSTransform = m_WCSTransform;
@@ -795,7 +789,7 @@ FITSImageIO::ReadImageInformation()
       this->SetDirection(indexAxis, directionCosines[indexAxis]);
 
       // Write debugging output if debug output option is set:
-      if (_cv_debugLevel) {
+      if (_cv_deprecated_debugLevel) {
 	cerr << "spacing=" << indexAxis << "," << spacing[indexAxis] << " ";
 	cerr << "directions=";
 	for (int physicalAxis = 0; physicalAxis < c_dims; ++physicalAxis) {
@@ -806,7 +800,7 @@ FITSImageIO::ReadImageInformation()
     }
   }
 
-  if (_cv_suppressMetaDataDictionary) {
+  if (_cv_deprecated_suppressMetaDataDictionary) {
     debugPrint("Suppressing modification of the MetaDataDictionary.");
   } else {
     // Put the FITS Primary Array Header into the ITK MetaDataDictionary as one
@@ -897,6 +891,8 @@ FITSImageIO::ReadImageInformation()
 method void
 FITSImageIO::Read(void* const buffer)
 {
+  cerr << "Test Value=" << FITSImageIOFactory::GetTestValue() << endl; //d
+
   // TODO: At some point we might want to preserve the native pixel
   // type, rather than converting everything into a float.  Achieving
   // this is complicated, however, by the fact that ITK image types
@@ -920,7 +916,7 @@ FITSImageIO::Read(void* const buffer)
 
   // Read the FITS image into the ITK image buffer:
   int status = 0;
-  const float nullValue = _cv_nullValue;
+  const float nullValue = _cv_deprecated_nullValue;
   const float* const nullValuePtr = &nullValue;
   int anyNull = false;
   ::fits_read_pix(m_fitsFile, TFLOAT, origin, nPixels, (void*) nullValuePtr,
@@ -938,10 +934,10 @@ FITSImageIO::Read(void* const buffer)
                 
 
   // Scale the voxel values by the voxel value scaling factor:
-  if (_cv_scaleVoxelValues != 1) {
+  if (_cv_deprecated_scaleVoxelValues != 1) {
     const float* const lastPixel = bufferAsFloats + nPixels;
     for (float* pixelPtr = bufferAsFloats; pixelPtr < lastPixel; ++pixelPtr) {
-      *pixelPtr = _cv_scaleVoxelValues * *pixelPtr;
+      *pixelPtr = _cv_deprecated_scaleVoxelValues * *pixelPtr;
     }
   }
 
