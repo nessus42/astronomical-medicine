@@ -11,7 +11,7 @@
 // See LICENSE.txt for for details.
 //=============================================================================
 
-extern const char fits2itkVersion[] = "Version 0.4dev.12pending.4";
+extern const char fits2itkVersion[] = "Version 0.4dev.12pending.5";
 
 //=============================================================================
 // Change Log
@@ -479,19 +479,33 @@ extern const char fits2itkVersion[] = "Version 0.4dev.12pending.4";
 
 // *** Tue Nov 27, 2007 ***
 
-// This version is a check in of what I had done before trying the following
-// experiment:
+// This version is a check in of what I had done before starting work on the
+// followng version.
 
-// I want to see if I can load FITSImageIO in main() and then also have it
-// later loaded automatically by ITK's ObjectFactoryBase.  In theory, both
-// dlopen's should get the same version of FITSImageIO, and they should share
-// the same static state.  I guess we shall see.
+//---------------------------
+// Version 0.4dev.12pending.5
+//---------------------------
+
+// *** Thu Nov 29, 2007 ***
+
+// FITSImageIO is now dynamically loaded in main() and then also later loaded
+// automatically by ITK's ObjectFactoryBase.  As hoped, both dlopen()'s end up
+// getting the same version of FITSImageIO, and they share the same static
+// state.  So, to set state in FITSImageIO before it is used by the IO factory
+// for reading files, main() calls C-linkage setters that are exported in
+// itkFITSImageIO.cxx.
 
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
 //----------------------------------------------------------------------
 
-// Working on going through all of the code annotated with "//d" as a first
-// pass at making things sane again.
+// Things that I need to do soon:
 
-// To see the options that are going to be in the next version, see NOTES.txt.
+// o Remove all the code from FITSImageIO that is now obsoleted by our new
+//   approach to coordinate frame transformations.
+
+// o Go through all of the code annotated with "//d" as a first pass at making
+//   things sane again.
+
+// o To see the options that are going to be in the next released version, see
+//   NOTES.txt.

@@ -38,23 +38,9 @@ using std::string;
 #include <da_util.h>
 #include <da_sugar.h>
 
-// For showFactoryClasses() //d
-#include <itkFITSImageIOFactory.h>
-int itk::FITSImageIOFactory::_cv_testValue = 0; //d
-void //d
-itk::FITSImageIOFactory::SetTestValue(int value)
-{ _cv_testValue = value; } //d
 
-int //d
-itk::FITSImageIOFactory::GetTestValue()
-{ return _cv_testValue; } //d
-
-
-
-
-
+// BEGIN
 namespace douglasAlan {
-
 
 ctor
 IstreamExceptionActivator::
@@ -180,4 +166,4 @@ openFileForWriting(const char* const filepath,
 }
 
 
-} // end namespace da
+} // END namespace douglasAlan

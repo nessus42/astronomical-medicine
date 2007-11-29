@@ -14,8 +14,8 @@
 // This is free software available under the terms of the "The MIT License".
 // See LICENSE.txt for for details.
 //=============================================================================
-#ifndef __itkFITSImageUtils_txx
-#define __itkFITSImageUtils_txx
+#ifndef _itkFITSImageUtils_txx
+#define _itkFITSImageUtils_txx
 
 #include <iostream>
 
@@ -37,7 +37,7 @@ namespace itk {
 namespace fits { 
 
 // BEGIN
-namespace __internal {
+namespace _internal {
 
 //-----------------------------------------------------------------------------
 // Definitions for internal use only
@@ -127,7 +127,9 @@ public:
   WcsTransformConstPtr getWcsTransform() const
                { // URGENT TODO: Fix this attrocity!!!
 		 //d return (WCS*) itk::g_theFITSWCSTransform;
-		 return 0; //d
+		 // return 0; //d
+		 return reinterpret_cast<WCS*>(
+		          _internal::deprecated_getWCSTransform());
 	       }
 };
 
@@ -224,7 +226,7 @@ ImageInfo<ImageType>::ImageInfo(const ImageType& image)
 
 
 //-----------------------------------------------------------------------------
-// writeImageInfo(): internal template function
+// writeImageInfo(): template function
 //-----------------------------------------------------------------------------
 
 /*internal proc*/
@@ -606,21 +608,22 @@ reorientNorth(ImageType& image)
 }
 
 
-} // END namespace itk::fits::__internal
+} // END namespace itk::fits::_internal
 
 
 //-----------------------------------------------------------------------------
-// Export symbols from __internal into itk::fits:
+// Export symbols from _internal into itk::fits:
 //-----------------------------------------------------------------------------
 
-using __internal::applyFlipImageFilter;
-using __internal::applyBinomialBlurFilter;
-using __internal::reflectPixels;
-using __internal::initializeChangeOfBasis;
-using __internal::transformToNorthOrientedEquiangular;
-using __internal::transformToUnreorientedEquiangular;
-using __internal::reorientNorth;
+using _internal::applyFlipImageFilter;
+using _internal::applyBinomialBlurFilter;
+using _internal::initializeChangeOfBasis;
+using _internal::reflectPixels;
+using _internal::reorientNorth;
+using _internal::transformToNorthOrientedEquiangular;
+using _internal::transformToUnreorientedEquiangular;
+using _internal::writeImageInfo;
 
 } } // END namespace itk::fits
 
-#endif // __itkFITSImageUtils_txx
+#endif // _itkFITSImageUtils_tx

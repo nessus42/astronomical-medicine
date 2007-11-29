@@ -181,7 +181,7 @@ setDebugLevel(int debugLevel)
 proc void
 setVerbosityLevel(int verbosityLevel)
 {
-  assertm(!verbosityLevel,
+  assertm(!internal::verbosityLevel,
 	  "setVerbosityLevel() must not be be invoked more than once");
   internal::verbosityLevel = verbosityLevel;
 }

@@ -319,20 +319,12 @@ applyScaleToAllAxes(vector<double> changeOfBasisMatrix[c_dims],
 
 namespace itk {
 
-dtor //d
-FITSImageIO::~FITSImageIO()  //d
-{ //d
-  std::cerr << "FOO:" << FITSImageIOFactory::GetTestValue() << std::endl; //d
-} //d
-
-
 //-----------------------------------------------------------------------------
 // Private class variables
 //-----------------------------------------------------------------------------
 
 int FITSImageIO::_cv_deprecated_debugLevel = 0;
-double FITSImageIO::_cv_deprecated_nullValue = 0.0;
-                                         // The default of 0.0 causes NaN's
+double FITSImageIO::_cv_nullValue = 0.0; // The default of 0.0 causes NaN's
                                          // to be left as NaN's, rather than
                                          // converted to 0.0, as one would
                                          // naively expect.
@@ -891,8 +883,6 @@ FITSImageIO::ReadImageInformation()
 method void
 FITSImageIO::Read(void* const buffer)
 {
-  cerr << "Test Value=" << FITSImageIOFactory::GetTestValue() << endl; //d
-
   // TODO: At some point we might want to preserve the native pixel
   // type, rather than converting everything into a float.  Achieving
   // this is complicated, however, by the fact that ITK image types
@@ -916,7 +906,7 @@ FITSImageIO::Read(void* const buffer)
 
   // Read the FITS image into the ITK image buffer:
   int status = 0;
-  const float nullValue = _cv_deprecated_nullValue;
+  const float nullValue = _cv_nullValue;
   const float* const nullValuePtr = &nullValue;
   int anyNull = false;
   ::fits_read_pix(m_fitsFile, TFLOAT, origin, nPixels, (void*) nullValuePtr,
@@ -991,6 +981,28 @@ FITSImageIO::PrintSelf(ostream& os, const Indent indent) const
 {
   Superclass::PrintSelf(os, indent);
   os << indent << "PixelType " << m_PixelType << "\n";
+}
+
+//-----------------------------------------------------------------------------
+// itkFITSImageIO_setNullValue(): function exported for dynamic loading
+//-----------------------------------------------------------------------------
+
+proc extern "C" void 
+itkFITSImageIO_setNullValue(double nullValue)
+{ 
+  FITSImageIO::SetNullValue(nullValue);
+}
+
+
+//-----------------------------------------------------------------------------
+// itkFITSImageIO_deprecatedGetWCSTransform(): function exported for dynamic
+//      loading
+//-----------------------------------------------------------------------------
+
+proc extern "C" void*
+itkFITSImageIO_deprecatedGetWCSTransform()
+{ 
+  return g_theFITSWCSTransform;
 }
 
 } // namespace itk

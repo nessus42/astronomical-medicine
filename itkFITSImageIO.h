@@ -60,10 +60,13 @@ public:
   enum CelestialCoordinateAxis { c_ra, c_vel, c_dec };
   enum FitsImageArrayAxis { c_i, c_j, c_k };
 
-  // Standard class typedefs:
+  // Standard ITK typedefs:
   typedef FITSImageIO         Self;
   typedef ImageIOBase         Superclass;
   typedef SmartPointer<Self>  Pointer;
+
+  // Class-specific typedefs:
+  typedef FITSWCSTransform<double, c_dims> WCSTransform;
   
   //! Method for creation through the object factory.
   itkNewMacro(Self);
@@ -92,8 +95,8 @@ public:
                  { _cv_deprecated_scaleDec = scalingFactor; }
   static void deprecated_SetScaleRA(double scalingFactor)
                  { _cv_deprecated_scaleRA = scalingFactor; }
-  static void deprecated_SetNullValue(double nullValue)
-                 { _cv_deprecated_nullValue = nullValue; }
+  static void SetNullValue(double nullValue)
+                 { _cv_nullValue = nullValue; }
   static void deprecated_SetSuppressMetaDataDictionary(bool flag)
                  { _cv_deprecated_suppressMetaDataDictionary = flag; }
   static void deprecated_SetVerbose(bool flag)
@@ -120,8 +123,8 @@ public:
                   { return _cv_deprecated_scaleDec; }
   static double deprecated_GetScaleRA()
                   { return _cv_deprecated_scaleRA; }
-  static double deprecated_GetNullValue()
-                  { return _cv_deprecated_nullValue; }
+  static double GetNullValue()
+                  { return _cv_nullValue; }
   static bool   deprecated_GetSuppressMetaDataDictionary()
                   { return _cv_deprecated_suppressMetaDataDictionary; }
   static bool   deprecated_GetVerbose()
@@ -135,11 +138,14 @@ public:
   virtual void WriteImageInformation();
   virtual void Write(const void* buffer);
 
+  // Functions exported for dynamic loading:
+  typedef void (*NullValueSetter)(double nullValue);
+  typedef void* (*WCSTransformGetter)();
+
 protected:
 
   // Constructors, etc:
   FITSImageIO() {};
-  ~FITSImageIO();   //d
 
   // Virtual methods overriding partially implemented methods of ImageIOBase:
   virtual void PrintSelf(std::ostream& os, Indent indent) const;
@@ -147,17 +153,18 @@ protected:
 private:
 
   // Instance variables:
-  fitsfile*                                      m_fitsFile;
-  FITSWCSTransform<double, c_dims>::Pointer      m_WCSTransform;
+  fitsfile*                  m_fitsFile;
+  WCSTransform::Pointer      m_WCSTransform;
 
-				// Note: the memory for 'm_fitsFile' is managed
-				// by CFITSIO.  I.e., its memory is freed when
-				// when m_fitsFile is closed.
+			     // Note: the memory for 'm_fitsFile' is managed
+			     // by CFITSIO.  I.e., its memory is freed when
+			     // when m_fitsFile is closed.
+
 
   // Private class variables:   // TODO
   static int    _cv_deprecated_debugLevel;
   static bool   _cv_deprecated_suppressWCS;
-  static double _cv_deprecated_nullValue;
+  static double _cv_nullValue;
   static bool   _cv_deprecated_RIPOrientationFlag;
   static double _cv_deprecated_rotateSky;
   static double _cv_deprecated_rollRA;
