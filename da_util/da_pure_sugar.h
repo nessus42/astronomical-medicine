@@ -30,6 +30,7 @@
 #define debugPrint      daDebugPrint
 #define error           daError
 #define ifDebug         daIfDebug
+#define printIfVebose   daPrintIfVerbose
 #define superDebug      daSuperDebug
 
 namespace da = douglasAlan;

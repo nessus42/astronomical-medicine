@@ -16,16 +16,59 @@
 //=============================================================================
 
 #include <cmath>
+#include <dlfcn.h>                         // For dlopen()
+#include <itkFITSImageIO.h>
 #include <itkMatrix.h>
+#include <pathToExecutable.h>
 #include <da_sugar.h>
 
 namespace itk {
 namespace fits {
-namespace __internal {
+namespace _internal {
 
 
 //-----------------------------------------------------------------------------
-// rotationMatrix(): internal proc
+// loadFITSImageIO(): local function
+//-----------------------------------------------------------------------------
+
+local proc void*
+loadFITSImageIO()
+{
+  static void* library = 0;
+  if (!library) {
+    const char* const libFilePath = pteJoinPath(pathToExecutableDir(),
+						"libitkFITSImageIO.so");
+    library = dlopen(libFilePath, RTLD_LAZY);
+    if (!library) {
+      runTimeError("Could not load libitkFITSImageIO.so");
+    }
+  }
+  return library;
+}
+
+
+//-----------------------------------------------------------------------------
+// deprecated_getWCSTransform(): internal function
+//-----------------------------------------------------------------------------
+
+proc void*
+deprecated_getWCSTransform()
+{
+  FITSImageIO::WCSTransformGetter getTransform =
+    reinterpret_cast<FITSImageIO::WCSTransformGetter>(
+      dlsym(loadFITSImageIO(),
+	    "itkFITSImageIO_deprecatedGetWCSTransform")
+      );
+  if (!getTransform) {
+    runTimeError("Could not find function "
+		 "itkFITSImageIO_deprecatedGetWCSTransform()");
+  }
+  return (*getTransform)();
+}
+
+
+//-----------------------------------------------------------------------------
+// rotationMatrix(): internal function
 //-----------------------------------------------------------------------------
 
 Matrix<double, 3, 3>
@@ -42,5 +85,24 @@ rotationMatrix(double degrees)
   return retval;
 }
 
+} // END namespace _internal
 
-} } } // END namespace itk::fits::__internal
+
+//-----------------------------------------------------------------------------
+// setNullValue(): function
+//-----------------------------------------------------------------------------
+
+proc void
+setNullValue(double nullValue)
+{
+  FITSImageIO::NullValueSetter setNullValue =
+    reinterpret_cast<FITSImageIO::NullValueSetter>(
+      dlsym(_internal::loadFITSImageIO(), "itkFITSImageIO_setNullValue")
+      );
+  if (!setNullValue) {
+    runTimeError("Could not find function itkFITSImageIO_setNullValue()");
+  }
+  (*setNullValue)(nullValue);
+}
+
+} } // END namespace itk::fits

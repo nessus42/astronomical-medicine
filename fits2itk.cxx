@@ -16,7 +16,6 @@
 // See LICENSE.txt for for details.
 //=============================================================================
 
-#include <dlfcn.h>                         // For dlopen()
 #include <libgen.h>			   // For basename()
 #include <getopt.h>
 #include <stdlib.h>			   // For getenv(), setenv()
@@ -42,15 +41,6 @@ using itk::Image;
 #include <itkImageFileReader.h>
 #include <itkImageFileWriter.h>
 
-
-// For showFactoryClasses():    //d
-#include <itkObjectFactoryBase.h>
-using itk::ObjectFactoryBase;
-#include <list>
-using std::list;
-#include <itkFITSImageIOFactory.h>
-using itk::FITSImageIOFactory;
-
 #include <itkFITSImageIO.h>
 using itk::FITSImageIO;
 
@@ -60,11 +50,13 @@ using itk::FITSWCSTransform;
 #include <itkFITSImageUtils.h>
 using itk::fits::applyFlipImageFilter;
 using itk::fits::applyBinomialBlurFilter;
-using itk::fits::reflectPixels;
 using itk::fits::initializeChangeOfBasis;
+using itk::fits::reflectPixels;
+using itk::fits::reorientNorth;
+using itk::fits::setNullValue;
 using itk::fits::transformToNorthOrientedEquiangular;
 using itk::fits::transformToUnreorientedEquiangular;
-using itk::fits::reorientNorth;
+using itk::fits::writeImageInfo;
 
 #include <pathToExecutable.h>
 #include <da_util.h>
@@ -154,6 +146,7 @@ namespace {
     bool	   _flipDecFlag;
     bool	   _flipRAFlag;
     bool	   _flipVFlag;
+    double	   _nullValue;
     bool	   _reorientNorth;
     bool	   _transformToEquiangular;
 
@@ -170,28 +163,28 @@ namespace {
     // Constructor:
     CommandLineParser(const int argc, const char* const argv[]);
 
-    // Class accessors:
-    const char* getInputFilepath()  { return _inputFilepath;}
-    const char* getOutputFilepath() { return _outputFilepath; }
-    bool        getCoerceToShorts() { return _coerceToShorts; }
-    bool        getCoerceToUnsignedShorts()
+    // Accessor methods:
+    const char* getInputFilepath() const { return _inputFilepath;}
+    const char* getOutputFilepath() const { return _outputFilepath; }
+    bool        getCoerceToShorts() const { return _coerceToShorts; }
+    bool        getCoerceToUnsignedShorts() const
                           { return _coerceToUnsignedShorts; }
-    int         getDebugLevel() { return _debugLevel; }
-    bool	getDontWrite() { return _dontWrite; }
-    bool	getFlipDecFlag() { return _flipDecFlag; }
-    bool        getFlipRAFlag() { return _flipRAFlag; }
-    bool	getFlipVFlag() { return _flipVFlag; }
-    bool	getReorientNorth() { return _reorientNorth; }
-    bool	getTransformToEquiangular()
+    int         getDebugLevel() const { return _debugLevel; }
+    bool	getDontWrite() const { return _dontWrite; }
+    bool	getFlipDecFlag() const { return _flipDecFlag; }
+    bool        getFlipRAFlag() const { return _flipRAFlag; }
+    bool	getFlipVFlag() const { return _flipVFlag; }
+    double	getNullValue() const { return _nullValue; }
+    bool	getReorientNorth() const { return _reorientNorth; }
+    bool	getTransformToEquiangular() const
                           { return _transformToEquiangular; }
-
-    bool	getBinomialBlurFlag()
+    bool	getBinomialBlurFlag() const
                           { return _binomialBlurFlag; }
-    bool        getDerivativeImageFilterFlag()
+    bool        getDerivativeImageFilterFlag() const
                           { return _derivativeImageFilterFlag; }
-    bool        getFlipImageFilterFlag()
+    bool        getFlipImageFilterFlag() const
                           { return _flipImageFilterFlag; }
-    bool	getIdentityFlipFlag() { return _identityFlipFlag; }
+    bool	getIdentityFlipFlag() const { return _identityFlipFlag; }
   };
 
 
@@ -206,6 +199,7 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
     _flipDecFlag(false),
     _flipRAFlag(false),
     _flipVFlag(false),
+    _nullValue(0.0),
     _reorientNorth(false),
     _transformToEquiangular(false),
     _binomialBlurFlag(false),
@@ -232,23 +226,40 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
   int typicalFlag = false;
   int verboseFlag = false;
 
-  // Specify the allowed options:
+  // Specify the allowed short options:
   const char shortopts[] = "a:D:fhnN:o:Rr:Ss:Uv:";
 
+  // Specify the allowed long options:
   struct option longopts[] = {
+
     { "equiangular", no_argument, &equiangularFlag, true },
+
     { "help", no_argument, &verboseHelpFlag, true },
+
     { "flip-dec", no_argument, &flipDecFlag, true },
+
     { "flip-ra", no_argument, &flipRAFlag, true },
+
     { "flip-v", no_argument, &flipVFlag, true },
+
     { "no-wcs", no_argument, &noWcsFlag, true},
+    { "nw", no_argument, &noWcsFlag, true},
+
+    { "null-value", required_argument, 0, 'N'},
+
     { "reorient-north", no_argument, &reorientNorthFlag, true },
+
     { "rotate-sky", required_argument, &rotateSkyFlag,
       true },
+
     { "RIP", no_argument, &ripOrientationFlag, true },
+
     { "scale-dec", required_argument, &scaleDecFlag, true },
+
     { "typical", no_argument, &typicalFlag, true },
+
     { "verbose", no_argument, &verboseFlag, true },
+
     { null, 0, null, 0 }
   };
 
@@ -277,7 +288,7 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
       case 'h': usage(false);
 
       case 'N':
-	//d FITSImageIO::SetNullValue(strtod(optarg, &endptr));
+	_nullValue = strtod(optarg, &endptr);
 	checkEndptr(endptr);
 	break;
 
@@ -368,7 +379,7 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
 	  //d FITSImageIO::SetScaleVoxelValues(1000);
 	} else if (verboseFlag) {
 	  verboseFlag = false;
-	  //d FITSImageIO::SetVerbose(true);
+	  da::setVerbosityLevel(1);
 	} else {
 	  usage();
 	}
@@ -432,38 +443,38 @@ parseExtendedOption(const char* const option)
 // Local functions
 //=============================================================================
 
+
 //-----------------------------------------------------------------------------
 // showFactoryClasses(): local function
 //-----------------------------------------------------------------------------
 
-proc void
-showFactoryClasses()
-{
-  cout << "Registered ITK factory classes: ";
-  typedef list<ObjectFactoryBase*> List;
-  typedef List::iterator Iter;
-  List factories = ObjectFactoryBase::GetRegisteredFactories();
-  for (Iter factoryIter = factories.begin();
-       factoryIter != factories.end();
-       ++factoryIter)
-    {
-//       if (dynamic_cast<FITSImageIOFactory*>(*factoryIter)) {
-// 	cout << " YAAAAAAAAAAAAY!!!!!!!!!!!!!!!!! ";
+// This function was used for debugging.
+
+// proc void
+// showFactoryClasses()
+// {
+//   cout << "Registered ITK factory classes: ";
+//   typedef list<ObjectFactoryBase*> List;
+//   typedef List::iterator Iter;
+//   List factories = ObjectFactoryBase::GetRegisteredFactories();
+//   for (Iter factoryIter = factories.begin();
+//        factoryIter != factories.end();
+//        ++factoryIter)
+//     {
+//       const char* const nameOfClass = (*factoryIter)->GetNameOfClass();
+//       if (strcmp(nameOfClass, "FITSImageIOFactory") == 0) {
+// 	cout << " YAAAAAAY!!!! ";
+// 	const FITSImageIOFactory* factory =
+// 	  (const FITSImageIOFactory*) *factoryIter;
+// 	factory->SetTestValue(10);
+// 	factory->GetTestValue();
+//       } else {
+// 	cout << nameOfClass << " ";
 //       }
-      const char* const nameOfClass = (*factoryIter)->GetNameOfClass();
-      if (strcmp(nameOfClass, "FITSImageIOFactory") == 0) {
-	cout << " YAAAAAAY!!!! ";
-	const FITSImageIOFactory* factory =
-	  (const FITSImageIOFactory*) *factoryIter;
-	factory->SetTestValue(10);
-	factory->GetTestValue();
-      } else {
-	cout << nameOfClass << " ";
-      }
-    }
-  cout << endl;
-  cout << "Test Value1=" << FITSImageIOFactory::_cv_testValue << endl;
-}
+//     }
+//   cout << endl;
+//   cout << "Test Value1=" << FITSImageIOFactory::_cv_testValue << endl;
+// }
 
 
 //-----------------------------------------------------------------------------
@@ -478,7 +489,6 @@ convertInputFileToItkFile(CommandLineParser& cl)
   typedef itk::ImageFileReader<ImageType> ReaderType;
 
   typename ReaderType::Pointer reader = ReaderType::New();
-  showFactoryClasses(); //d
   reader->SetFileName(cl.getInputFilepath());
   typename ImageType::Pointer image = reader->GetOutput();
   if (cl.getFlipImageFilterFlag()) {
@@ -523,9 +533,8 @@ convertInputFileToItkFile(CommandLineParser& cl)
     reader->Update();
   }
 
-  //d if (FITSImageIO::GetVerbose()) ::writeImageInfo(*image, cout);
+  if (da::getVerbosityLevel()) writeImageInfo(*image, cout);
 
-  showFactoryClasses(); //d
   return EXIT_SUCCESS;
 
   // Note: The above call to writer->Update() might raise an execption.  If we
@@ -544,21 +553,27 @@ convertInputFileToItkFile(CommandLineParser& cl)
 
 
 //-----------------------------------------------------------------------------
-// END local functions
+// handleOptions(): local function
 //-----------------------------------------------------------------------------
 
-
-//=============================================================================
-// main()
-//=============================================================================
-
-proc int
-main(const int argc, const char* const argv[])
+local proc void
+handleOptions(const CommandLineParser& cl)
 {
-  setArgv(argc, argv);
+  setNullValue(cl.getNullValue());
+  da::setDebugLevel(cl.getDebugLevel());
+}
 
-  // Set the environment variable $ITK_AUTOLOAD_PATH so that
-  // ObjectFactoryBase::LoadLibrariesInPath() can find FITSImageIOFactory:
+
+//-----------------------------------------------------------------------------
+// setItkAutoloadPath(): local function
+//-----------------------------------------------------------------------------
+
+// Sets the environment variable $ITK_AUTOLOAD_PATH so that
+// ObjectFactoryBase::LoadLibrariesInPath() can find FITSImageIOFactory:
+
+local proc void
+setItkAutoloadPath()
+{
   {
 #ifdef _WIN32
     const char pathSeparator = ';';
@@ -572,12 +587,28 @@ main(const int argc, const char* const argv[])
       : string(pathToExecutableDir());
     setenv("ITK_AUTOLOAD_PATH", newAutoloadPath.c_str(), true);
   }
+}
 
+
+//-----------------------------------------------------------------------------
+// END local functions
+//-----------------------------------------------------------------------------
+
+
+//=============================================================================
+// main()
+//=============================================================================
+
+proc int
+main(const int argc, const char* const argv[])
+{
+  setArgv(argc, argv);
+  setItkAutoloadPath();
   CommandLineParser cl(argc, argv);
-  da::setDebugLevel(cl.getDebugLevel());
+  handleOptions(cl);
 
   // This is how we used to register FITSImageIOFactory, before we changed to
-  //dynamic loading:
+  // dynamic loading:
   //
   // FITSImageIOFactory::RegisterOneFactory();
 
@@ -591,6 +622,4 @@ main(const int argc, const char* const argv[])
     status = convertInputFileToItkFile<float>(cl);
   }
   return status;
-
 }
-
