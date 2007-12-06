@@ -17,13 +17,9 @@ set (itkFITSImageIO_source_files
 # Specify the source files that constitute the fits2itk executable:
 set (fits2itk_source_files
   fits2itk.cxx
-  version.cxx #d
+  version.cxx
   itkFITSImageUtils.cxx
-  itkFITSWCSTransform.cxx #d
-
-  # Used by showFactoryClasses():   #d
-  # itkFITSImageIO.cxx
-  # itkFITSImageIOFactory.cxx
+  itkFITSWCSTransform.cxx
   )
 
 
@@ -83,24 +79,21 @@ add_executable (fits2itk
 add_library(itkFITSImageIO MODULE
   ${itkFITSImageIO_source_files}
   )
-# add_library(itkFITSImageIO SHARED #d
-#   ${itkFITSImageIO_source_files} #d
-#   ) #d
 
+# Note re above: "MODULE" is the option that causes itkFITSImageIO to be built
+# as a .so file file (i.e., a dynamically loaded library).  If we had needed a
+# .dylib file instead, then the option to use would have been SHARED.
 
 
 # Specify the libaries that are used by our dll:
 target_link_libraries(itkFITSImageIO
-  da_util cfitsio libwcs ITKIO ITKCommon 
+  da_util cfitsio ITKIO ITKCommon 
   )
 
 
 # Specify the libraries that are used by the fits2itk program...
 target_link_libraries (fits2itk
   da_util pathToExecutable libwcs ITKIO ITKCommon
-
-  # Used by showFactoryClasses():   #d
-  # cfitsio
   )
 
 

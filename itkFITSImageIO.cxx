@@ -21,8 +21,6 @@
 #include <itkMetaDataObject.h>
 #include <itksys/RegularExpression.hxx>
 
-#include <wcs.h>
-
 #include <itkFITSImageIO.h>
 #include <itkFITSImageIOFactory.h> //d For showFactoryClasses()
 #include <grparser.h> // for FITS NGP_MAX_ARRAY_DIM
@@ -239,8 +237,8 @@ local proc void
 applySkyRotation(vector<double> changeOfBasisMatrix[c_dims], double degrees)
 {
   if (degrees != 0) {
-    const double s = sin(degrees/180 * PI);
-    const double c = cos(degrees/180 * PI);
+    const double s = sin(degrees/180 * M_PI);
+    const double c = cos(degrees/180 * M_PI);
     double rotationMatrix[c_dims][c_dims] = { c,  0, s,
 					      0,  1, 0,
 					      -s, 0, c };
@@ -323,24 +321,25 @@ namespace itk {
 // Private class variables
 //-----------------------------------------------------------------------------
 
-int FITSImageIO::_cv_deprecated_debugLevel = 0;
 double FITSImageIO::_cv_nullValue = 0.0; // The default of 0.0 causes NaN's
                                          // to be left as NaN's, rather than
                                          // converted to 0.0, as one would
                                          // naively expect.
-bool   FITSImageIO::_cv_deprecated_suppressWCS = false;
-bool   FITSImageIO::_cv_deprecated_RIPOrientationFlag = false;
-double FITSImageIO::_cv_deprecated_rotateSky = 0;     
-double FITSImageIO::_cv_deprecated_rollRA = 0;
-double FITSImageIO::_cv_deprecated_rollDec = 0;
-double FITSImageIO::_cv_deprecated_scaleVoxelValues = 1;
-double FITSImageIO::_cv_deprecated_scaleRA = 1;
-double FITSImageIO::_cv_deprecated_scaleDec = 1;
-bool   FITSImageIO::_cv_deprecated_autoScaleVelocityAxis = false;
-double FITSImageIO::_cv_deprecated_scaleVelocity = 1;
-double FITSImageIO::_cv_deprecated_scaleAllAxes = 1;
+
+int FITSImageIO::_cv_deprecated_debugLevel = 0;
+// bool   FITSImageIO::_cv_deprecated_suppressWCS = false;
+// bool   FITSImageIO::_cv_deprecated_RIPOrientationFlag = false;
+// double FITSImageIO::_cv_deprecated_rotateSky = 0;     
+// double FITSImageIO::_cv_deprecated_rollRA = 0;
+// double FITSImageIO::_cv_deprecated_rollDec = 0;
+// double FITSImageIO::_cv_deprecated_scaleVoxelValues = 1;
+// double FITSImageIO::_cv_deprecated_scaleRA = 1;
+// double FITSImageIO::_cv_deprecated_scaleDec = 1;
+// bool   FITSImageIO::_cv_deprecated_autoScaleVelocityAxis = false;
+// double FITSImageIO::_cv_deprecated_scaleVelocity = 1;
+// double FITSImageIO::_cv_deprecated_scaleAllAxes = 1;
 bool   FITSImageIO::_cv_deprecated_suppressMetaDataDictionary = false;
-bool   FITSImageIO::_cv_deprecated_verbose = false;
+// bool   FITSImageIO::_cv_deprecated_verbose = false;
 
 
 //=============================================================================
@@ -435,271 +434,271 @@ FITSImageIO::CanWriteFile(const char* const name)
 // deprecated_calcWCSCoordinateFrame(): local proc
 //-----------------------------------------------------------------------------
 
-local void 
-deprecated_calcWCSCoordinateFrame(
-     const string& fitsHeader,
-     const long lengthsOfAxesInPixels[],
-     double origin[],
-     vector<double> changeOfBasisMatrix[],
-     FITSWCSTransform<double, c_dims>::Pointer& transform)
-{
-  WorldCoor* wcs = wcsinit(fitsHeader.c_str());
-  const ConstRcMallocPointer<WorldCoor> wcsRcPtr = wcs;
-  typedef itk::FITSWCSTransform<double, c_dims> WCSTransform;
-  transform = WCSTransform::New();
-  transform->SetWCS(wcsRcPtr);
+// local void 
+// deprecated_calcWCSCoordinateFrame(
+//      const string& fitsHeader,
+//      const long lengthsOfAxesInPixels[],
+//      double origin[],
+//      vector<double> changeOfBasisMatrix[],
+//      FITSWCSTransform<double, c_dims>::Pointer& transform)
+// {
+//   WorldCoor* wcs = wcsinit(fitsHeader.c_str());
+//   const ConstRcMallocPointer<WorldCoor> wcsRcPtr = wcs;
+//   typedef itk::FITSWCSTransform<double, c_dims> WCSTransform;
+//   transform = WCSTransform::New();
+//   transform->SetWCS(wcsRcPtr);
 
-  double lowerLeftRA, lowerLeftDec;
-  pix2wcs(wcs, 1, 1, &lowerLeftRA, &lowerLeftDec);
-  double lowerRightRA, lowerRightDec;
-  pix2wcs(wcs, lengthsOfAxesInPixels[0], 1, &lowerRightRA, &lowerRightDec);
-  double upperLeftRA, upperLeftDec;
-  pix2wcs(wcs, 1, lengthsOfAxesInPixels[1], &upperLeftRA, &upperLeftDec);
+//   double lowerLeftRA, lowerLeftDec;
+//   pix2wcs(wcs, 1, 1, &lowerLeftRA, &lowerLeftDec);
+//   double lowerRightRA, lowerRightDec;
+//   pix2wcs(wcs, lengthsOfAxesInPixels[0], 1, &lowerRightRA, &lowerRightDec);
+//   double upperLeftRA, upperLeftDec;
+//   pix2wcs(wcs, 1, lengthsOfAxesInPixels[1], &upperLeftRA, &upperLeftDec);
 
-  debugPrint("Before correcting for equinox crossing:");
-  debugPrint("LL: RA=" << lowerLeftRA << ' ' << "Dec=" << lowerLeftDec);
-  debugPrint("UL: RA=" << upperLeftRA << ' ' << "Dec=" << upperLeftDec);
-  debugPrint("LR: RA=" << lowerRightRA << ' ' << "Dec=" << lowerRightDec);
+//   debugPrint("Before correcting for equinox crossing:");
+//   debugPrint("LL: RA=" << lowerLeftRA << ' ' << "Dec=" << lowerLeftDec);
+//   debugPrint("UL: RA=" << upperLeftRA << ' ' << "Dec=" << upperLeftDec);
+//   debugPrint("LR: RA=" << lowerRightRA << ' ' << "Dec=" << lowerRightDec);
 
-  // If we are in debug output mode, then test out the FITSWCSTransform object:
-  if (FITSImageIO::deprecated_GetDebugLevel()) {
-    WCSTransform::Pointer inverseTransform = WCSTransform::New();
-    transform->GetInverse(inverseTransform);
-    WCSTransform::InputPointType ijkPoint;
-    WCSTransform::OutputPointType wcsPoint;
-    ijkPoint[0] = 1;
-    ijkPoint[1] = lengthsOfAxesInPixels[1];
-    wcsPoint = transform->TransformPoint(ijkPoint);
-    cerr << "Value of transformed UL point: " << wcsPoint << endl;
-    ijkPoint[0] = -666;
-    ijkPoint[1] = -666;
-    ijkPoint[2] = -666;
-    ijkPoint = inverseTransform->TransformPoint(wcsPoint);
-    cerr << "Value of UL point tranformed back to ijk coordinates: "
-	 << ijkPoint << endl;    
+//   // If we are in debug output mode, then test out the FITSWCSTransform object:
+//   if (FITSImageIO::deprecated_GetDebugLevel()) {
+//     WCSTransform::Pointer inverseTransform = WCSTransform::New();
+//     transform->GetInverse(inverseTransform);
+//     WCSTransform::InputPointType ijkPoint;
+//     WCSTransform::OutputPointType wcsPoint;
+//     ijkPoint[0] = 1;
+//     ijkPoint[1] = lengthsOfAxesInPixels[1];
+//     wcsPoint = transform->TransformPoint(ijkPoint);
+//     cerr << "Value of transformed UL point: " << wcsPoint << endl;
+//     ijkPoint[0] = -666;
+//     ijkPoint[1] = -666;
+//     ijkPoint[2] = -666;
+//     ijkPoint = inverseTransform->TransformPoint(wcsPoint);
+//     cerr << "Value of UL point tranformed back to ijk coordinates: "
+// 	 << ijkPoint << endl;    
       
-  }
+//   }
 
-  // Make some RAs negative (by substracting 360 degrees) if the image crosses
-  // the equinox.  Otherwise, we will incorrectly think that we are
-  // representing a huge area of the sky, instead of a small area:
-  const double xRaDiff = lowerRightRA - lowerLeftRA;
-  if (xRaDiff > 180.0) lowerRightRA -= 360.0;
-  else if (xRaDiff < -180.0) lowerLeftRA -= 360.0;
+//   // Make some RAs negative (by substracting 360 degrees) if the image crosses
+//   // the equinox.  Otherwise, we will incorrectly think that we are
+//   // representing a huge area of the sky, instead of a small area:
+//   const double xRaDiff = lowerRightRA - lowerLeftRA;
+//   if (xRaDiff > 180.0) lowerRightRA -= 360.0;
+//   else if (xRaDiff < -180.0) lowerLeftRA -= 360.0;
 
-  const double yRaDiff = upperLeftRA - lowerLeftRA;
-  if (yRaDiff > 180.0) upperLeftRA -= 360.0;
-  else if (yRaDiff < -180.0) lowerLeftRA -= 360.0;
+//   const double yRaDiff = upperLeftRA - lowerLeftRA;
+//   if (yRaDiff > 180.0) upperLeftRA -= 360.0;
+//   else if (yRaDiff < -180.0) lowerLeftRA -= 360.0;
 
-  debugPrint("After correcting for equinox crossing:");
-  debugPrint("LL: RA=" << lowerLeftRA << ' ' << "Dec=" << lowerLeftDec);
-  debugPrint("UL: RA=" << upperLeftRA << ' ' << "Dec=" << upperLeftDec);
-  debugPrint("LR: RA=" << lowerRightRA << ' ' << "Dec=" << lowerRightDec);
+//   debugPrint("After correcting for equinox crossing:");
+//   debugPrint("LL: RA=" << lowerLeftRA << ' ' << "Dec=" << lowerLeftDec);
+//   debugPrint("UL: RA=" << upperLeftRA << ' ' << "Dec=" << upperLeftDec);
+//   debugPrint("LR: RA=" << lowerRightRA << ' ' << "Dec=" << lowerRightDec);
 
-  // TODO: The above method for removing an RA discontinuity should be improved
-  // for large areas of the sky or for areas near the poles (in the unlikely
-  // case that we were to continue to take this sort of approach at all), as we
-  // would have to determine the direction that RA is moving along each axis by
-  // looking at a small increment along the axis to make sure that the total
-  // change in RA from one side of the image to the other is not more than 180
-  // degrees.  If we want to handle large areas of the sky, we will also have
-  // to do something similar for Dec.
+//   // TODO: The above method for removing an RA discontinuity should be improved
+//   // for large areas of the sky or for areas near the poles (in the unlikely
+//   // case that we were to continue to take this sort of approach at all), as we
+//   // would have to determine the direction that RA is moving along each axis by
+//   // looking at a small increment along the axis to make sure that the total
+//   // change in RA from one side of the image to the other is not more than 180
+//   // degrees.  If we want to handle large areas of the sky, we will also have
+//   // to do something similar for Dec.
 
-  // END getting RA and Dec of border pixels.
+//   // END getting RA and Dec of border pixels.
 
 
-  // The following is an explanation of the math involved in the coordinate
-  // transformation that is to come immediately below: One way of transforming
-  // between two different Cartesian coordinate systems (let's call the source
-  // coordinate system A and the destination coordinate system B) for the same
-  // Euclidean space involves knowing two things:
+//   // The following is an explanation of the math involved in the coordinate
+//   // transformation that is to come immediately below: One way of transforming
+//   // between two different Cartesian coordinate systems (let's call the source
+//   // coordinate system A and the destination coordinate system B) for the same
+//   // Euclidean space involves knowing two things:
 
-  // 1. The coordinates in B corresponding to the origin in A.  Let's call
-  // these coordinates in B, "o".
+//   // 1. The coordinates in B corresponding to the origin in A.  Let's call
+//   // these coordinates in B, "o".
 
-  // 2. A change-of-basis matrix that transforms the unit basis vectors for A
-  // into (unnormalized) basis vectors for B.  Let's call this change-of-basis
-  // matrix, "C".
+//   // 2. A change-of-basis matrix that transforms the unit basis vectors for A
+//   // into (unnormalized) basis vectors for B.  Let's call this change-of-basis
+//   // matrix, "C".
 
-  // Knowing C and o, one can then transform the coordinates in A for any given
-  // point (let's call the coordinates in A for this given point, "c") into the
-  // corresponding coordinates in B by calculating C * c + o.
+//   // Knowing C and o, one can then transform the coordinates in A for any given
+//   // point (let's call the coordinates in A for this given point, "c") into the
+//   // corresponding coordinates in B by calculating C * c + o.
 
-  // As it turns out, ITK uses just such a method for transforming coordinate
-  // systems, but rather than accepting o and C as the parameters for this
-  // transformation, it wants us to first factor C into a "direction cosine
-  // matrix" (let's call this matrix "D") and a spacing vector (let's call the
-  // spacing vector "s").  After factoring C into D and s, D consists of
-  // normalized basis vectors (i.e., unit vectors) for B and s consists of the
-  // length of each unnormalized vector in C.  The transformation from A to B
-  // for a given point is then calculated as (D * s) * c + o.
+//   // As it turns out, ITK uses just such a method for transforming coordinate
+//   // systems, but rather than accepting o and C as the parameters for this
+//   // transformation, it wants us to first factor C into a "direction cosine
+//   // matrix" (let's call this matrix "D") and a spacing vector (let's call the
+//   // spacing vector "s").  After factoring C into D and s, D consists of
+//   // normalized basis vectors (i.e., unit vectors) for B and s consists of the
+//   // length of each unnormalized vector in C.  The transformation from A to B
+//   // for a given point is then calculated as (D * s) * c + o.
 
-  // TODO: RA and Dec represent a polar coordinate system, not a Cartesian
-  // coordinate system, and hence this method sucks for fields of view that are
-  // not small or are near the poles.  Unfortunately, for the time being, we
-  // have to work with the facilities that 3D Slicer provides us, and so this
-  // is the best that we can do for right now.
+//   // TODO: RA and Dec represent a polar coordinate system, not a Cartesian
+//   // coordinate system, and hence this method sucks for fields of view that are
+//   // not small or are near the poles.  Unfortunately, for the time being, we
+//   // have to work with the facilities that 3D Slicer provides us, and so this
+//   // is the best that we can do for right now.
 
-  const double raPerI =
-    (lowerRightRA - lowerLeftRA) / (lengthsOfAxesInPixels[0] - 1);
-  const double decPerI =
-    (lowerRightDec - lowerLeftDec)/(lengthsOfAxesInPixels[0] - 1);
-  const double raPerJ =
-    (upperLeftRA - lowerLeftRA) / (lengthsOfAxesInPixels[1] - 1);
-  const double decPerJ = 
-    (upperLeftDec - lowerLeftDec)/(lengthsOfAxesInPixels[1] - 1);
+//   const double raPerI =
+//     (lowerRightRA - lowerLeftRA) / (lengthsOfAxesInPixels[0] - 1);
+//   const double decPerI =
+//     (lowerRightDec - lowerLeftDec)/(lengthsOfAxesInPixels[0] - 1);
+//   const double raPerJ =
+//     (upperLeftRA - lowerLeftRA) / (lengthsOfAxesInPixels[1] - 1);
+//   const double decPerJ = 
+//     (upperLeftDec - lowerLeftDec)/(lengthsOfAxesInPixels[1] - 1);
 
-  debugPrint("raPerI=" << raPerI);
-  debugPrint("decPerI=" <<  decPerI);
-  debugPrint("raPerJ=" << raPerJ);
-  debugPrint("decPerJ=" << decPerJ);
+//   debugPrint("raPerI=" << raPerI);
+//   debugPrint("decPerI=" <<  decPerI);
+//   debugPrint("raPerJ=" << raPerJ);
+//   debugPrint("decPerJ=" << decPerJ);
 
-  double velocityPerK;
+//   double velocityPerK;
 
-  if (FITSImageIO::deprecated_GetAutoScaleVelocityAxis()) {
+//   if (FITSImageIO::deprecated_GetAutoScaleVelocityAxis()) {
 
-    // Calculate length of each side of the sky rectangle in RA/Dec
-    // coordinates:
-    const double rectWidth = sqrt(square(lowerRightRA - lowerLeftRA) +
-				  square(lowerRightDec - lowerLeftDec));
-    const double rectHeight = sqrt(square(upperLeftRA - lowerRightRA) +
-				   square(upperLeftDec - lowerRightDec));
-    debugPrint("rectWidth= " << rectWidth);
-    debugPrint("rectHeight= " << rectHeight);
+//     // Calculate length of each side of the sky rectangle in RA/Dec
+//     // coordinates:
+//     const double rectWidth = sqrt(square(lowerRightRA - lowerLeftRA) +
+// 				  square(lowerRightDec - lowerLeftDec));
+//     const double rectHeight = sqrt(square(upperLeftRA - lowerRightRA) +
+// 				   square(upperLeftDec - lowerRightDec));
+//     debugPrint("rectWidth= " << rectWidth);
+//     debugPrint("rectHeight= " << rectHeight);
 
-    velocityPerK = max(rectWidth, rectHeight) / lengthsOfAxesInPixels[2];
+//     velocityPerK = max(rectWidth, rectHeight) / lengthsOfAxesInPixels[2];
 
-  } else {
+//   } else {
 
-    // TODO: Here we are just setting each voxel to one unit of velocity, which
-    // is rather arbitrary.  Really we should figure out how to get this
-    // information out of the FITS header.  The WCS library that we are using
-    // does not support this, however.
-    velocityPerK = 1;
-  }
+//     // TODO: Here we are just setting each voxel to one unit of velocity, which
+//     // is rather arbitrary.  Really we should figure out how to get this
+//     // information out of the FITS header.  The WCS library that we are using
+//     // does not support this, however.
+//     velocityPerK = 1;
+//   }
 
-  debugPrint("velocityPerK=" << velocityPerK);
+//   debugPrint("velocityPerK=" << velocityPerK);
 
-  // TODO: Extend the following to more than three dimensions.
+//   // TODO: Extend the following to more than three dimensions.
 
-  // TODO: We need to extract velocity information using a WCS library of some
-  // sort.  Is there one that does this?  At the moment, I just set velocity to
-  // nonsensical things, like 0 for the image origin, immediately below.
+//   // TODO: We need to extract velocity information using a WCS library of some
+//   // sort.  Is there one that does this?  At the moment, I just set velocity to
+//   // nonsensical things, like 0 for the image origin, immediately below.
 
-  // Create the origin vector (what we called "o" in the exposition above):
-  origin[c_ra ] = lowerLeftRA;
-  origin[c_dec] = lowerLeftDec;
-  origin[c_vel] = 0;
+//   // Create the origin vector (what we called "o" in the exposition above):
+//   origin[c_ra ] = lowerLeftRA;
+//   origin[c_dec] = lowerLeftDec;
+//   origin[c_vel] = 0;
 
-  // Each column of the matrix represents a vector that transforms a
-  // unit vector in i, j, k space to RA, V, DEC (a.k.a. LPS) space:
-  {
-    changeOfBasisMatrix[c_ra] [c_i] = raPerI;
-    changeOfBasisMatrix[c_vel][c_i] = 0;
-    changeOfBasisMatrix[c_dec][c_i] = decPerI;
+//   // Each column of the matrix represents a vector that transforms a
+//   // unit vector in i, j, k space to RA, V, DEC (a.k.a. LPS) space:
+//   {
+//     changeOfBasisMatrix[c_ra] [c_i] = raPerI;
+//     changeOfBasisMatrix[c_vel][c_i] = 0;
+//     changeOfBasisMatrix[c_dec][c_i] = decPerI;
 
-    changeOfBasisMatrix[c_ra] [c_j] = raPerJ;
-    changeOfBasisMatrix[c_vel][c_j] = 0;
-    changeOfBasisMatrix[c_dec][c_j] = decPerJ;
+//     changeOfBasisMatrix[c_ra] [c_j] = raPerJ;
+//     changeOfBasisMatrix[c_vel][c_j] = 0;
+//     changeOfBasisMatrix[c_dec][c_j] = decPerJ;
 
-    changeOfBasisMatrix[c_ra] [c_k] = 0;
-    changeOfBasisMatrix[c_vel][c_k] = velocityPerK;
-    changeOfBasisMatrix[c_dec][c_k] = 0;
-  }
-}
+//     changeOfBasisMatrix[c_ra] [c_k] = 0;
+//     changeOfBasisMatrix[c_vel][c_k] = velocityPerK;
+//     changeOfBasisMatrix[c_dec][c_k] = 0;
+//   }
+// }
 
 
 //-----------------------------------------------------------------------------
 // deprecated_calcCoordinateFrame(): local proc
 //-----------------------------------------------------------------------------
 
-local void
-deprecated_calcCoordinateFrame(
-     const string& fitsHeader,
-     const long lengthsOfAxesInPixels[],
-     double origin[],
-     double spacing[],
-     vector<double> directionCosines[],
-     FITSWCSTransform<double, c_dims>::Pointer& transform)
-{
-  // Initialize the origin to be (0, 0, 0).  It will remain so only in the
-  // default case:
-  origin[0] = 0;
-  origin[1] = 0;
-  origin[2] = 0;
+// local void
+// deprecated_calcCoordinateFrame(
+//      const string& fitsHeader,
+//      const long lengthsOfAxesInPixels[],
+//      double origin[],
+//      double spacing[],
+//      vector<double> directionCosines[],
+//      FITSWCSTransform<double, c_dims>::Pointer& transform)
+// {
+//   // Initialize the origin to be (0, 0, 0).  It will remain so only in the
+//   // default case:
+//   origin[0] = 0;
+//   origin[1] = 0;
+//   origin[2] = 0;
 
-  // The default change-of-basis matrix, maps the FITS image array axes onto
-  // LPS axes, without doing any additional tranformations to map to physical
-  // coordinates.  This matrix will most likely end up being overwritten, but
-  // not all of the time:
-  vector<double> changeOfBasisMatrix[c_dims];
-  for (int axis = 0; axis < c_dims; ++axis) {
-    changeOfBasisMatrix[axis].resize(c_dims);
-  }
-  if (FITSImageIO::deprecated_GetRIPOrientation()) {
-    changeOfBasisMatrix[c_ra ][c_i] = 1;
-    changeOfBasisMatrix[c_dec][c_j] = 1;
-    changeOfBasisMatrix[c_vel][c_k] = -1;
-  } else {
-    changeOfBasisMatrix[c_ra ][c_i] = 1;
-    changeOfBasisMatrix[c_dec][c_j] = 1;
-    changeOfBasisMatrix[c_vel][c_k] = 1;
-  }
+//   // The default change-of-basis matrix, maps the FITS image array axes onto
+//   // LPS axes, without doing any additional tranformations to map to physical
+//   // coordinates.  This matrix will most likely end up being overwritten, but
+//   // not all of the time:
+//   vector<double> changeOfBasisMatrix[c_dims];
+//   for (int axis = 0; axis < c_dims; ++axis) {
+//     changeOfBasisMatrix[axis].resize(c_dims);
+//   }
+//   if (FITSImageIO::deprecated_GetRIPOrientation()) {
+//     changeOfBasisMatrix[c_ra ][c_i] = 1;
+//     changeOfBasisMatrix[c_dec][c_j] = 1;
+//     changeOfBasisMatrix[c_vel][c_k] = -1;
+//   } else {
+//     changeOfBasisMatrix[c_ra ][c_i] = 1;
+//     changeOfBasisMatrix[c_dec][c_j] = 1;
+//     changeOfBasisMatrix[c_vel][c_k] = 1;
+//   }
 
-  if (!FITSImageIO::deprecated_GetSuppressWCS()) {
-    deprecated_calcWCSCoordinateFrame(
-       fitsHeader, lengthsOfAxesInPixels,
-       origin,changeOfBasisMatrix, transform);
-  }
+//   if (!FITSImageIO::deprecated_GetSuppressWCS()) {
+//     deprecated_calcWCSCoordinateFrame(
+//        fitsHeader, lengthsOfAxesInPixels,
+//        origin,changeOfBasisMatrix, transform);
+//   }
 
-  if (FITSImageIO::deprecated_GetDebugLevel()) {
-    cerr << "Change-of-basis matrix:\n";
-    for (int row = 0; row < c_dims; ++row) {
-      for (int col = 0; col < c_dims; ++col) {
-	cerr << "    " << changeOfBasisMatrix[row][col];
-      }
-      cerr << endl;
-    }
-  }
+//   if (FITSImageIO::deprecated_GetDebugLevel()) {
+//     cerr << "Change-of-basis matrix:\n";
+//     for (int row = 0; row < c_dims; ++row) {
+//       for (int col = 0; col < c_dims; ++col) {
+// 	cerr << "    " << changeOfBasisMatrix[row][col];
+//       }
+//       cerr << endl;
+//     }
+//   }
 
-  applySkyRotation(changeOfBasisMatrix,
-		   FITSImageIO::deprecated_GetRotateSky());
-  applyRAScale(changeOfBasisMatrix,
-	       FITSImageIO::deprecated_GetScaleRA());
-  applyDecScale(changeOfBasisMatrix, FITSImageIO::deprecated_GetScaleDec());
-  applyVelocityScale(changeOfBasisMatrix,
-		     FITSImageIO::deprecated_GetScaleVelocity());
-  applyScaleToAllAxes(changeOfBasisMatrix,
-		      FITSImageIO::deprecated_GetScaleAllAxes());
+//   applySkyRotation(changeOfBasisMatrix,
+// 		   FITSImageIO::deprecated_GetRotateSky());
+//   applyRAScale(changeOfBasisMatrix,
+// 	       FITSImageIO::deprecated_GetScaleRA());
+//   applyDecScale(changeOfBasisMatrix, FITSImageIO::deprecated_GetScaleDec());
+//   applyVelocityScale(changeOfBasisMatrix,
+// 		     FITSImageIO::deprecated_GetScaleVelocity());
+//   applyScaleToAllAxes(changeOfBasisMatrix,
+// 		      FITSImageIO::deprecated_GetScaleAllAxes());
 
 
-  { // Create a direction cosine matrix and spacing vector by factoring the
-    // change-of-basis matrix.  The direction cosines are calculated by
-    // normalizing the direction vectors contained within the change-of-basis
-    // matrix (i.e., dividing the values in each vector by the length of the
-    // vector), while also populating the spacing vector with the lengths of
-    // the direction vectors.
+//   { // Create a direction cosine matrix and spacing vector by factoring the
+//     // change-of-basis matrix.  The direction cosines are calculated by
+//     // normalizing the direction vectors contained within the change-of-basis
+//     // matrix (i.e., dividing the values in each vector by the length of the
+//     // vector), while also populating the spacing vector with the lengths of
+//     // the direction vectors.
 
-    // NOTE: We calculated the change-of-basis matrix in row-major form, since
-    // that is standard mathematical notation, and C notation, but computer
-    // graphics is traditionally done in column-major form, and ITK follows
-    // this tradition.  Consequently, the direction cosine matrix we calculate
-    // here is in column-major form.
+//     // NOTE: We calculated the change-of-basis matrix in row-major form, since
+//     // that is standard mathematical notation, and C notation, but computer
+//     // graphics is traditionally done in column-major form, and ITK follows
+//     // this tradition.  Consequently, the direction cosine matrix we calculate
+//     // here is in column-major form.
 
-    for (int indexAxis = 0; indexAxis < c_dims; ++indexAxis) {
-      directionCosines[indexAxis].resize(c_dims);
-      spacing[indexAxis] = sqrt(square(changeOfBasisMatrix[0][indexAxis]) + 
-				square(changeOfBasisMatrix[1][indexAxis]) +
-				square(changeOfBasisMatrix[2][indexAxis]));
-    }
-    for (int indexAxis = 0; indexAxis < c_dims; ++indexAxis) {
-      for (int physicalAxis = 0; physicalAxis < c_dims; ++physicalAxis) {
-	directionCosines[indexAxis][physicalAxis] =
-	  changeOfBasisMatrix[physicalAxis][indexAxis] / spacing[indexAxis];
-      }
-    }
-  }
-}
+//     for (int indexAxis = 0; indexAxis < c_dims; ++indexAxis) {
+//       directionCosines[indexAxis].resize(c_dims);
+//       spacing[indexAxis] = sqrt(square(changeOfBasisMatrix[0][indexAxis]) + 
+// 				square(changeOfBasisMatrix[1][indexAxis]) +
+// 				square(changeOfBasisMatrix[2][indexAxis]));
+//     }
+//     for (int indexAxis = 0; indexAxis < c_dims; ++indexAxis) {
+//       for (int physicalAxis = 0; physicalAxis < c_dims; ++physicalAxis) {
+// 	directionCosines[indexAxis][physicalAxis] =
+// 	  changeOfBasisMatrix[physicalAxis][indexAxis] / spacing[indexAxis];
+//       }
+//     }
+//   }
+// }
 
 
 //-----------------------------------------------------------------------------
@@ -758,17 +757,25 @@ FITSImageIO::ReadImageInformation()
 
   string fitsHeader = getFitsHeader();
 
-  double origin[c_dims];
-  double spacing[c_dims];
-  vector<double> directionCosines[c_dims];
-  deprecated_calcCoordinateFrame(fitsHeader, lengthsOfAxesInPixels, origin,
-				 spacing, directionCosines, m_WCSTransform);
+//   double origin[c_dims];
+//   double spacing[c_dims];
+//   vector<double> directionCosines[c_dims];
+//   deprecated_calcCoordinateFrame(fitsHeader, lengthsOfAxesInPixels, origin,
+// 				 spacing, directionCosines, m_WCSTransform);
 
   // URGENT TODO: Fix this attrocity!
   g_theFITSWCSTransform = m_WCSTransform;
 
   // Set up the ITK image:
   { 
+    // TODO: Note that we set the "component type" to float immediately below,
+    // and yet in fits2itk, we allow the creation of short and unsigned short
+    // images.  This means that when an image of shorts is being read in, it
+    // gets converted to floats here, and then gets converted back to shorts
+    // later (by ITK, not by us).  It might be better to do this in a less
+    // round-about fashion.  Note: If we do, we also have to change the call to
+    // cfitsio's fits_read_pix() to allow types other than floats.
+
     this->SetNumberOfComponents(1);
     this->SetPixelType(SCALAR);
     this->SetComponentType(FLOAT);
@@ -776,21 +783,22 @@ FITSImageIO::ReadImageInformation()
 
     for (int indexAxis = 0; indexAxis < numOfAxes; ++indexAxis) {
       this->SetDimensions(indexAxis, lengthsOfAxesInPixels[indexAxis]);
-      this->SetOrigin(indexAxis, origin[indexAxis]);
-      this->SetSpacing(indexAxis, spacing[indexAxis]);
-      this->SetDirection(indexAxis, directionCosines[indexAxis]);
+//       this->SetOrigin(indexAxis, origin[indexAxis]);
+//       this->SetSpacing(indexAxis, spacing[indexAxis]);
+//       this->SetDirection(indexAxis, directionCosines[indexAxis]);
 
-      // Write debugging output if debug output option is set:
-      if (_cv_deprecated_debugLevel) {
-	cerr << "spacing=" << indexAxis << "," << spacing[indexAxis] << " ";
-	cerr << "directions=";
-	for (int physicalAxis = 0; physicalAxis < c_dims; ++physicalAxis) {
-	  cerr << directionCosines[indexAxis][physicalAxis] << " ";
-	}
-	cerr << endl;
-      }
+//       // Write debugging output if debug output option is set:
+//       if (_cv_deprecated_debugLevel) {
+// 	   cerr << "spacing=" << indexAxis << "," << spacing[indexAxis] << " ";
+// 	   cerr << "directions=";
+// 	   for (int physicalAxis = 0; physicalAxis < c_dims; ++physicalAxis) {
+// 	     cerr << directionCosines[indexAxis][physicalAxis] << " ";
+// 	   }
+// 	   cerr << endl;
+//      }
     }
   }
+
 
   if (_cv_deprecated_suppressMetaDataDictionary) {
     debugPrint("Suppressing modification of the MetaDataDictionary.");
@@ -908,11 +916,11 @@ FITSImageIO::Read(void* const buffer)
   int status = 0;
   const float nullValue = _cv_nullValue;
   const float* const nullValuePtr = &nullValue;
-  int anyNull = false;
+  int foundNull = false;
   ::fits_read_pix(m_fitsFile, TFLOAT, origin, nPixels, (void*) nullValuePtr,
-                  bufferAsFloats, &anyNull, &status);
+                  bufferAsFloats, &foundNull, &status);
   if (nullValue != 0) {
-    debugPrint("Any null values? " << anyNull);
+    debugPrint("Any null values? " << foundNull);
     debugPrint("Null value will be fetched as: " << nullValue);
   }
   if (status) {
@@ -923,13 +931,13 @@ FITSImageIO::Read(void* const buffer)
   }
                 
 
-  // Scale the voxel values by the voxel value scaling factor:
-  if (_cv_deprecated_scaleVoxelValues != 1) {
-    const float* const lastPixel = bufferAsFloats + nPixels;
-    for (float* pixelPtr = bufferAsFloats; pixelPtr < lastPixel; ++pixelPtr) {
-      *pixelPtr = _cv_deprecated_scaleVoxelValues * *pixelPtr;
-    }
-  }
+//   // Scale the voxel values by the voxel value scaling factor:
+//   if (_cv_deprecated_scaleVoxelValues != 1) {
+//     const float* const lastPixel = bufferAsFloats + nPixels;
+//     for (float* pixelPtr = bufferAsFloats; pixelPtr < lastPixel; ++pixelPtr) {
+//       *pixelPtr = _cv_deprecated_scaleVoxelValues * *pixelPtr;
+//     }
+//   }
 
   // Close the FITS file:
   ::fits_close_file(m_fitsFile, &status);
