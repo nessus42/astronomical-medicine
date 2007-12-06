@@ -11,7 +11,7 @@
 // See LICENSE.txt for for details.
 //=============================================================================
 
-extern const char fits2itkVersion[] = "Version 0.4dev.12pending.5";
+extern const char fits2itkVersion[] = "Version 0.4dev.12pending.6";
 
 //=============================================================================
 // Change Log
@@ -495,14 +495,26 @@ extern const char fits2itkVersion[] = "Version 0.4dev.12pending.5";
 // for reading files, main() calls C-linkage setters that are exported in
 // itkFITSImageIO.cxx.
 
+//---------------------------
+// Version 0.4dev.12pending.6
+//---------------------------
+
+// *** Thu Dec  6, 2007 ***
+
+// Commented out almost all of the deprecated code from FITSImageIO, and got
+// everything to compile.  (I don't know whether it actually works yet, but it
+// doesn't dump core.)  This involved moving constructing the WCS transform
+// object out of FITSImageIO, which isn't where it belonged anyway.
+
+// Cleaned up CMakeLists.txt.
+
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
 //----------------------------------------------------------------------
 
 // Things that I need to do soon:
 
-// o Remove all the code from FITSImageIO that is now obsoleted by our new
-//   approach to coordinate frame transformations.
+// o Replace debug-level in FITSImageIO with an environment variable lookup.
 
 // o Go through all of the code annotated with "//d" as a first pass at making
 //   things sane again.

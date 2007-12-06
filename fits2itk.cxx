@@ -502,9 +502,9 @@ convertInputFileToItkFile(CommandLineParser& cl)
     image = applyFlipImageFilter<PixelType>(image);
   }
   reflectPixels<PixelType>(*image,
-			     cl.getFlipRAFlag(),
-			     cl.getFlipDecFlag(),
-			     cl.getFlipVFlag());
+			   cl.getFlipRAFlag(),
+			   cl.getFlipDecFlag(),
+			   cl.getFlipVFlag());
 
 
   if (cl.getReorientNorth() or cl.getTransformToEquiangular()) {

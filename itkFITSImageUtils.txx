@@ -17,10 +17,14 @@
 #ifndef _itkFITSImageUtils_txx
 #define _itkFITSImageUtils_txx
 
+#include <assert.h>
 #include <iostream>
+
+#include <wcs.h>
 
 #include <itkImage.h>
 #include <itkMatrix.h>
+#include <itkMetaDataObject.h>
 
 #include <itkFlipImageFilter.h>
 #include <itkBinomialBlurImageFilter.h>
@@ -40,18 +44,21 @@ namespace fits {
 namespace _internal {
 
 //-----------------------------------------------------------------------------
-// Definitions for internal use only
+// Internal definitions
 //-----------------------------------------------------------------------------
 
 enum { c_dims = itk::FITSImageIO::c_dims };
+
 using itk::Image;
+
 using std::cout;
 using std::endl;
 using std::ostream;
 
+using std::string;
 
 //-----------------------------------------------------------------------------
-// Some internal inline functions used by ImageInfo below
+// Internal inline functions for use by ImageInfo below
 //-----------------------------------------------------------------------------
 
 /*internal proc*/ inline double
@@ -90,19 +97,23 @@ public:
   typedef typename WcsPoint::VectorType   WcsVector;
   typedef typename WCS::ConstPointer      WcsTransformConstPtr;
 
-
 private:
 
   // Instance variables:
-  IjkPoint  _ijkCenter;
-  WcsPoint  _wcsCenter;
-  WcsVector _unitIInWcs;
-  WcsVector _unitJInWcs;
-  WcsVector _unitIInApproximateAngularSpace;
-  WcsVector _unitJInApproximateAngularSpace;
-  IjkVector _ijkNorthVector;
-  double    _rotationOfJFromIjkNorthVectorInDegrees;
-  double    _raAngularScalingFactor;
+  const ImageType&     _theImage;
+  WcsTransformConstPtr _wcsTransform;
+  IjkPoint             _ijkCenter;
+  WcsPoint             _wcsCenter;
+  WcsVector            _unitIInWcs;
+  WcsVector            _unitJInWcs;
+  WcsVector            _unitIInApproximateAngularSpace;
+  WcsVector            _unitJInApproximateAngularSpace;
+  IjkVector            _ijkNorthVector;
+  double               _rotationOfJFromIjkNorthVectorInDegrees;
+  double               _raAngularScalingFactor;
+
+  // Private static methods:
+  WcsTransformConstPtr makeWcsTransform(const ImageType& image);
 
 public:
 
@@ -110,33 +121,36 @@ public:
   ImageInfo(const ImageType& image);
 
   // Accessors:
-  IjkPoint  ijkCenter() const          { return _ijkCenter; }
-  WcsPoint  wcsCenter() const          { return _wcsCenter; }
-  WcsVector unitIInWcs() const     { return _unitIInWcs; }
-  WcsVector unitJInWcs() const     { return _unitJInWcs; }
-  WcsVector unitIInApproximateAngularSpace() const
-               { return _unitIInApproximateAngularSpace; }
-  WcsVector unitJInApproximateAngularSpace() const
-               { return _unitJInApproximateAngularSpace; }
-  IjkVector ijkNorthVector() const
-               { return _ijkNorthVector; }
-  double    rotationOfJFromIjkNorthVectorInDegrees() const
-               { return _rotationOfJFromIjkNorthVectorInDegrees; }
-  double    raAngularScalingFactor() const
-               { return _raAngularScalingFactor; }
-  WcsTransformConstPtr getWcsTransform() const
-               { // URGENT TODO: Fix this attrocity!!!
-		 //d return (WCS*) itk::g_theFITSWCSTransform;
-		 // return 0; //d
-		 return reinterpret_cast<WCS*>(
-		          _internal::deprecated_getWCSTransform());
-	       }
+  ImageType&    image()                         { return _theImage; }
+  IjkPoint      ijkCenter() const               { return _ijkCenter; }
+  WcsPoint      wcsCenter() const               { return _wcsCenter; }
+  WcsVector     unitIInWcs() const              { return _unitIInWcs; }
+  WcsVector     unitJInWcs() const              { return _unitJInWcs; }
+
+  WcsTransformConstPtr
+                wcsTransform() const            { return _wcsTransform; }
+
+  WcsVector     unitIInApproximateAngularSpace() const
+                   { return _unitIInApproximateAngularSpace; }
+  WcsVector     unitJInApproximateAngularSpace() const
+                   { return _unitJInApproximateAngularSpace; }
+  IjkVector     ijkNorthVector() const
+                   { return _ijkNorthVector; }
+  double        rotationOfJFromIjkNorthVectorInDegrees() const
+                   { return _rotationOfJFromIjkNorthVectorInDegrees; }
+  double        raAngularScalingFactor() const
+                   { return _raAngularScalingFactor; }
 };
 
+
+//-----------------------------------------------------------------------------
+// Constructor of ImageInfo
+//-----------------------------------------------------------------------------
 
 /*ctor*/
 template <class ImageType>
 ImageInfo<ImageType>::ImageInfo(const ImageType& image)
+  : _theImage(image)
 {
   typename ImageType::RegionType allOfImage = image.GetLargestPossibleRegion();
   typename ImageType::SizeType imageSize = allOfImage.GetSize();
@@ -150,7 +164,8 @@ ImageInfo<ImageType>::ImageInfo(const ImageType& image)
   _ijkCenter[c_j] = imageOrigin[c_j] + imageSize[c_j]/2.0 - 0.5;
   _ijkCenter[c_k] = imageOrigin[c_k] + imageSize[c_k]/2.0 - 0.5;
 
-  WcsTransformConstPtr wcs = getWcsTransform();
+  const WCS* wcs = makeWcsTransform(image); 
+  _wcsTransform = wcs;
   _wcsCenter = wcs->TransformPoint(_ijkCenter);
   
   // TODO: It's confusing that in some situations V is 1 and dec is 2, and
@@ -226,7 +241,37 @@ ImageInfo<ImageType>::ImageInfo(const ImageType& image)
 
 
 //-----------------------------------------------------------------------------
-// writeImageInfo(): template function
+// writeImageInfo(): private static method of ImageInfo<ImageType>
+//-----------------------------------------------------------------------------
+
+/*proc*/
+template <class ImageType>
+typename ImageInfo<ImageType>::WcsTransformConstPtr
+ImageInfo<ImageType>::makeWcsTransform(const ImageType& image)
+{
+  using itk::MetaDataDictionary;
+  using itk::MetaDataObject;
+  const MetaDataDictionary& mdd = image.GetMetaDataDictionary();
+
+  // We cast away const here conly because ExposeMetaData() is unfortunately
+  // not const correct:
+  string fitsHeader;
+  ExposeMetaData(const_cast<MetaDataDictionary&>(mdd),
+		 "FITS Header",
+		 fitsHeader);
+  assert(!fitsHeader.empty());
+
+  // TODO: Add more error checking here in case 'wcs' ends up in some sort of
+  // erroneous state.
+  const ConstRcMallocPointer<WorldCoor> wcs = wcsinit(fitsHeader.c_str());
+  WCS* retval = WCS::New();
+  retval->SetWCS(wcs);
+  return retval;
+}
+
+
+//-----------------------------------------------------------------------------
+// writeImageInfo(): internal template function
 //-----------------------------------------------------------------------------
 
 /*internal proc*/
@@ -317,7 +362,7 @@ applyBinomialBlurFilter(const typename Image<PixelType, c_dims>::Pointer& image)
 
 
 //-----------------------------------------------------------------------------
-// applyMeanFilter(): local template function
+// applyMeanFilter(): internal template function
 //-----------------------------------------------------------------------------
 
 // template <class PixelType>
@@ -484,7 +529,7 @@ initializeChangeOfBasis(ImageType& image)
 
 
 //-----------------------------------------------------------------------------
-// rightConcatinateTransformation(): internal template proc
+// rightConcatinateTransformation(): internal template function
 //-----------------------------------------------------------------------------
 
 /*internal proc*/ 
@@ -523,7 +568,7 @@ rightConcatinateTransformation(ImageType& image,
 
 
 //-----------------------------------------------------------------------------
-// transformToNorthOrientedEquiangular(): template proc
+// transformToNorthOrientedEquiangular(): template function
 //-----------------------------------------------------------------------------
 
 /*proc*/
@@ -601,10 +646,6 @@ reorientNorth(ImageType& image)
      image.GetDirection() *
      rotationMatrix(-1 * info.rotationOfJFromIjkNorthVectorInDegrees())
      );
-
-  // YOU ARE HERE: thinking about refactoring itkFitsImageIO to remove all
-  // matrix manipulation stuff out of it.
-  
 }
 
 
