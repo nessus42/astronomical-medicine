@@ -28,8 +28,8 @@ namespace fits {
   /*proc*/ void
   setNullValue(double nullValue);
 
-  /*proc*/ FITSImageIO::WCSTransform::ConstPointer
-  deprecated_getWCSTransform();
+  // /*proc*/ FITSImageIO::WCSTransform::ConstPointer
+  // deprecated_getWCSTransform();
 
   /*proc*/ void
   setNullValue(double);
@@ -44,8 +44,8 @@ namespace _internal {
   /*internal proc*/ Matrix<double, 3, 3>
   rotationMatrix(double degrees);
 
-  /*internal proc*/ void*
-  deprecated_getWCSTransform();
+  // /*internal proc*/ void*
+  // deprecated_getWCSTransform();
 
 } // END namespace _internal
 

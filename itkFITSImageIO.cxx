@@ -22,7 +22,6 @@
 #include <itksys/RegularExpression.hxx>
 
 #include <itkFITSImageIO.h>
-#include <itkFITSImageIOFactory.h> //d For showFactoryClasses()
 #include <grparser.h> // for FITS NGP_MAX_ARRAY_DIM
 
 #include <da_sugar.h>
@@ -38,7 +37,7 @@ using std::vector;
 
 
 // URGENT TODO: Fix this attrocity!
-void* itk::g_theFITSWCSTransform = 0;
+// void* itk::g_theFITSWCSTransform = 0; //deleteme
 
 //*****************************************************************************
 //*****				Local constants                           *****
@@ -141,7 +140,7 @@ getAllFitsErrorMessages(const int status)
   ss << status;
   retval += ss.str();
   retval += ": ";
-  ::fits_get_errstatus(status, fitsError);
+  fits_get_errstatus(status, fitsError);
   retval += fitsError;
   return retval;
 }
@@ -338,7 +337,7 @@ int FITSImageIO::_cv_deprecated_debugLevel = 0;
 // bool   FITSImageIO::_cv_deprecated_autoScaleVelocityAxis = false;
 // double FITSImageIO::_cv_deprecated_scaleVelocity = 1;
 // double FITSImageIO::_cv_deprecated_scaleAllAxes = 1;
-bool   FITSImageIO::_cv_deprecated_suppressMetaDataDictionary = false;
+// bool   FITSImageIO::_cv_deprecated_suppressMetaDataDictionary = false;
 // bool   FITSImageIO::_cv_deprecated_verbose = false;
 
 
@@ -359,14 +358,14 @@ FITSImageIO::getFitsHeader()
   const int nHeadersToExclude = 0;
   char* retval1;
   int nKeysDummy;
-  ::fits_hdr2str(m_fitsFile, !noComments, headersToExclude, nHeadersToExclude,
-                 &retval1, &nKeysDummy, &status);
+  fits_hdr2str(m_fitsFile, !noComments, headersToExclude, nHeadersToExclude,
+	       &retval1, &nKeysDummy, &status);
   da::Freer freer (retval1);
   if (status) {
     itkExceptionMacro("FITSImageIO could not get header from Primary Array of"
                       "FITS file: \""
                       << this->GetFileName() << "\": "
-                      << ::getAllFitsErrorMessages(status) << '.');
+                      << getAllFitsErrorMessages(status) << '.');
   }
   string retval (retval1);
   return retval;
@@ -387,7 +386,7 @@ FITSImageIO::CanReadFile(const char* const filepath)
   if (!filepath or *filepath == 0) {
     itkDebugMacro(<< "No filename specified.");
     return false;
-  } else if (::checkExtension(filepath)) {
+  } else if (checkExtension(filepath)) {
     return true;
   } else {
     itkDebugMacro(<<"The filename extension is not recognized");
@@ -716,20 +715,20 @@ FITSImageIO::ReadImageInformation()
   if (status) {
     itkExceptionMacro("FITSImageIO could not open FITS file: \""
                       << this->GetFileName() << "\" for reading: "
-                      << ::getAllFitsErrorMessages(status) << '.');
+                      << getAllFitsErrorMessages(status) << '.');
   }
 
   // Get the dimensions and type of the FITS Primary Array:
   int numOfAxes;
   long lengthsOfAxesInPixels[NGP_MAX_ARRAY_DIM];
   int bitsPerPixel;
-  ::fits_get_img_param(m_fitsFile, NGP_MAX_ARRAY_DIM, &bitsPerPixel,
-                       &numOfAxes, lengthsOfAxesInPixels, &status);
+  fits_get_img_param(m_fitsFile, NGP_MAX_ARRAY_DIM, &bitsPerPixel,
+		     &numOfAxes, lengthsOfAxesInPixels, &status);
   if (status) {
     itkExceptionMacro("FITSImageIO could not read Primary Array parameters "
                       "from FITS file \""
                       << this->GetFileName() << "\":"
-                      << ::getAllFitsErrorMessages(status) << '.');
+                      << getAllFitsErrorMessages(status) << '.');
   }
 
   debugPrint("NAXIS=" << numOfAxes);
@@ -764,7 +763,7 @@ FITSImageIO::ReadImageInformation()
 // 				 spacing, directionCosines, m_WCSTransform);
 
   // URGENT TODO: Fix this attrocity!
-  g_theFITSWCSTransform = m_WCSTransform;
+  // g_theFITSWCSTransform = m_WCSTransform;
 
   // Set up the ITK image:
   { 
@@ -799,31 +798,24 @@ FITSImageIO::ReadImageInformation()
     }
   }
 
-
-  if (_cv_deprecated_suppressMetaDataDictionary) {
-    debugPrint("Suppressing modification of the MetaDataDictionary.");
-  } else {
-    // Put the FITS Primary Array Header into the ITK MetaDataDictionary as one
-    // big string:
-
+  // Add FITS information to the ITK MetaDataDictionary:
+  {
+    // Put the FITS Primary Array Header into the MDD as one big string:
     MetaDataDictionary& dict = this->GetMetaDataDictionary();
+    EncapsulateMetaData(dict, "FITS Header", fitsHeader);
 
-    itk::EncapsulateMetaData<string>(dict, "FITS Header", fitsHeader);
-
-    // Also break up the aforementioned FITS header into individual entries and
-    // add each entry into the MetaDataDictionary as a separate entry:
+    // Also break up the aforementioned FITS header into individual entries
+    // and add each entry into the MDD as a separate entry:
     int nKeys = 0;
     int dummy;
-    ::fits_get_hdrspace(m_fitsFile, &nKeys, &dummy, &status);
+    fits_get_hdrspace(m_fitsFile, &nKeys, &dummy, &status);
     for (int keyIndex = 1; keyIndex <= nKeys; ++keyIndex) {
       char keyName[FLEN_KEYWORD];
       char keyValue[FLEN_VALUE];
       char keyComment[FLEN_COMMENT];
-      ::fits_read_keyn(m_fitsFile, keyIndex, keyName, keyValue, keyComment,
-		       &status);
-      itk::EncapsulateMetaData<string>(dict,
-				       string("FITS.") + keyName,
-				       keyValue);
+      fits_read_keyn(m_fitsFile, keyIndex, keyName, keyValue, keyComment,
+		     &status);
+      EncapsulateMetaData(dict, string("FITS.") + keyName, string(keyValue));
 
       // TODO: You need to put the comments and units somewhere too.
     }
@@ -917,8 +909,8 @@ FITSImageIO::Read(void* const buffer)
   const float nullValue = _cv_nullValue;
   const float* const nullValuePtr = &nullValue;
   int foundNull = false;
-  ::fits_read_pix(m_fitsFile, TFLOAT, origin, nPixels, (void*) nullValuePtr,
-                  bufferAsFloats, &foundNull, &status);
+  fits_read_pix(m_fitsFile, TFLOAT, origin, nPixels, (void*) nullValuePtr,
+		bufferAsFloats, &foundNull, &status);
   if (nullValue != 0) {
     debugPrint("Any null values? " << foundNull);
     debugPrint("Null value will be fetched as: " << nullValue);
@@ -927,7 +919,7 @@ FITSImageIO::Read(void* const buffer)
     itkExceptionMacro("FITSImageIO::Read() could not read the primary data "
                       "array from FITS file \""
                       << this->GetFileName() << "\": "
-                      << ::getAllFitsErrorMessages(status) << ".");
+                      << getAllFitsErrorMessages(status) << ".");
   }
                 
 
@@ -940,12 +932,12 @@ FITSImageIO::Read(void* const buffer)
 //   }
 
   // Close the FITS file:
-  ::fits_close_file(m_fitsFile, &status);
+  fits_close_file(m_fitsFile, &status);
   if (status) {
     itkExceptionMacro("FITSImageIO::Read() could not close FITS file \""
                       << this->GetFileName()
                       << "\" after reading the primary data array: "
-                      << ::getAllFitsErrorMessages(status) << ".");
+                      << getAllFitsErrorMessages(status) << ".");
   }
 }
 
@@ -999,18 +991,6 @@ proc extern "C" void
 itkFITSImageIO_setNullValue(double nullValue)
 { 
   FITSImageIO::SetNullValue(nullValue);
-}
-
-
-//-----------------------------------------------------------------------------
-// itkFITSImageIO_deprecatedGetWCSTransform(): function exported for dynamic
-//      loading
-//-----------------------------------------------------------------------------
-
-proc extern "C" void*
-itkFITSImageIO_deprecatedGetWCSTransform()
-{ 
-  return g_theFITSWCSTransform;
 }
 
 } // namespace itk

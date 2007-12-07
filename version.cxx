@@ -11,7 +11,7 @@
 // See LICENSE.txt for for details.
 //=============================================================================
 
-extern const char fits2itkVersion[] = "Version 0.4dev.12pending.6";
+extern const char fits2itkVersion[] = "Version 0.4dev.12pending.7";
 
 //=============================================================================
 // Change Log
@@ -508,16 +508,27 @@ extern const char fits2itkVersion[] = "Version 0.4dev.12pending.6";
 
 // Cleaned up CMakeLists.txt.
 
+//---------------------------
+// Version 0.4dev.12pending.7
+//---------------------------
+
+// Went through all of the code annotated with "//d" as a first pass at making
+// things sane again.
+
+// Commented out most functions and variables with "deprecated" in their names.
+
+// Made the default behavior be "--equiangular --reorient-north" so that you
+// don't have to specify these options anymore.  With all this changing of
+// things around, there were some bugs related to ITK's smart pointers causing
+// core dumps, but I fixed them.
+
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
 //----------------------------------------------------------------------
 
 // Things that I need to do soon:
 
-// o Replace debug-level in FITSImageIO with an environment variable lookup.
-
-// o Go through all of the code annotated with "//d" as a first pass at making
-//   things sane again.
-
 // o To see the options that are going to be in the next released version, see
 //   NOTES.txt.
+
+// o Replace debug-level in FITSImageIO with an environment variable lookup.

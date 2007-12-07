@@ -47,10 +47,10 @@ public:
   // Register one factory of this type:
   // static void RegisterOneFactory();
 
-  // These methods are only here for testing: //d
-  static int _cv_testValue ; //d
-  static void SetTestValue(int value); //d
-  static int GetTestValue(); //d
+  // Note: We no longer need the RegisterOneFactory() class method, as we are
+  // now having ITK autoload FITSImageIO as a plugin, and the plugin mechanism
+  // looks for the function itkLoad() in libitkFITSImageIO.so instead.
+  // itkLoad() is defined in itkFITSImageIOFactory.cxx.
 
 protected:
   FITSImageIOFactory();

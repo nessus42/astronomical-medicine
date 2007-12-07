@@ -55,7 +55,7 @@ using itk::fits::reflectPixels;
 using itk::fits::reorientNorth;
 using itk::fits::setNullValue;
 using itk::fits::transformToNorthOrientedEquiangular;
-using itk::fits::transformToUnreorientedEquiangular;
+// using itk::fits::transformToUnreorientedEquiangular;
 using itk::fits::writeImageInfo;
 
 #include <pathToExecutable.h>
@@ -148,7 +148,7 @@ namespace {
     bool	   _flipVFlag;
     double	   _nullValue;
     bool	   _reorientNorth;
-    bool	   _transformToEquiangular;
+    // bool	   _transformToEquiangular;
 
     bool	   _binomialBlurFlag;
     bool           _derivativeImageFilterFlag;
@@ -176,8 +176,8 @@ namespace {
     bool	getFlipVFlag() const { return _flipVFlag; }
     double	getNullValue() const { return _nullValue; }
     bool	getReorientNorth() const { return _reorientNorth; }
-    bool	getTransformToEquiangular() const
-                          { return _transformToEquiangular; }
+//     bool	getTransformToEquiangular() const
+//                           { return _transformToEquiangular; }
     bool	getBinomialBlurFlag() const
                           { return _binomialBlurFlag; }
     bool        getDerivativeImageFilterFlag() const
@@ -201,7 +201,7 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
     _flipVFlag(false),
     _nullValue(0.0),
     _reorientNorth(false),
-    _transformToEquiangular(false),
+    // _transformToEquiangular(false),
     _binomialBlurFlag(false),
     _derivativeImageFilterFlag(false),
     _flipImageFilterFlag(false),
@@ -214,7 +214,7 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
   const int cBase10 = 10;
   string extendedOption;
   int verboseHelpFlag = false;
-  int equiangularFlag = false;
+  // int equiangularFlag = false;
   int flipDecFlag = false;
   int flipRAFlag = false;
   int flipVFlag = false;
@@ -232,7 +232,7 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
   // Specify the allowed long options:
   struct option longopts[] = {
 
-    { "equiangular", no_argument, &equiangularFlag, true },
+    // { "equiangular", no_argument, &equiangularFlag, true },
 
     { "help", no_argument, &verboseHelpFlag, true },
 
@@ -277,7 +277,7 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
       case 'a':
 	// XXX: You need to figure out a new way to scale all axes.
 
-	//d FITSImageIO::SetScaleAllAxes(strtod(optarg, &endptr));
+	// FITSImageIO::SetScaleAllAxes(strtod(optarg, &endptr));
 	::checkEndptr(endptr);
 	break;
 
@@ -301,7 +301,7 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
 	break;
 
       case 'r':
-	//d FITSImageIO::SetScaleRA(strtod(optarg, &endptr));
+	// FITSImageIO::SetScaleRA(strtod(optarg, &endptr));
 	checkEndptr(endptr);
 	break;
 
@@ -310,7 +310,7 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
         break;
 
       case 's':
-        //d FITSImageIO::SetScaleVoxelValues(strtod(optarg, &endptr));
+        // FITSImageIO::SetScaleVoxelValues(strtod(optarg, &endptr));
 	checkEndptr(endptr);
         break;
 
@@ -319,7 +319,7 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
         break;
 
       case 'v':
-        //d FITSImageIO::SetScaleVelocity(strtod(optarg, &endptr));
+        // FITSImageIO::SetScaleVelocity(strtod(optarg, &endptr));
 	checkEndptr(endptr);
         break;
 
@@ -341,9 +341,9 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
 	// Parse long options:
 	if (verboseHelpFlag) {
 	  verboseUsage();
-	} else if (equiangularFlag) {
-	  equiangularFlag =  false;
-	  _transformToEquiangular = true;
+// 	} else if (equiangularFlag) {
+// 	  equiangularFlag =  false;
+// 	  _transformToEquiangular = true;
 	} else if (flipDecFlag) {
 	  flipDecFlag = false;
 	  _flipDecFlag = true;
@@ -355,28 +355,28 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
 	  _flipVFlag = true;
 	} else if (noWcsFlag) {
 	  noWcsFlag = false;
-	  //d FITSImageIO::SetSuppressWCS(true);
+	  // FITSImageIO::SetSuppressWCS(true);
 	} else if (reorientNorthFlag) {
 	  reorientNorthFlag = false;
 	  _reorientNorth = true;
 	} else if (ripOrientationFlag) {
 	  ripOrientationFlag = false;
-	  //d FITSImageIO::SetRIPOrientation(true);
-	  //d FITSImageIO::SetSuppressWCS(true);
+	  // FITSImageIO::SetRIPOrientation(true);
+	  // FITSImageIO::SetSuppressWCS(true);
 	} else if (rotateSkyFlag) {
 	  rotateSkyFlag = false;
-	  //d FITSImageIO::SetRotateSky(strtod(optarg, &endptr));
+	  // FITSImageIO::SetRotateSky(strtod(optarg, &endptr));
 	  checkEndptr(endptr);
 	} else if (scaleDecFlag) {
 	  scaleDecFlag = false;
-	  //d FITSImageIO::SetScaleDec(strtod(optarg, &endptr));
+	  // FITSImageIO::SetScaleDec(strtod(optarg, &endptr));
 	  checkEndptr(endptr);
 	} else if (typicalFlag) {
 	  typicalFlag = false;
-	  //d FITSImageIO::SetAutoScaleVelocityAxis(true);
-	  //d FITSImageIO::SetScaleAllAxes(1000);
-	  //d FITSImageIO::SetScaleRA(-1);
-	  //d FITSImageIO::SetScaleVoxelValues(1000);
+	  // FITSImageIO::SetAutoScaleVelocityAxis(true);
+	  // FITSImageIO::SetScaleAllAxes(1000);
+	  // FITSImageIO::SetScaleRA(-1);
+	  // FITSImageIO::SetScaleVoxelValues(1000);
 	} else if (verboseFlag) {
 	  verboseFlag = false;
 	  da::setVerbosityLevel(1);
@@ -402,12 +402,12 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
 
   // Do some sanity checking to make sure that the options specified are
   // consistent with each other:
-//d   if (FITSImageIO::GetSuppressWCS() and
-//d       FITSImageIO::GetAutoScaleVelocityAxis())
-//d     {
-//d       da::warning("Velocity axis auto-scaling does not work when WCS\n"
-//d 		  "     is suppressed.");
-//d     }
+//   if (FITSImageIO::GetSuppressWCS() and
+//       FITSImageIO::GetAutoScaleVelocityAxis())
+//     {
+//       da::warning("Velocity axis auto-scaling does not work when WCS\n"
+// 		  "     is suppressed.");
+//     }
 }
   
 //-----------------------------------------------------------------------------
@@ -429,7 +429,7 @@ parseExtendedOption(const char* const option)
   } else if (optionStr == "binomialBlur") {
     _binomialBlurFlag = true;
   } else if (optionStr == "suppressMetaDataDictionary") {
-    //d FITSImageIO::SetSuppressMetaDataDictionary(true);
+    // FITSImageIO::SetSuppressMetaDataDictionary(true);
   } else if (optionStr == "identityFlip") {
     _identityFlipFlag = true;
   } else usage();
@@ -506,22 +506,27 @@ convertInputFileToItkFile(CommandLineParser& cl)
 			   cl.getFlipDecFlag(),
 			   cl.getFlipVFlag());
 
+  // TODO: Figure out how to do this without reading in the entire image.
+  reader->Update();
+  initializeChangeOfBasis(*image);
 
-  if (cl.getReorientNorth() or cl.getTransformToEquiangular()) {
-    // TODO: Figure out how to do this without reading in the entire image.
-    reader->Update();
-    initializeChangeOfBasis(*image);
+  transformToNorthOrientedEquiangular(*image);
 
-    if (cl.getTransformToEquiangular()) {
-      if (cl.getReorientNorth()) {
-	transformToNorthOrientedEquiangular(*image);
-      } else {
-	transformToUnreorientedEquiangular(*image);
-      }
-    } else if (cl.getReorientNorth()) {
-      reorientNorth(*image);
-    }
-  }
+//   if (cl.getReorientNorth() or cl.getTransformToEquiangular()) {
+//     // TODO: Figure out how to do this without reading in the entire image.
+//     reader->Update();
+//     initializeChangeOfBasis(*image);
+
+//     if (cl.getTransformToEquiangular()) {
+//       if (cl.getReorientNorth()) {
+// 	transformToNorthOrientedEquiangular(*image);
+//       } else {
+// 	transformToUnreorientedEquiangular(*image);
+//       }
+//     } else if (cl.getReorientNorth()) {
+//       reorientNorth(*image);
+//     }
+//   }
 
   if (cl.getOutputFilepath()) {
     typedef itk::ImageFileWriter<ImageType> WriterType;
