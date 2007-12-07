@@ -48,26 +48,6 @@ loadFITSImageIO()
 
 
 //-----------------------------------------------------------------------------
-// deprecated_getWCSTransform(): internal function
-//-----------------------------------------------------------------------------
-
-proc void*
-deprecated_getWCSTransform()
-{
-  FITSImageIO::WCSTransformGetter getTransform =
-    reinterpret_cast<FITSImageIO::WCSTransformGetter>(
-      dlsym(loadFITSImageIO(),
-	    "itkFITSImageIO_deprecatedGetWCSTransform")
-      );
-  if (!getTransform) {
-    runTimeError("Could not find function "
-		 "itkFITSImageIO_deprecatedGetWCSTransform()");
-  }
-  return (*getTransform)();
-}
-
-
-//-----------------------------------------------------------------------------
 // rotationMatrix(): internal function
 //-----------------------------------------------------------------------------
 

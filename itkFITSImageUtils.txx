@@ -95,7 +95,8 @@ public:
   typedef typename IjkPoint::VectorType   IjkVector;
   typedef typename WCS::OutputPointType   WcsPoint;
   typedef typename WcsPoint::VectorType   WcsVector;
-  typedef typename WCS::ConstPointer      WcsTransformConstPtr;
+  typedef typename WCS::ConstPointer	  WcsTransformConstPtr;
+  typedef typename WCS::Pointer		  WcsTransformPtr;
 
 private:
 
@@ -164,7 +165,7 @@ ImageInfo<ImageType>::ImageInfo(const ImageType& image)
   _ijkCenter[c_j] = imageOrigin[c_j] + imageSize[c_j]/2.0 - 0.5;
   _ijkCenter[c_k] = imageOrigin[c_k] + imageSize[c_k]/2.0 - 0.5;
 
-  const WCS* wcs = makeWcsTransform(image); 
+  WcsTransformConstPtr wcs = makeWcsTransform(image); 
   _wcsTransform = wcs;
   _wcsCenter = wcs->TransformPoint(_ijkCenter);
   
@@ -203,7 +204,7 @@ ImageInfo<ImageType>::ImageInfo(const ImageType& image)
   // WCS space, and then transforming it into IJK space.  We can then use trig
   // to determine the amount of rotation of the image from north in IJK space:
   {
-    typename WCS::Pointer inverseWcs = WCS::New();
+    WcsTransformPtr inverseWcs = WCS::New();
     wcs->GetInverse(inverseWcs);
 
     // We calculate wcsNorthVector, just for the purpose of getting a Dec
@@ -264,9 +265,10 @@ ImageInfo<ImageType>::makeWcsTransform(const ImageType& image)
   // TODO: Add more error checking here in case 'wcs' ends up in some sort of
   // erroneous state.
   const ConstRcMallocPointer<WorldCoor> wcs = wcsinit(fitsHeader.c_str());
-  WCS* retval = WCS::New();
+  WcsTransformPtr retval = WCS::New();
   retval->SetWCS(wcs);
-  return retval;
+  WcsTransformConstPtr constRetval (retval);
+  return constRetval;
 }
 
 
@@ -539,14 +541,17 @@ rightConcatinateTransformation(ImageType& image,
 			       const Matrix<double, 3, 3>& m)
 {
   typename ImageType::SpacingType spacingMultiplier;
+
   for (size_t col = 0; col < 3; ++col) {
     spacingMultiplier[col] = sqrt(pow(m(0, col), 2) +
 				  pow(m(1, col), 2) +
 				  pow(m(2, col), 2));
   }
-  cout << "Spacing Before: " << image.GetSpacing() << endl; //d
+
   image.SetSpacing(image.GetSpacing() * spacingMultiplier);
-  cout << "Spacing After: "  << image.GetSpacing() << endl; //d
+
+  // The following code block, which is commented out, does the same thing as
+  // the above line, only less concisely.
 
 //   Spacing oldSpacing = image.GetSpacing();
 //   Spacing newSpacing;
@@ -561,9 +566,7 @@ rightConcatinateTransformation(ImageType& image,
       directionMultiplier(row, col) = m(row, col) / spacingMultiplier[col]; 
     }
   }
-  cout << "Direction Before: " << image.GetDirection() << endl; //d
   image.SetDirection(image.GetDirection() * directionMultiplier);
-  cout << "Direction After: "  << image.GetDirection() << endl; //d
 }
 
 
