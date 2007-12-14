@@ -11,7 +11,7 @@
 // See LICENSE.txt for for details.
 //=============================================================================
 
-extern const char fits2itkVersion[] = "Version 0.4dev.12pending.7";
+extern const char fits2itkVersion[] = "Version 0.4dev.12pending.8";
 
 //=============================================================================
 // Change Log
@@ -522,9 +522,26 @@ extern const char fits2itkVersion[] = "Version 0.4dev.12pending.7";
 // things around, there were some bugs related to ITK's smart pointers causing
 // core dumps, but I fixed them.
 
+//---------------------------
+// Version 0.4dev.12pending.8
+//---------------------------
+
+// *** Thu Dec 13, 2007 ***
+
+// Changed ImageInfo into FITSImage, so that I don't have to keep making the
+// ImageInfo object over and over again.
+
+// Also moved all of the coordinate transformation stuff into pure matrix
+// arithmetic stuff, rather than having strange kludges.
+
+// Status: Everything compiles and things sort of work, but there's still a
+// bunch more straightening out to do, and reimplementation of lost features.
+
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
 //----------------------------------------------------------------------
+
+// Working on: Reimplementation of features lost during refactoring.
 
 // Things that I need to do soon:
 

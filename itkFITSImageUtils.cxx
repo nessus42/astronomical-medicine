@@ -17,9 +17,9 @@
 
 #include <cmath>
 #include <dlfcn.h>                         // For dlopen()
-#include <itkFITSImageIO.h>
-#include <itkMatrix.h>
 #include <pathToExecutable.h>
+#include <itkFITSImageIO.h>
+#include <itkFITSImageUtils.h>
 #include <da_sugar.h>
 
 namespace itk {
@@ -28,7 +28,7 @@ namespace _internal {
 
 
 //-----------------------------------------------------------------------------
-// loadFITSImageIO(): local function
+// loadFITSImageIO(): internal function
 //-----------------------------------------------------------------------------
 
 local proc void*
@@ -48,24 +48,41 @@ loadFITSImageIO()
 
 
 //-----------------------------------------------------------------------------
+// fillMatrix(): internal function
+//-----------------------------------------------------------------------------
+
+/*internal proc*/
+void
+fillMatrix(Matrix& m, const double vals[3][3])
+{
+  for (int row = 0; row < 3; ++row) {
+    for (int col = 0; col < 3; ++col) {
+      m(row, col) = vals[row][col];
+    }
+  }
+}
+
+//-----------------------------------------------------------------------------
 // rotationMatrix(): internal function
 //-----------------------------------------------------------------------------
 
-Matrix<double, 3, 3>
+/*internal proc*/
+Matrix
 rotationMatrix(double degrees)
 {
-  const double s = sin(degrees/180 * M_PI);
-  const double c = cos(degrees/180 * M_PI);
-  Matrix<double, 3, 3> retval;
-  retval(0, 0) = c;
-  retval(0, 1) = -s;
-  retval(1, 0) = s;
-  retval(1, 1) = c;
-  retval(2, 2) = 1;
+  const double radians = degreesToRadians(degrees);
+  const double s = sin(radians);
+  const double c = cos(radians);
+  const double matrixVals[3][3] =
+    { 
+        c, 0, s,
+	0, 1, 0,
+	s, 0, c 
+    };
+  Matrix retval;
+  fillMatrix(retval, matrixVals);
   return retval;
 }
-
-} // END namespace _internal
 
 
 //-----------------------------------------------------------------------------
@@ -85,4 +102,5 @@ setNullValue(double nullValue)
   (*setNullValue)(nullValue);
 }
 
-} } // END namespace itk::fits
+
+} } } // END namespaces

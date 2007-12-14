@@ -58,102 +58,18 @@ using std::ostream;
 using std::string;
 
 //-----------------------------------------------------------------------------
-// Internal inline functions for use by ImageInfo below
-//-----------------------------------------------------------------------------
-
-/*internal proc*/ inline double
-degreesToRadians(double degrees)
-{
-  return degrees * M_PI/180;
-}
-
-/*internal proc*/ inline double
-radiansToDegrees(double radians)
-{
-  return radians * 180/M_PI;
-}
-
-/*internal proc*/ inline double
-cartesianLength(double x, double y)
-{
-  return sqrt(x*x + y*y);
-}
-
-
-//=============================================================================
-// ImageInfo: internal class
-//=============================================================================
-
-template <class ImageType>
-class ImageInfo
-{
-
-  typedef FITSWCSTransform<double, ImageType::ImageDimension> WCS;
-
-public:
-  typedef typename WCS::InputPointType    IjkPoint;
-  typedef typename IjkPoint::VectorType   IjkVector;
-  typedef typename WCS::OutputPointType   WcsPoint;
-  typedef typename WcsPoint::VectorType   WcsVector;
-  typedef typename WCS::ConstPointer	  WcsTransformConstPtr;
-  typedef typename WCS::Pointer		  WcsTransformPtr;
-
-private:
-
-  // Instance variables:
-  const ImageType&     _theImage;
-  WcsTransformConstPtr _wcsTransform;
-  IjkPoint             _ijkCenter;
-  WcsPoint             _wcsCenter;
-  WcsVector            _unitIInWcs;
-  WcsVector            _unitJInWcs;
-  WcsVector            _unitIInApproximateAngularSpace;
-  WcsVector            _unitJInApproximateAngularSpace;
-  IjkVector            _ijkNorthVector;
-  double               _rotationOfJFromIjkNorthVectorInDegrees;
-  double               _raAngularScalingFactor;
-
-  // Private static methods:
-  WcsTransformConstPtr makeWcsTransform(const ImageType& image);
-
-public:
-
-  // Constructors:
-  ImageInfo(const ImageType& image);
-
-  // Accessors:
-  ImageType&    image()                         { return _theImage; }
-  IjkPoint      ijkCenter() const               { return _ijkCenter; }
-  WcsPoint      wcsCenter() const               { return _wcsCenter; }
-  WcsVector     unitIInWcs() const              { return _unitIInWcs; }
-  WcsVector     unitJInWcs() const              { return _unitJInWcs; }
-
-  WcsTransformConstPtr
-                wcsTransform() const            { return _wcsTransform; }
-
-  WcsVector     unitIInApproximateAngularSpace() const
-                   { return _unitIInApproximateAngularSpace; }
-  WcsVector     unitJInApproximateAngularSpace() const
-                   { return _unitJInApproximateAngularSpace; }
-  IjkVector     ijkNorthVector() const
-                   { return _ijkNorthVector; }
-  double        rotationOfJFromIjkNorthVectorInDegrees() const
-                   { return _rotationOfJFromIjkNorthVectorInDegrees; }
-  double        raAngularScalingFactor() const
-                   { return _raAngularScalingFactor; }
-};
-
-
-//-----------------------------------------------------------------------------
-// Constructor of ImageInfo
+// Constructor of FITSImage
 //-----------------------------------------------------------------------------
 
 /*ctor*/
 template <class ImageType>
-ImageInfo<ImageType>::ImageInfo(const ImageType& image)
-  : _theImage(image)
+FITSImage<ImageType>::FITSImage(const typename Self::Params& params)
+  : _params(params), _itkImage(*params.itkImage)
 {
-  typename ImageType::RegionType allOfImage = image.GetLargestPossibleRegion();
+  assert(&_itkImage);
+
+  typename ImageType::RegionType
+    allOfImage = _itkImage.GetLargestPossibleRegion();
   typename ImageType::SizeType imageSize = allOfImage.GetSize();
   typename ImageType::IndexType imageOrigin = allOfImage.GetIndex();
 
@@ -165,7 +81,7 @@ ImageInfo<ImageType>::ImageInfo(const ImageType& image)
   _ijkCenter[c_j] = imageOrigin[c_j] + imageSize[c_j]/2.0 - 0.5;
   _ijkCenter[c_k] = imageOrigin[c_k] + imageSize[c_k]/2.0 - 0.5;
 
-  WcsTransformConstPtr wcs = makeWcsTransform(image); 
+  WcsTransformConstPtr wcs = makeWcsTransform(); 
   _wcsTransform = wcs;
   _wcsCenter = wcs->TransformPoint(_ijkCenter);
   
@@ -238,21 +154,31 @@ ImageInfo<ImageType>::ImageInfo(const ImageType& image)
     _rotationOfJFromIjkNorthVectorInDegrees =
       radiansToDegrees(atan2(-1 * _ijkNorthVector[c_i], _ijkNorthVector[c_j]));
   }
+
+
+  // Set the ITK Image's coordinate transformation parameters:
+  {
+
+    setCoordinateFrameTransformation(
+       _itkImage,
+       this->raDecVToLpsMatrix() *
+       this->ijkToNorthOrientedEquiangularMatrix());
+  }
 }
 
 
 //-----------------------------------------------------------------------------
-// writeImageInfo(): private static method of ImageInfo<ImageType>
+// makeWcsTransform(): private static method of FITSImage template class
 //-----------------------------------------------------------------------------
 
 /*proc*/
 template <class ImageType>
-typename ImageInfo<ImageType>::WcsTransformConstPtr
-ImageInfo<ImageType>::makeWcsTransform(const ImageType& image)
+typename FITSImage<ImageType>::WcsTransformConstPtr
+FITSImage<ImageType>::makeWcsTransform()
 {
   using itk::MetaDataDictionary;
   using itk::MetaDataObject;
-  const MetaDataDictionary& mdd = image.GetMetaDataDictionary();
+  const MetaDataDictionary& mdd = _itkImage.GetMetaDataDictionary();
 
   // We cast away const here conly because ExposeMetaData() is unfortunately
   // not const correct:
@@ -273,49 +199,38 @@ ImageInfo<ImageType>::makeWcsTransform(const ImageType& image)
 
 
 //-----------------------------------------------------------------------------
-// writeImageInfo(): internal template function
+// writeImageInfo(): template function
 //-----------------------------------------------------------------------------
 
-/*internal proc*/
+/*proc*/
 template <class ImageType>
 void
-writeImageInfo(const ImageType& image, ostream& out)
+writeImageInfo(const FITSImage<ImageType>& image, ostream& out)
 {
-  const ImageInfo<ImageType> info(image);
+  const ImageType& itkImage = *image.getITKImage();
   out << "Image center, in IJK space with (0,0,0) index origin: "
-      << info.ijkCenter() << "\n"
-      << "Image center, in RA/Dec: " << info.wcsCenter() << "\n"
+      << image.ijkCenter() << "\n"
+      << "Image center, in RA/Dec: " << image.wcsCenter() << "\n"
       << "I vector, in RA/Dec: "
-      << info.unitIInWcs() << "\n"
+      << image.unitIInWcs() << "\n"
       << "J vector, in RA/Dec: "
-      << info.unitJInWcs() << "\n"
+      << image.unitJInWcs() << "\n"
       << "I vector, in approximate angular space: "
-      << info.unitIInApproximateAngularSpace() << "\n"
+      << image.unitIInApproximateAngularSpace() << "\n"
       << "J vector, in approximate angular space: "
-      << info.unitJInApproximateAngularSpace() << "\n"
+      << image.unitJInApproximateAngularSpace() << "\n"
       << "|I|, in approximate angular space: "
-      << info.unitIInApproximateAngularSpace().GetNorm() << "\n"
+      << image.unitIInApproximateAngularSpace().GetNorm() << "\n"
       << "|J|, in approximate angular space: "
-      << info.unitJInApproximateAngularSpace().GetNorm() << "\n"
-      << "North vector in IJK space: " << info.ijkNorthVector() << "\n"
+      << image.unitJInApproximateAngularSpace().GetNorm() << "\n"
+      << "North vector in IJK space: " << image.ijkNorthVector() << "\n"
       << "Rotation of J from North:  "
-      << info.rotationOfJFromIjkNorthVectorInDegrees() << "\n"
+      << image.rotationOfJFromIjkNorthVectorInDegrees() << "\n"
       << "Direction cosines:\n"
-      << image.GetDirection()
-      << "Image spacing: " << image.GetSpacing() << "\n"
-      << "Image origin: " << image.GetOrigin() << "\n"
+      << itkImage.GetDirection()
+      << "Image spacing: " << itkImage.GetSpacing() << "\n"
+      << "Image origin: " << itkImage.GetOrigin() << "\n"
     ;
-}
-
-
-//-----------------------------------------------------------------------------
-// isOdd(): internal inline function
-//-----------------------------------------------------------------------------
-
-/*internal proc*/ inline bool
-isOdd(size_t num)
-{
-  return num & 1;
 }
 
 
@@ -364,7 +279,7 @@ applyBinomialBlurFilter(const typename Image<PixelType, c_dims>::Pointer& image)
 
 
 //-----------------------------------------------------------------------------
-// applyMeanFilter(): internal template function
+// applyMeanFilter(): template function
 //-----------------------------------------------------------------------------
 
 // template <class PixelType>
@@ -495,38 +410,60 @@ reflectPixels(Image<PixelType, c_dims>& image,
 
 
 //-----------------------------------------------------------------------------
-// initializeChangeOfBasis(): template function
+// initializeChangeOfBasis(): private method of FITSImage template class
 //-----------------------------------------------------------------------------
 
-/*proc*/
-template <class ImageType>
-void
-initializeChangeOfBasis(ImageType& image)
+// /*private method*/
+// template <typename ImageType>
+// void
+// FITSImage<ImageType>::initializeChangeOfBasis()
+// {
+//   const size_t dims = ImageType::ImageDimension;
+
+//   // Set the origin to (0, 0, 0):
+//   typename ImageType::PointType origin;
+//   for (size_t d = 0; d < dims; ++d) origin[d] = 0;
+//   _itkImage.SetOrigin(origin);
+
+//   // Set the spacing vector to (1, 1, 1):
+//   typename ImageType::SpacingType spacing;
+//   for (size_t d = 0; d < dims; ++d) spacing[d] = 1;
+//   _itkImage.SetSpacing(spacing);
+
+//   // TODO: Replace these constants with something somewhere that is more
+//   // globally accessible.
+//   enum {ra, dec, v};
+//   enum {l, p, s};
+
+//   // Set the direction cosine matrix to properly orient RA, Dec, and V into LPS
+//   // space:
+//   typename ImageType::DirectionType direction;
+//   direction(l, ra) = -1;
+//   direction(p, v) = 1;
+//   direction(s, dec) = 1;
+//   _itkImage.SetDirection(direction);
+// }
+
+
+//-----------------------------------------------------------------------------
+// raDecVToLpsMatrix(): private method of FITSImage template class
+//-----------------------------------------------------------------------------
+
+/*private method*/
+template <typename ImageType>
+Matrix
+FITSImage<ImageType>::raDecVToLpsMatrix()
 {
-  const size_t dims = ImageType::ImageDimension;
-
-  // Set the origin to (0, 0, 0):
-  typename ImageType::PointType origin;
-  for (size_t d = 0; d < dims; ++d) origin[d] = 0;
-  image.SetOrigin(origin);
-
-  // Set the spacing vector to (1, 1, 1):
-  typename ImageType::SpacingType spacing;
-  for (size_t d = 0; d < dims; ++d) spacing[d] = 1;
-  image.SetSpacing(spacing);
-
   // TODO: Replace these constants with something somewhere that is more
   // globally accessible.
   enum {ra, dec, v};
   enum {l, p, s};
 
-  // Set the direction cosine matrix to properly orient RA, Dec, and V into LPS
-  // space:
-  typename ImageType::DirectionType direction;
-  direction(l, ra) = -1;
-  direction(p, v) = 1;
-  direction(s, dec) = 1;
-  image.SetDirection(direction);
+  Matrix retval;
+  retval(l, ra) = -1;
+  retval(p, v) = 1;
+  retval(s, dec) = 1;
+  return retval;
 }
 
 
@@ -534,140 +471,200 @@ initializeChangeOfBasis(ImageType& image)
 // rightConcatinateTransformation(): internal template function
 //-----------------------------------------------------------------------------
 
+// /*internal proc*/ 
+// template <class ImageType>
+// void
+// rightConcatinateTransformation(ImageType& image, const Matrix& m)
+ 			       
+// {
+//   typename ImageType::SpacingType spacingMultiplier;
+
+//   for (size_t col = 0; col < 3; ++col) {
+//     spacingMultiplier[col] = sqrt(square(m(0, col)) +
+// 				  square(m(1, col)) +
+// 				  square(m(2, col)));
+//   }
+
+//   // Do an element-by-element multiplication:
+//   image.SetSpacing(image.GetSpacing() * spacingMultiplier);
+
+//   Matrix directionMultiplier;
+//   for (size_t row = 0; row < 3; ++row) {
+//     for (size_t col = 0; col < 3; ++col) {
+//       directionMultiplier(row, col) = m(row, col) / spacingMultiplier[col]; 
+//     }
+//   }
+//   image.SetDirection(image.GetDirection() * directionMultiplier);
+// }
+
+
+//-----------------------------------------------------------------------------
+// setCoordinateFrameTransformation(): internal template function
+//-----------------------------------------------------------------------------
+
+// This function sets the matrix that is used to convert coordinates from Index
+// Space to LPS space.
+
+// Note: There is alternative conception of the term "coordinate frame
+// transformation", according to which the matrix, instead of transforming
+// coordinates from Index Space to LPS Space would transform the basis vectors
+// for Index Space to the basis vectors for LPS space.  The matrix for this
+// alternative conception is merely the inverse of the matrix that we are using
+// here.
+
 /*internal proc*/ 
 template <class ImageType>
 void
-rightConcatinateTransformation(ImageType& image,
-			       const Matrix<double, 3, 3>& m)
+setCoordinateFrameTransformation(ImageType& image, const Matrix& m)
+ 			       
 {
-  typename ImageType::SpacingType spacingMultiplier;
+  const size_t dims = ImageType::ImageDimension;
+  const size_t mDims = 3;
 
-  for (size_t col = 0; col < 3; ++col) {
-    spacingMultiplier[col] = sqrt(pow(m(0, col), 2) +
-				  pow(m(1, col), 2) +
-				  pow(m(2, col), 2));
-  }
-
-  image.SetSpacing(image.GetSpacing() * spacingMultiplier);
-
-  // The following code block, which is commented out, does the same thing as
-  // the above line, only less concisely.
-
-//   Spacing oldSpacing = image.GetSpacing();
-//   Spacing newSpacing;
-//   for (size_t col = 0; col < 3; ++col) {
-//     newSpacing = oldSpacing[col] * multiplier[col];
-//   }
-//   image.SetSpacing(newSpacing);
-
-  Matrix<double, 3, 3> directionMultiplier;
-  for (size_t row = 0; row < 3; ++row) {
-    for (size_t col = 0; col < 3; ++col) {
-      directionMultiplier(row, col) = m(row, col) / spacingMultiplier[col]; 
-    }
-  }
-  image.SetDirection(image.GetDirection() * directionMultiplier);
-}
-
-
-//-----------------------------------------------------------------------------
-// transformToNorthOrientedEquiangular(): template function
-//-----------------------------------------------------------------------------
-
-/*proc*/
-template <class ImageType>
-void
-transformToNorthOrientedEquiangular(ImageType& image)
-{
-  
-  // TODO: We should stop making an ImageInfo inside every function that needs
-  // it, and instead subclass ImageType, or something, and calculate the
-  // information once.
-  
-  enum {ra, dec};
-  const ImageInfo<ImageType> info(image);
-
-  Matrix<double, 3, 3> m;
-
-  m(0, 0) = info.unitIInApproximateAngularSpace()[ra] * 1000 * 1000;
-  m(0, 1) = info.unitIInApproximateAngularSpace()[dec] * 1000 * 1000;
-  m(0, 2) = 0;
-
-  m(1, 0) = info.unitJInApproximateAngularSpace()[ra] * 1000 * 1000;
-  m(1, 1) = info.unitJInApproximateAngularSpace()[dec] * 1000 * 1000;
-  m(1, 2) = 0;
-
-  m(2, 0) = 0;
-  m(2, 1) = 0;
-  m(2, 2) = 1;
-
-  rightConcatinateTransformation(image, m);
-}
-
-
-//-----------------------------------------------------------------------------
-// transformToUnreorientedEquiangular(): template function
-//-----------------------------------------------------------------------------
-
-/*proc*/
-template <class ImageType>
-void
-transformToUnreorientedEquiangular(ImageType& image)
-{
-  
-  // TODO: We should stop making an ImageInfo inside every function that needs
-  // it, and instead subclass ImageType, or something, and calculate the
-  // information once.
-  
-  const ImageInfo<ImageType> info(image);
-  const double iAngleLen = info.unitIInApproximateAngularSpace().GetNorm();
-  const double jAngleLen = info.unitJInApproximateAngularSpace().GetNorm();
+  // At the moment, we don't preserve the origin at all, so we'll just set it
+  // to (0, 0, 0):
+  typename ImageType::PointType origin;
+  for (size_t d = 0; d < dims; ++d) origin[d] = 0;
+  image.SetOrigin(origin);
 
   typename ImageType::SpacingType spacing;
-  spacing[0] = iAngleLen * 1000 * 1000;
-  spacing[1] = jAngleLen * 1000 * 1000;
-  spacing[2] = (iAngleLen + jAngleLen) / 2 * 1000 * 1000;
-
+  for (size_t col = 0; col < dims; ++col) {
+    spacing[col] = sqrt(square(m(0, col)) +
+			square(m(1, col)) +
+			square(m(2, col)));
+  }
   image.SetSpacing(spacing);
+
+  Matrix directionCosines;
+  for (size_t row = 0; row < mDims; ++row) {
+    for (size_t col = 0; col < mDims; ++col) {
+      directionCosines(row, col) = m(row, col) / spacing[col]; 
+    }
+  }
+  image.SetDirection(directionCosines);
 }
 
 
 //-----------------------------------------------------------------------------
-// reorientNorth(): template function
+// transformToNorthOrientedEquiangular():
+//    private method of FITSImage template class
 //-----------------------------------------------------------------------------
 
-/*proc*/
+// /*method*/
+// template <class ImageType>
+// void
+// FITSImage<ImageType>::transformToNorthOrientedEquiangular()
+// {
+//   enum {ra, dec};
+//   Matrix m;
+
+//   m(0, 0) = this->unitIInApproximateAngularSpace()[ra] * 1000 * 1000;
+//   m(0, 1) = this->unitIInApproximateAngularSpace()[dec] * 1000 * 1000;
+//   m(0, 2) = 0;
+
+//   m(1, 0) = this->unitJInApproximateAngularSpace()[ra] * 1000 * 1000;
+//   m(1, 1) = this->unitJInApproximateAngularSpace()[dec] * 1000 * 1000;
+//   m(1, 2) = 0;
+
+//   m(2, 0) = 0;
+//   m(2, 1) = 0;
+//   m(2, 2) = 1;
+
+//   rightConcatinateTransformation(*this->getITKImage(), m);
+// }
+
+
+//-----------------------------------------------------------------------------
+// ijkToNorthOrientedEquiangularMatrix():
+//    private method of FITSImage template class
+//-----------------------------------------------------------------------------
+
+/*method*/
 template <class ImageType>
-void
-reorientNorth(ImageType& image)
+Matrix
+FITSImage<ImageType>::ijkToNorthOrientedEquiangularMatrix()
 {
-  const ImageInfo<ImageType> info(image);
+  enum {ra, dec};
+  Matrix retval;
 
-  // Multiply the direction cosine matrix by a rotation matrix to compensate
-  // for image rotation:
-  image.SetDirection(
-     image.GetDirection() *
-     rotationMatrix(-1 * info.rotationOfJFromIjkNorthVectorInDegrees())
-     );
+  retval(0, 0) = this->unitIInApproximateAngularSpace()[ra] * 1000 * 1000;
+  retval(0, 1) = this->unitIInApproximateAngularSpace()[dec] * 1000 * 1000;
+  retval(0, 2) = 0;
+
+  retval(1, 0) = this->unitJInApproximateAngularSpace()[ra] * 1000 * 1000;
+  retval(1, 1) = this->unitJInApproximateAngularSpace()[dec] * 1000 * 1000;
+  retval(1, 2) = 0;
+
+  retval(2, 0) = 0;
+  retval(2, 1) = 0;
+  // retval(2, 2) = 1;  //d This has been replaced just as a kludge until we
+                        //d put back in some sort of auto-scaling for V.
+  retval(2, 2) = 10000; //d
+
+  // YOU ARE HERE
+
+  return retval;
 }
+
+
+// //-----------------------------------------------------------------------------
+// // transformToUnreorientedEquiangular(): template function
+// //-----------------------------------------------------------------------------
+
+// /*proc*/
+// template <class ImageType>
+// void
+// transformToUnreorientedEquiangular(ImageType& image)
+// {
+  
+//   const FITSImage<ImageType> info(image);
+//   const double iAngleLen = info.unitIInApproximateAngularSpace().GetNorm();
+//   const double jAngleLen = info.unitJInApproximateAngularSpace().GetNorm();
+
+//   typename ImageType::SpacingType spacing;
+//   spacing[0] = iAngleLen * 1000 * 1000;
+//   spacing[1] = jAngleLen * 1000 * 1000;
+//   spacing[2] = (iAngleLen + jAngleLen) / 2 * 1000 * 1000;
+
+//   image.SetSpacing(spacing);
+// }
+
+
+// //-----------------------------------------------------------------------------
+// // reorientNorth(): template function
+// //-----------------------------------------------------------------------------
+
+// /*proc*/
+// template <class ImageType>
+// void
+// reorientNorth(ImageType& image)
+// {
+//   const FITSImage<ImageType> info(image);
+
+//   // Multiply the direction cosine matrix by a rotation matrix to compensate
+//   // for image rotation:
+//   image.SetDirection(
+//      image.GetDirection() *
+//      rotationMatrix(-1 * info.rotationOfJFromIjkNorthVectorInDegrees())
+//      );
+// }
 
 
 } // END namespace itk::fits::_internal
 
 
 //-----------------------------------------------------------------------------
-// Export symbols from _internal into itk::fits:
+// Export symbols from _internal into itk::fits
 //-----------------------------------------------------------------------------
 
 using _internal::applyFlipImageFilter;
 using _internal::applyBinomialBlurFilter;
-using _internal::initializeChangeOfBasis;
 using _internal::reflectPixels;
-using _internal::reorientNorth;
-using _internal::transformToNorthOrientedEquiangular;
-using _internal::transformToUnreorientedEquiangular;
 using _internal::writeImageInfo;
+
+// using _internal::reorientNorth;
+// using _internal::transformToUnreorientedEquiangular;
 
 } } // END namespace itk::fits
 
-#endif // _itkFITSImageUtils_tx
+#endif // _itkFITSImageUtils_txx
