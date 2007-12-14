@@ -17,41 +17,165 @@
 #ifndef _itkFITSImageUtils_h
 #define _itkFITSImageUtils_h
 
+#include <itkMatrix.h>
+#include <itkFITSWCSTransform.h>
 #include <itkFITSImageIO.h>
 
 // BEGIN
 namespace itk {
 namespace fits {
-
-  // Global functions:
-
-  /*proc*/ void
-  setNullValue(double nullValue);
-
-  // /*proc*/ FITSImageIO::WCSTransform::ConstPointer
-  // deprecated_getWCSTransform();
-
-  /*proc*/ void
-  setNullValue(double);
-
 namespace _internal {
 
-  // Internal functions:
+// Internal typedefs:
+typedef Matrix<double, 3, 3> Matrix;
 
-  /*internal proc*/ void*
-  loadFITSImageIO();
 
-  /*internal proc*/ Matrix<double, 3, 3>
-  rotationMatrix(double degrees);
+// Global functions:
+void setNullValue(double nullValue);
 
-  // /*internal proc*/ void*
-  // deprecated_getWCSTransform();
+
+//*****************************************************************************
+//*****                                                                   *****
+//*****             FITSImage: concrete type                              *****
+//*****                                                                   *****
+//*****************************************************************************
+
+template <class ImageType>
+class FITSImage
+{
+
+  typedef FITSWCSTransform<double, ImageType::ImageDimension> WCS;
+
+public:
+  typedef          FITSImage<ImageType>     Self;
+  typedef typename WCS::InputPointType      IjkPoint;
+  typedef typename IjkPoint::VectorType     IjkVector;
+  typedef typename WCS::OutputPointType     WcsPoint;
+  typedef typename WcsPoint::VectorType     WcsVector;
+  typedef typename WCS::ConstPointer	    WcsTransformConstPtr;
+  typedef typename WCS::Pointer		    WcsTransformPtr;
+
+
+  struct Params {
+    typename ImageType::Pointer           itkImage;
+    double                                angularUnitsInMicroDegrees;
+
+    Params()
+      : itkImage(0),
+	angularUnitsInMicroDegrees(1)
+    {}
+  };
+    
+
+private:
+
+  // Instance variables:
+  const Params		  _params;
+  ImageType&	          _itkImage;
+  WcsTransformConstPtr    _wcsTransform;
+  IjkPoint                _ijkCenter;
+  WcsPoint                _wcsCenter;
+  WcsVector               _unitIInWcs;
+  WcsVector               _unitJInWcs;
+  WcsVector               _unitIInApproximateAngularSpace;
+  WcsVector               _unitJInApproximateAngularSpace;
+  IjkVector            	  _ijkNorthVector;
+  double               	  _rotationOfJFromIjkNorthVectorInDegrees;
+  double               	  _raAngularScalingFactor;
+
+  // Private static methods:
+  WcsTransformConstPtr    makeWcsTransform();
+
+  // Private methods:
+  // void initializeChangeOfBasis();
+  Matrix ijkToNorthOrientedEquiangularMatrix();
+  Matrix raDecVToLpsMatrix();
+
+  // Deactivate copy ctor and and assignment:
+  FITSImage(const FITSImage&);
+  void operator=(const FITSImage&);
+
+public:
+
+  // Constructors:
+  explicit FITSImage(const Params& params);
+
+  // YOU ARE HERE: You need to modify the constructor to accept the params.
+
+  // Accessor methods::
+  typename ImageType::Pointer
+     getITKImage() { return _params.itkImage; }
+
+  typename ImageType::ConstPointer 
+     getITKImage() const
+        { return typename ImageType::ConstPointer(_params.itkImage); }
+
+  IjkPoint                ijkCenter() const    { return _ijkCenter; }
+  WcsPoint                wcsCenter() const    { return _wcsCenter; }
+  WcsVector               unitIInWcs() const   { return _unitIInWcs; }
+  WcsVector               unitJInWcs() const   { return _unitJInWcs; }
+  WcsTransformConstPtr    wcsTransform() const { return _wcsTransform; }
+
+  WcsVector     unitIInApproximateAngularSpace() const
+                   { return _unitIInApproximateAngularSpace; }
+  WcsVector     unitJInApproximateAngularSpace() const
+                   { return _unitJInApproximateAngularSpace; }
+  IjkVector     ijkNorthVector() const
+                   { return _ijkNorthVector; }
+  double        rotationOfJFromIjkNorthVectorInDegrees() const
+                   { return _rotationOfJFromIjkNorthVectorInDegrees; }
+  double        raAngularScalingFactor() const
+                   { return _raAngularScalingFactor; }
+
+};
+
+// Internal functions:
+void     fillMatrix(Matrix& m, const double vals[3][3]);
+Matrix   rotationMatrix(double degrees);
+Matrix	 scalingMatrix(double xScale, double yScale, double zScale);
+
+// Inline internal functions:
+
+inline double
+degreesToRadians(double degrees)
+{
+  return degrees * M_PI/180;
+}
+
+inline double
+radiansToDegrees(double radians)
+{
+  return radians * 180/M_PI;
+}
+
+inline double
+square(double x)
+{
+  return x * x;
+}
+
+inline double
+cartesianLength(double x, double y)
+{
+  return sqrt(square(x) + square(y));
+}
+
+inline bool
+isOdd(size_t num)
+{
+  return num & 1;
+}
 
 } // END namespace _internal
 
+//-----------------------------------------------------------------------------
+// Export symbols from _internal into itk::fits
+//-----------------------------------------------------------------------------
 
-} } // END namespace itk::fits
+using _internal::setNullValue;
+using _internal::FITSImage;
 
+} } // END namespaces
 
 #ifndef ITK_MANUAL_INSTANTIATION
 #include <itkFITSImageUtils.txx>

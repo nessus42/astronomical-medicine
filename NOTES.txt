@@ -1,0 +1,180 @@
+These are the options that should be supported in the next version:
+
+XXX The DLL:
+
+   XXX This should just load the data cube and do nothing related to WCS with
+   it.  I.e., it should be just like --no-wcs.
+
+{default}
+
+   Does what "--reorient-north --equiangular" does now.  The axes are in
+   microdegrees.  The pixel values should also be scaled by 1000 (for
+   floating point images, but not for integer images), and the
+   velocity axis should be auto-scaled.
+
+   Should output some of what is currently output for the verbose
+   option should be output:
+
+      Current format:
+
+      Image center, in IJK space with (0,0,0) index origin: [86, 41.5, 314.5]
+      Image center, in RA/Dec: [56.5541, 32.9725, 0]
+      I vector, in RA/Dec: [-0.015231, -1.84831e-06, 0]
+      J vector, in RA/Dec: [-2.20355e-06, 0.0127778, 0]
+      I vector, in approximate angular space: [-0.0127778, -1.84831e-06, 0]
+      J vector, in approximate angular space: [-1.84863e-06, 0.0127778, 0]
+      |I|, in approximate angular space: 0.0127778
+      |J|, in approximate angular space: 0.0127778
+      North vector in IJK space: [-0.0001447, 1, 0]
+      Rotation of J from North:  0.00829069
+      Direction cosines:
+      -1 0.0146564 0
+      0 0 1
+      -0.000121346 0.999893 0
+      Image spacing: [0.01514, 0.0127782, 1]
+      Image origin: [57.8563, 0, 32.4356]
+
+
+      New format:
+
+      Input file: foo.fits
+      Output file: foo.nrrd
+      Image center, in pixels: (86, 41.5, 314.5)
+      Image center, in RA/Dec/V: (56.5541, 32.9725, 0)
+      Pixel size in degrees: 0.0127778 x 0.0127778
+      Pixel size in arcseconds: #@$@#$ x #@#$#@#
+      Pixel size in km/s:
+
+
+
+       NOTE: Put the comments in the help text, rather than here.
+       Also for velocity, may have to instead do something like:
+
+       Pixel size in velocity: $#@$@$#@
+       Velocity units: km/s
+
+
+--quiet, -q
+
+  Suppress the above mentioned above.
+
+XXX -h
+
+   Outputs the terse usage message.
+
+XXX -n
+
+   Don't actually do anything.
+
+XXX --help
+   Outputs the verbose usage message.
+
+--no-wcs, --nw
+   Leaves the image alone.
+
+   --north-up
+     Rotates the image so that north is up.  Only works in conjunction
+     with --no-wcs.
+
+   --west-right
+     Rotates the image so thata west is to the right.  Only works in
+     conjunction with --no-wcs.
+
+--force-ra-dec, --frd
+   Forces the axes to be RA and Dec, rather than angular degrees.
+
+--west-axis-scale NUM, --was NUM
+  Sets the x-axis scale to be NUM microdegrees.  The default value is 1.
+  TODO: Figure out what this should do if --no-wcs is set.
+
+--north-axis-scale NUM, --nas NUM
+  Sets the y-axis scale to be NUM microdegrees.  The default value is 1.
+  TODO: Figure out what this should do if --no-wcs is set.
+
+--v-axis-scale NUM, --vas NUM
+  TODO: Figure out what this should do.
+
+--scale-all-axes {x}, --saa NUM, -a NUM
+  TODO: Figure out precisely what this should do.
+
+--null-value NUM, -N NUM
+  Sets the null value.  The default value is NaN.  (TODO: Find out
+  what it is for integer FITS types.)  You can't set this to 0, due to
+  a limitation in CFITSIO.  (TODO: Post to fitsbits or something to
+  see if this is really true.)
+
+--debug-level INT, -D INT
+  Sets the debug level to INT.  The default value is 0.
+
+--pixel-scale {x}, --ps
+  Every pixel will be multiplied by x upon converting from FITS to ITK.  The
+  default value is 1000.
+
+--flip-west, --fw
+--flip-north, --fn
+--flip-v, --fv
+
+--rotate-sky {x}, --rs
+  Rotates the image by x degrees counter-clockwise.
+
+--verbose
+
+--show-fits-header
+
+--derivative-image-filter
+--flip-image-filter
+--binomial-blur-filter
+--suppress-metadata-dictionary
+--identity-flip
+
+--coerce-to-shorts, --cts
+--coerce-to-unsigned-shorts, --ctus
+
+--lps
+  For use with programs other than Slicer that do not need the kludge
+  that compensates for Slicer's conversion to RAS.
+
+
+OPTIONS TO REMOVE
+=================
+
+
+--RIP
+
+  Replace this with noticing that the output file format is ".hdr" or
+  ".dat" and set the option automatically.
+
+-A
+
+  This does velocity autoscaling, but should be set by default.
+
+--auto-scale-v-axis, --asva, -A
+  Auto-scales the velocity axis.  It does this by making it the same size as
+  the larger of the west and north axes.
+
+  TODO: I think this is going to be the default, and there should be
+  another option to not do this.
+
+
+OTHER THINGS TO CONSIDER
+========================
+
+o BUNITS is the FITS header that describes the units for the intensity
+  scale.  We may want to output it, if it is present, but it doesn't
+  occur in all FITS files.
+
+o Here is an exemplar of the velocity information for a data cube.  This
+  one is just a bunch of slices with a linear delta between slices:
+
+     CRVAL3  =       -9970.58488358 /
+     CRPIX3  =              1.00000 /
+     CDELT3  =        63.5021900000 /
+     CTYPE3  = 'VELO-LSR'           /
+
+  VELO-LSR here means Local Standard Region, which means that the
+  doppler shifts have been adjusted to the average velocity of a
+  canonical area of the galaxy around our sun.  Notice, however, that
+  there are no units.  Jens says that there is a standard default
+  units.  I should look this up in the FITS standards document to see
+  what it has to say on the issue.
+

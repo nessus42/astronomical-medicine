@@ -48,14 +48,11 @@ using itk::FITSImageIO;
 using itk::FITSWCSTransform;
 
 #include <itkFITSImageUtils.h>
+using itk::fits::FITSImage;
 using itk::fits::applyFlipImageFilter;
 using itk::fits::applyBinomialBlurFilter;
-using itk::fits::initializeChangeOfBasis;
 using itk::fits::reflectPixels;
-using itk::fits::reorientNorth;
 using itk::fits::setNullValue;
-using itk::fits::transformToNorthOrientedEquiangular;
-// using itk::fits::transformToUnreorientedEquiangular;
 using itk::fits::writeImageInfo;
 
 #include <pathToExecutable.h>
@@ -445,39 +442,6 @@ parseExtendedOption(const char* const option)
 
 
 //-----------------------------------------------------------------------------
-// showFactoryClasses(): local function
-//-----------------------------------------------------------------------------
-
-// This function was used for debugging.
-
-// proc void
-// showFactoryClasses()
-// {
-//   cout << "Registered ITK factory classes: ";
-//   typedef list<ObjectFactoryBase*> List;
-//   typedef List::iterator Iter;
-//   List factories = ObjectFactoryBase::GetRegisteredFactories();
-//   for (Iter factoryIter = factories.begin();
-//        factoryIter != factories.end();
-//        ++factoryIter)
-//     {
-//       const char* const nameOfClass = (*factoryIter)->GetNameOfClass();
-//       if (strcmp(nameOfClass, "FITSImageIOFactory") == 0) {
-// 	cout << " YAAAAAAY!!!! ";
-// 	const FITSImageIOFactory* factory =
-// 	  (const FITSImageIOFactory*) *factoryIter;
-// 	factory->SetTestValue(10);
-// 	factory->GetTestValue();
-//       } else {
-// 	cout << nameOfClass << " ";
-//       }
-//     }
-//   cout << endl;
-//   cout << "Test Value1=" << FITSImageIOFactory::_cv_testValue << endl;
-// }
-
-
-//-----------------------------------------------------------------------------
 // convertInputFileToItkFile(): local template function
 //-----------------------------------------------------------------------------
 
@@ -508,9 +472,9 @@ convertInputFileToItkFile(CommandLineParser& cl)
 
   // TODO: Figure out how to do this without reading in the entire image.
   reader->Update();
-  initializeChangeOfBasis(*image);
-
-  transformToNorthOrientedEquiangular(*image);
+  typename FITSImage<ImageType>::Params params;
+  params.itkImage = image;
+  FITSImage<ImageType> fitsImage (params);
 
 //   if (cl.getReorientNorth() or cl.getTransformToEquiangular()) {
 //     // TODO: Figure out how to do this without reading in the entire image.
@@ -538,7 +502,7 @@ convertInputFileToItkFile(CommandLineParser& cl)
     reader->Update();
   }
 
-  if (da::getVerbosityLevel()) writeImageInfo(*image, cout);
+  if (da::getVerbosityLevel()) writeImageInfo(fitsImage, cout);
 
   return EXIT_SUCCESS;
 
