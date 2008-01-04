@@ -11,7 +11,7 @@
 // See LICENSE.txt for for details.
 //=============================================================================
 
-extern const char fits2itkVersion[] = "Version 0.4dev.12pending.8";
+extern const char fits2itkVersion[] = "Version 0.4dev.12pending.9";
 
 //=============================================================================
 // Change Log
@@ -19,7 +19,6 @@ extern const char fits2itkVersion[] = "Version 0.4dev.12pending.8";
 
 // See http://wiki.iic.harvard.edu/AstroMed/Software_Version_Numbers for
 // documentation on how these version numbers work.
-
 
 //---------------------------
 // Version 0.1dev.0
@@ -537,9 +536,18 @@ extern const char fits2itkVersion[] = "Version 0.4dev.12pending.8";
 // Status: Everything compiles and things sort of work, but there's still a
 // bunch more straightening out to do, and reimplementation of lost features.
 
+//---------------------------
+// Version 0.4dev.12pending.9
+//---------------------------
+
+// Commented out unused code, etc.
+
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
 //----------------------------------------------------------------------
+
+// The next version will most likely include changes that I made while at
+// NA-MIC 2008 Winter Project Week.
 
 // Working on: Reimplementation of features lost during refactoring.
 

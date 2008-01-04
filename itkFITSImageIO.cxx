@@ -60,18 +60,18 @@ const size_t c_k    = itk::FITSImageIO::c_k;
 // max(): local template proc
 //-----------------------------------------------------------------------------
 
-/*local*/ template <class T> inline T
-max(T& a, T& b)
-{
-  return a > b ? a : b;
-}
+// /*local*/ template <class T> inline T
+// max(T& a, T& b)
+// {
+//   return a > b ? a : b;
+// }
 
 
-// //--------------------------------------------------------------------------
-// // toLower(): local proc
-// //--------------------------------------------------------------------------
+//--------------------------------------------------------------------------
+// toLower(): local proc
+//--------------------------------------------------------------------------
 
-// // Converts \a s to lowercase.
+// Converts \a s to lowercase.
 
 // local proc void
 // toLower(string& s)
@@ -83,11 +83,11 @@ max(T& a, T& b)
 // }
 
 
-// //--------------------------------------------------------------------------
-// // endMatchesP(): local proc
-// //--------------------------------------------------------------------------
+//--------------------------------------------------------------------------
+// endMatchesP(): local proc
+//--------------------------------------------------------------------------
 
-// // Returns true iff \a extension is on the end of \a filepath.
+// Returns true iff \a extension is on the end of \a filepath.
 
 // local proc static bool
 // endMatchesP(const string& filepath, const string& extension)
@@ -150,10 +150,10 @@ getAllFitsErrorMessages(const int status)
 // square(): local inline proc
 //-----------------------------------------------------------------------------
 
-local proc inline double square(double x)
-{
-  return x * x;
-}
+// local proc inline double square(double x)
+// {
+//   return x * x;
+// }
 
 
 //-----------------------------------------------------------------------------
@@ -162,34 +162,34 @@ local proc inline double square(double x)
 
 // `rightMatrix` is modified to be `leftMatrix` * `rightMatrix`.
 
-local proc void
-leftMultiply(vector<double> rightMatrix[c_dims],
-	     const double leftMatrix[c_dims][c_dims])
-{
-  // Initialize retval to a matrix of 0's:
-  double retval[c_dims][c_dims];
-  for (int row = 0; row < c_dims; ++row) {
-    for (int col = 0; col < c_dims; ++col) {
-      retval[row][col] = 0;
-    }
-  }
+// local proc void
+// leftMultiply(vector<double> rightMatrix[c_dims],
+// 	     const double leftMatrix[c_dims][c_dims])
+// {
+//   // Initialize retval to a matrix of 0's:
+//   double retval[c_dims][c_dims];
+//   for (int row = 0; row < c_dims; ++row) {
+//     for (int col = 0; col < c_dims; ++col) {
+//       retval[row][col] = 0;
+//     }
+//   }
 
-  // Perform the multiplication into `retval`:
-  for (int row = 0; row < c_dims; ++row) {
-    for (int col = 0; col < c_dims; ++col) {
-      for (int i = 0; i < c_dims; ++i) {
-	retval[row][col] += leftMatrix[row][i] * rightMatrix[i][col];
-      }
-    }
-  }
+//   // Perform the multiplication into `retval`:
+//   for (int row = 0; row < c_dims; ++row) {
+//     for (int col = 0; col < c_dims; ++col) {
+//       for (int i = 0; i < c_dims; ++i) {
+// 	retval[row][col] += leftMatrix[row][i] * rightMatrix[i][col];
+//       }
+//     }
+//   }
 
-  // Copy retval into `rightMatrix`:
-  for (int row = 0; row < c_dims; ++row) {
-    for (int col = 0; col < c_dims; ++col) {
-      rightMatrix[row][col] = retval[row][col];
-    }
-  }
-}
+//   // Copy retval into `rightMatrix`:
+//   for (int row = 0; row < c_dims; ++row) {
+//     for (int col = 0; col < c_dims; ++col) {
+//       rightMatrix[row][col] = retval[row][col];
+//     }
+//   }
+// }
 
 
 //-----------------------------------------------------------------------------
@@ -198,114 +198,114 @@ leftMultiply(vector<double> rightMatrix[c_dims],
 
 // `leftMatrix` is modified to be `leftMatrix` * `rightMatrix`.
 
-local proc void
-rightMultiply(vector<double> leftMatrix[c_dims],
-	      const double rightMatrix[c_dims][c_dims])
-{
-  // Initialize retval to a matrix of 0's:
-  double retval[c_dims][c_dims];
-  for (int row = 0; row < c_dims; ++row) {
-    for (int col = 0; col < c_dims; ++col) {
-      retval[row][col] = 0;
-    }
-  }
+// local proc void
+// rightMultiply(vector<double> leftMatrix[c_dims],
+// 	      const double rightMatrix[c_dims][c_dims])
+// {
+//   // Initialize retval to a matrix of 0's:
+//   double retval[c_dims][c_dims];
+//   for (int row = 0; row < c_dims; ++row) {
+//     for (int col = 0; col < c_dims; ++col) {
+//       retval[row][col] = 0;
+//     }
+//   }
 
-  // Perform the multiplication into `retval`:
-  for (int row = 0; row < c_dims; ++row) {
-    for (int col = 0; col < c_dims; ++col) {
-      for (int i = 0; i < c_dims; ++i) {
-	retval[row][col] += leftMatrix[row][i] * rightMatrix[i][col];
-      }
-    }
-  }
+//   // Perform the multiplication into `retval`:
+//   for (int row = 0; row < c_dims; ++row) {
+//     for (int col = 0; col < c_dims; ++col) {
+//       for (int i = 0; i < c_dims; ++i) {
+// 	retval[row][col] += leftMatrix[row][i] * rightMatrix[i][col];
+//       }
+//     }
+//   }
 
-  // Copy retval into `leftMatrix`:
-  for (int row = 0; row < c_dims; ++row) {
-    for (int col = 0; col < c_dims; ++col) {
-      leftMatrix[row][col] = retval[row][col];
-    }
-  }
-}
+//   // Copy retval into `leftMatrix`:
+//   for (int row = 0; row < c_dims; ++row) {
+//     for (int col = 0; col < c_dims; ++col) {
+//       leftMatrix[row][col] = retval[row][col];
+//     }
+//   }
+// }
 
 
 //-----------------------------------------------------------------------------
 // applySkyRotation(): local proc
 //-----------------------------------------------------------------------------
 
-local proc void
-applySkyRotation(vector<double> changeOfBasisMatrix[c_dims], double degrees)
-{
-  if (degrees != 0) {
-    const double s = sin(degrees/180 * M_PI);
-    const double c = cos(degrees/180 * M_PI);
-    double rotationMatrix[c_dims][c_dims] = { c,  0, s,
-					      0,  1, 0,
-					      -s, 0, c };
-    rightMultiply(changeOfBasisMatrix, rotationMatrix);
-  }
-}
+// local proc void
+// applySkyRotation(vector<double> changeOfBasisMatrix[c_dims], double degrees)
+// {
+//   if (degrees != 0) {
+//     const double s = sin(degrees/180 * M_PI);
+//     const double c = cos(degrees/180 * M_PI);
+//     double rotationMatrix[c_dims][c_dims] = { c,  0, s,
+// 					      0,  1, 0,
+// 					      -s, 0, c };
+//     rightMultiply(changeOfBasisMatrix, rotationMatrix);
+//   }
+// }
 
 
 //-----------------------------------------------------------------------------
 // applyRAScale(): local proc
 //-----------------------------------------------------------------------------
 
-local proc void
-applyRAScale(vector<double> changeOfBasisMatrix[c_dims], double scaleFactor)
-{
-  if (scaleFactor != 1) {
-    for (int axis = c_i; axis <= c_k; ++axis) {
-      changeOfBasisMatrix[c_ra][axis] *= scaleFactor;
-    }
-  }
-}
+// local proc void
+// applyRAScale(vector<double> changeOfBasisMatrix[c_dims], double scaleFactor)
+// {
+//   if (scaleFactor != 1) {
+//     for (int axis = c_i; axis <= c_k; ++axis) {
+//       changeOfBasisMatrix[c_ra][axis] *= scaleFactor;
+//     }
+//   }
+// }
 
 
 //-----------------------------------------------------------------------------
 // applyDecScale(): local proc
 //-----------------------------------------------------------------------------
 
-local proc void
-applyDecScale(vector<double> changeOfBasisMatrix[c_dims], double scaleFactor)
-{
-  if (scaleFactor != 1) {
-    for (int axis = c_i; axis <= c_k; ++axis) {
-      changeOfBasisMatrix[c_dec][axis] *= scaleFactor;
-    }
-  }
-}
+// local proc void
+// applyDecScale(vector<double> changeOfBasisMatrix[c_dims], double scaleFactor)
+// {
+//   if (scaleFactor != 1) {
+//     for (int axis = c_i; axis <= c_k; ++axis) {
+//       changeOfBasisMatrix[c_dec][axis] *= scaleFactor;
+//     }
+//   }
+// }
 
 
 //-----------------------------------------------------------------------------
 // applyVelocityScale(): local proc
 //-----------------------------------------------------------------------------
 
-local proc void
-applyVelocityScale(vector<double> changeOfBasisMatrix[c_dims],
-		   double scaleFactor)
-{
-  if (scaleFactor != 1) {
-    for (int axis = c_i; axis <= c_k; ++axis) {
-      changeOfBasisMatrix[c_vel][axis] *= scaleFactor;
-    }
-  }
-}
+// local proc void
+// applyVelocityScale(vector<double> changeOfBasisMatrix[c_dims],
+// 		   double scaleFactor)
+// {
+//   if (scaleFactor != 1) {
+//     for (int axis = c_i; axis <= c_k; ++axis) {
+//       changeOfBasisMatrix[c_vel][axis] *= scaleFactor;
+//     }
+//   }
+// }
 
 
 //-----------------------------------------------------------------------------
 // applyScaleToAllAxes(): local proc
 //-----------------------------------------------------------------------------
 
-local proc void
-applyScaleToAllAxes(vector<double> changeOfBasisMatrix[c_dims],
-		    double scaleFactor)
-{
-  if (scaleFactor != 1) {
-    for (int indexAxis = c_i; indexAxis <= c_k; ++indexAxis)
-      for (int physicalAxis = 0; physicalAxis < c_dims; ++physicalAxis)
-	  changeOfBasisMatrix[physicalAxis][indexAxis] *= scaleFactor;
-  }
-}
+// local proc void
+// applyScaleToAllAxes(vector<double> changeOfBasisMatrix[c_dims],
+// 		    double scaleFactor)
+// {
+//   if (scaleFactor != 1) {
+//     for (int indexAxis = c_i; indexAxis <= c_k; ++indexAxis)
+//       for (int physicalAxis = 0; physicalAxis < c_dims; ++physicalAxis)
+// 	  changeOfBasisMatrix[physicalAxis][indexAxis] *= scaleFactor;
+//   }
+// }
 
 
 //*****************************************************************************

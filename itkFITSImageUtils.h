@@ -87,7 +87,7 @@ private:
   WcsTransformConstPtr    makeWcsTransform();
 
   // Private methods:
-  // void initializeChangeOfBasis();
+  void	 initializeInstanceVars();
   Matrix ijkToNorthOrientedEquiangularMatrix();
   Matrix raDecVToLpsMatrix();
 
