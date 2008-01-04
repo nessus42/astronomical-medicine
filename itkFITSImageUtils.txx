@@ -67,7 +67,32 @@ FITSImage<ImageType>::FITSImage(const typename Self::Params& params)
   : _params(params), _itkImage(*params.itkImage)
 {
   assert(&_itkImage);
+  initializeInstanceVars();
 
+  // Set the ITK Image's coordinate transformation parameters:
+  {
+    const double angularUnitsScaling = 
+      1e6 / _params.angularUnitsInMicroDegrees;
+    setCoordinateFrameTransformation(
+       _itkImage,
+       this->raDecVToLpsMatrix()
+       * scalingMatrix(angularUnitsScaling, angularUnitsScaling, 1e4)
+       * this->ijkToNorthOrientedEquiangularMatrix());
+  }
+
+  // YOU ARE HERE: You need to add back in autoscaling for Vel, rather than
+  // just multiplying it by 1e4.
+}
+
+
+//-----------------------------------------------------------------------------
+// initializeInstanceVars(): private method of FITSImage template class
+//-----------------------------------------------------------------------------
+
+template <class ImageType>
+void 
+FITSImage<ImageType>::initializeInstanceVars()
+{
   typename ImageType::RegionType
     allOfImage = _itkImage.GetLargestPossibleRegion();
   typename ImageType::SizeType imageSize = allOfImage.GetSize();
@@ -153,16 +178,6 @@ FITSImage<ImageType>::FITSImage(const typename Self::Params& params)
     // can determine how much the image is rotated from north:
     _rotationOfJFromIjkNorthVectorInDegrees =
       radiansToDegrees(atan2(-1 * _ijkNorthVector[c_i], _ijkNorthVector[c_j]));
-  }
-
-
-  // Set the ITK Image's coordinate transformation parameters:
-  {
-
-    setCoordinateFrameTransformation(
-       _itkImage,
-       this->raDecVToLpsMatrix() *
-       this->ijkToNorthOrientedEquiangularMatrix());
   }
 }
 
@@ -587,21 +602,17 @@ FITSImage<ImageType>::ijkToNorthOrientedEquiangularMatrix()
   enum {ra, dec};
   Matrix retval;
 
-  retval(0, 0) = this->unitIInApproximateAngularSpace()[ra] * 1000 * 1000;
-  retval(0, 1) = this->unitIInApproximateAngularSpace()[dec] * 1000 * 1000;
+  retval(0, 0) = this->unitIInApproximateAngularSpace()[ra];
+  retval(0, 1) = this->unitIInApproximateAngularSpace()[dec];
   retval(0, 2) = 0;
 
-  retval(1, 0) = this->unitJInApproximateAngularSpace()[ra] * 1000 * 1000;
-  retval(1, 1) = this->unitJInApproximateAngularSpace()[dec] * 1000 * 1000;
+  retval(1, 0) = this->unitJInApproximateAngularSpace()[ra];
+  retval(1, 1) = this->unitJInApproximateAngularSpace()[dec];
   retval(1, 2) = 0;
 
   retval(2, 0) = 0;
   retval(2, 1) = 0;
-  // retval(2, 2) = 1;  //d This has been replaced just as a kludge until we
-                        //d put back in some sort of auto-scaling for V.
-  retval(2, 2) = 10000; //d
-
-  // YOU ARE HERE
+  retval(2, 2) = 1;
 
   return retval;
 }

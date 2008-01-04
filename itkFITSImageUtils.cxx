@@ -86,6 +86,26 @@ rotationMatrix(double degrees)
 
 
 //-----------------------------------------------------------------------------
+// scalingMatrix(): internal function
+//-----------------------------------------------------------------------------
+
+/*internal proc*/
+Matrix
+scalingMatrix(double xScale, double yScale, double zScale)
+{
+  const double matrixVals[3][3] =
+    { 
+      xScale,   0,        0,
+      0,        yScale,   0,
+      0,        0,        zScale 
+    };
+  Matrix retval;
+  fillMatrix(retval, matrixVals);
+  return retval;
+}
+
+
+//-----------------------------------------------------------------------------
 // setNullValue(): function
 //-----------------------------------------------------------------------------
 

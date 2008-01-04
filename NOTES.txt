@@ -1,4 +1,169 @@
-These are the options that should be supported in the next version:
+Mockup of future help output
+============================
+
+usage:
+
+  fits2itk [option ...] input-file output-file
+
+The input file should be a FITS file (CFITSIO extended filename syntax
+is supported).  The output file should be typically be a NRRD file,
+but other file formats supported by ITK may work, albeit most likely
+in a somewhat buggy manner.  The default physical units for the output
+file will be microdegrees.
+
+For informational purposes, fits2itk will output something like the
+following to stdout:
+
+      Input file: foo.fits
+      Output file: foo.nrrd
+      Image center, in pixels: (86, 41.5, 314.5)
+      Image center, in RA/Dec/V: (56.5541, 32.9725, 0)
+      Pixel size in degrees: 0.0127778 x 0.0127778
+      Pixel size in arcseconds: #@$@#$ x #@#$#@#
+      Pixel size in km/s: 8.321
+
+      [ TODO: The above needs work.  It doesn't currently contain all
+        the information that an astronomer might want. ]
+
+Options:
+
+--quiet
+
+          Suppresses the above mentioned output.
+
+-h
+
+          Outputs the terse usage message.
+
+--help
+
+          Outputs the verbose usage message.
+
+-n
+
+          Tells fits2itk to not actually write an output file, but
+          instead to just write to stdout whatever it would have
+          written to stdout without this option.
+
+          Note: When this option is selected, you should not include
+          the ouput file on the command line.
+
+--use-index-space
+
+          Causes the output file to be written with an identity
+          coordinate transformation, rather than the default
+          transformation that converts between index space and world
+          space.
+
+	  This option is is turned on automatically when the output
+          file is an Analyze file.
+
+--north-up
+
+          Rotates the image so that north is up.  Only allowed in conjunction
+          with --use-index-space.
+
+--west-right
+
+          Rotates the image so that west is to the right.  Only works in
+          conjunction with --use-index-space
+
+--ra
+
+          Scales the east/west axis to represent right ascension,
+          rather than angular degrees.  (This used to be the default
+          behavior of fits2itk.)
+
+--west-axis-scale NUM
+
+          Sets the west-axis scale to be NUM microdegrees.  The default
+          value is 1.
+
+          If --ra or --use-index-space is selected, then this option
+          scales respectively the RA values or the index values,
+          rather than the angular degree values.
+
+--north-axis-scale NUM
+
+          Sets the y-axis scale to be NUM microdegrees.  The default
+          value is 1.
+
+          If --use-index-space is selected, then this option scales
+          the index values, rather than the angular degree values.
+
+--sky-scale NUM
+
+           Equivalent to --west-axis-scale NUM --north-axis-scale NUM.
+
+--no-v-axis-autoscale
+
+          Suppresses autoscaling of the velocity axis.  The velocity
+          axis will be left in index space instead.
+
+--v-axis-scale NUM
+
+          Multiplies the units on the velocity axis by NUM.
+
+--null-value NUM
+
+          Remaps the FITS null value to NUM in the output file.  The
+          default null value is typically NaN for floating point FITS
+          files.  NaNs often cause trouble in medical imaging
+          applications, however, so this option is provided in order
+          to work around this issue.
+
+          Unfortunately you can't set this to 0, due to a limitation
+          in CFITSIO, but you can set it to, e.g., 0.0000001.
+
+--debug-level INT
+
+          Sets the debug level to INT.  The default value is 0.
+
+--pixel-scale NUM
+
+          Every pixel value will be multiplied by NUM before writing
+          to the output file.
+
+--flip-west
+--flip-north
+--flip-v
+
+          These options flip the image before writing to the output
+          file.  They do this by moving pixels around, not by setting
+          the coordinate transformation.  Consequently, these options
+          are only allowed in conjunction with --use-index-space.
+
+--rotate-sky NUM
+
+          Rotates the image by NUM degrees clockwise (via ITK's
+          coordinate transformation).
+
+--verbose
+
+          Causes fits2itk to output extra useless information.
+
+--show-fits-header
+
+          Tells fits2itk to output the FITS header to stdout.
+
+--coerce-to-shorts
+--coerce-to-unsigned-shorts
+
+          The output file will be written using respectively shorts or
+          unsigned shorts rather than the default of single precision
+          floats.
+
+--lps
+
+          By default, fits2itk writes the output file with a kludge
+          transformation that compensates for Slicer's conversion from
+          LPS to RAS.  For use with other software that doesn't do
+          such a conversion, this option is provided to turn off the
+          kludge transformation.
+
+
+These are the options that should be supported in the next version
+==================================================================
 
 XXX The DLL:
 
@@ -56,7 +221,7 @@ XXX The DLL:
 
 --quiet, -q
 
-  Suppress the above mentioned above.
+  Suppress the above mentioned output.
 
 XXX -h
 
