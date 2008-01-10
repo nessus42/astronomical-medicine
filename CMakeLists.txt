@@ -87,8 +87,12 @@ add_library(itkFITSImageIO MODULE
 
 # Specify the libaries that are used by our dll:
 target_link_libraries(itkFITSImageIO
-  da_util cfitsio ITKIO ITKCommon 
+  da_util libwcs pathToExecutable cfitsio ITKIO ITKCommon 
   )
+
+# TODO: I think that some of the above libraries for itkFITSImageIO
+# can be removed soon.  At the moment, though, it doesn't link if I
+# remove libwcs or pathToExecutable
 
 
 # Specify the libraries that are used by the fits2itk program...
@@ -150,6 +154,7 @@ add_dependencies(fits2itk fits2itkDependencies)
 add_custom_target(fits2itkDependencies DEPENDS
   ${PROJECT_BINARY_DIR}/shortUsageMessage.txt
   ${PROJECT_BINARY_DIR}/verboseUsageMessage.txt
+  ${PROJECT_BINARY_DIR}/slicerModuleDescription.xml
   )
 
 add_custom_command (
@@ -157,11 +162,18 @@ add_custom_command (
   COMMAND ${CMAKE_COMMAND}
   ARGS -E copy ${PROJECT_SOURCE_DIR}/shortUsageMessage.txt
                ${PROJECT_BINARY_DIR}
-)
+  )
 
 add_custom_command (
   OUTPUT ${PROJECT_BINARY_DIR}/verboseUsageMessage.txt
   COMMAND ${CMAKE_COMMAND}
   ARGS -E copy ${PROJECT_SOURCE_DIR}/verboseUsageMessage.txt
+               ${PROJECT_BINARY_DIR}
+  )
+
+add_custom_command (
+  OUTPUT ${PROJECT_BINARY_DIR}/slicerModuleDescription.xml
+  COMMAND ${CMAKE_COMMAND}
+  ARGS -E copy ${PROJECT_SOURCE_DIR}/slicerModuleDescription.xml
                ${PROJECT_BINARY_DIR}
   )

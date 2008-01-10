@@ -11,7 +11,7 @@
 // See LICENSE.txt for for details.
 //=============================================================================
 
-extern const char fits2itkVersion[] = "Version 0.4dev.12pending.9";
+extern const char fits2itkVersion[] = "Version 0.4dev.12pending.10";
 
 //=============================================================================
 // Change Log
@@ -546,10 +546,20 @@ extern const char fits2itkVersion[] = "Version 0.4dev.12pending.9";
 // *** Changes described above this line are checked in to Mercurial ***
 //----------------------------------------------------------------------
 
-// The next version will most likely include changes that I made while at
-// NA-MIC 2008 Winter Project Week.
+//----------------------------
+// Version 0.4dev.12pending.10
+//----------------------------
 
-// Working on: Reimplementation of features lost during refactoring.
+// I am working on this version at NA-MIC 2008 Winter Project Week.
+
+// Working on now:
+
+// Adding --xml option to support use of fits2itk as a Slicer3 CLI plugin.
+
+// [][][][][]
+
+// Working on sometime soon: Reimplementation of features lost during
+// refactoring.
 
 // Things that I need to do soon:
 
