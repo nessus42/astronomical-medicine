@@ -17,6 +17,14 @@
 #include <iostream>
 #include <string>
 
+// TODO: Remove this code, but put it's implementation in my C++ wisdom:
+#include <time.h> //d
+inline void printClock(const char* const message) //d
+{ //d
+  std::cout << message << " clock="
+	    << float(clock()) / CLOCKS_PER_SEC << std::endl; //d
+} //d
+
 // BEGIN
 namespace douglasAlan {
 

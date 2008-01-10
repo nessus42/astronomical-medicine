@@ -69,12 +69,12 @@ const int c_dims = FITSImageIO::c_dims;
 //-----------------------------------------------------------------------------
 
 local proc void
-usage1(bool exitWithFailureP, bool verboseUsageP)
+usage1(bool exitWithFailure, bool verboseUsage)
 {
 //  if (daProgramName().size()) cerr << basename(daProgramName().c_str());
 //  else cerr << "fits2itk";
   
-  ostream& out = exitWithFailureP ? cerr : cout;
+  ostream& out = exitWithFailure ? cerr : cout;
   out << "fits2itk " << fits2itkVersion << "\n\n";
   out << "usage:\n";
 
@@ -85,7 +85,7 @@ usage1(bool exitWithFailureP, bool verboseUsageP)
     da::openFileForReading(shortUsageFilepath, da::dieOnError);
   da::copyStream(*shortUsageMessage, out, da::dieOnError);
 
-  if (verboseUsageP) {
+  if (verboseUsage) {
     out << "\nUse the \"-h\" option to get a terser usage message than this"
       " one.\n\n";
 
@@ -97,15 +97,15 @@ usage1(bool exitWithFailureP, bool verboseUsageP)
   } else {
     out <<  "\nUse the \"--help\" option to get a longer usage message.\n";
   }
-  if (exitWithFailureP) exit(EXIT_FAILURE);
+  if (exitWithFailure) exit(EXIT_FAILURE);
   else exit(0);
 }
 
 
 local proc void
-usage(bool exitWithFailureP=true)
+usage(bool exitWithFailure=true)
 {
-  usage1(exitWithFailureP, false);
+  usage1(exitWithFailure, false);
 }
 
 
@@ -116,10 +116,19 @@ verboseUsage()
 }
 
 
+//-----------------------------------------------------------------------------
+// writeSlicerXmlModuleDescription()
+//-----------------------------------------------------------------------------
+
 local proc void
-checkEndptr(const char* endptr)
+writeSlicerXmlModuleDescription(ostream& out)
 {
-  if (*endptr != '\0') usage();
+  const char* moduleDescriptionFilepath =
+    pteJoinPath(pathToExecutableDir(),
+		"slicerModuleDescription.xml");
+  auto_ptr<ifstream> moduleDescription =
+    da::openFileForReading(moduleDescriptionFilepath, da::dieOnError);
+  da::copyStream(*moduleDescription, out, da::dieOnError);
 }
 
 
@@ -127,10 +136,21 @@ checkEndptr(const char* endptr)
 // CommandLineParser: local class
 //=============================================================================
 
+local proc void
+checkEndptr(const char* endptr)
+{
+  if (*endptr != '\0') usage();
+}
+
+
 // BEGIN local namespace
 namespace {
 
   class CommandLineParser {
+
+    // TODO: Instead of calling usage() within this class upon a parsing error,
+    // we should turn on a usage attribute that main() can test for and then
+    // call usage().
 
     // Instance variables:
     const char*    _inputFilepath;
@@ -141,11 +161,14 @@ namespace {
     int		   _debugLevel;
     bool	   _dontWrite;
     bool	   _flipDecFlag;
-    bool	   _flipRAFlag;
+    bool	   _flipRaFlag;
     bool	   _flipVFlag;
+    bool	   _logoFlag;
     double	   _nullValue;
     bool	   _reorientNorth;
     // bool	   _transformToEquiangular;
+    bool           _slicerXmlModuleDescriptionFlag;
+
 
     bool	   _binomialBlurFlag;
     bool           _derivativeImageFilterFlag;
@@ -169,19 +192,25 @@ namespace {
     int         getDebugLevel() const { return _debugLevel; }
     bool	getDontWrite() const { return _dontWrite; }
     bool	getFlipDecFlag() const { return _flipDecFlag; }
-    bool        getFlipRAFlag() const { return _flipRAFlag; }
+    bool        getFlipRaFlag() const { return _flipRaFlag; }
     bool	getFlipVFlag() const { return _flipVFlag; }
+    bool        getLogoFlag() const { return _logoFlag; }
     double	getNullValue() const { return _nullValue; }
     bool	getReorientNorth() const { return _reorientNorth; }
 //     bool	getTransformToEquiangular() const
 //                           { return _transformToEquiangular; }
+    bool	getSlicerXmlModuleDescriptionFlag() const
+                   { return _slicerXmlModuleDescriptionFlag; }
+
+
     bool	getBinomialBlurFlag() const
-                          { return _binomialBlurFlag; }
+                   { return _binomialBlurFlag; }
     bool        getDerivativeImageFilterFlag() const
-                          { return _derivativeImageFilterFlag; }
+                   { return _derivativeImageFilterFlag; }
     bool        getFlipImageFilterFlag() const
-                          { return _flipImageFilterFlag; }
-    bool	getIdentityFlipFlag() const { return _identityFlipFlag; }
+                   { return _flipImageFilterFlag; }
+    bool	getIdentityFlipFlag() const
+                   { return _identityFlipFlag; }
   };
 
 
@@ -194,10 +223,12 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
     _debugLevel(0),
     _dontWrite(false),
     _flipDecFlag(false),
-    _flipRAFlag(false),
+    _flipRaFlag(false),
     _flipVFlag(false),
+    _logoFlag(false),
     _nullValue(0.0),
     _reorientNorth(false),
+    _slicerXmlModuleDescriptionFlag(false),
     // _transformToEquiangular(false),
     _binomialBlurFlag(false),
     _derivativeImageFilterFlag(false),
@@ -210,56 +241,46 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
   char optionChar;
   const int cBase10 = 10;
   string extendedOption;
-  int verboseHelpFlag = false;
-  // int equiangularFlag = false;
-  int flipDecFlag = false;
-  int flipRAFlag = false;
-  int flipVFlag = false;
-  int noWcsFlag = false;
-  int reorientNorthFlag = false;
-  int ripOrientationFlag = false;
-  int rotateSkyFlag = false;
-  int scaleDecFlag = false;
-  int typicalFlag = false;
-  int verboseFlag = false;
+
+  int verboseHelpFlag =                false;
+  // int equiangularFlag =             false;
+  int flipDecFlag =                    false;
+  int flipRaFlag =                     false;
+  int flipVFlag =                      false;
+  int logoFlag  =                      false;
+  int noWcsFlag =                      false;
+  int reorientNorthFlag =              false;
+  int ripOrientationFlag =             false;
+  int rotateSkyFlag =                  false;
+  int scaleDecFlag =                   false;
+  int typicalFlag =                    false;
+  int verboseFlag =                    false;
+  int slicerXmlModuleDescriptionFlag = false;
 
   // Specify the allowed short options:
   const char shortopts[] = "a:D:fhnN:o:Rr:Ss:Uv:";
 
   // Specify the allowed long options:
   struct option longopts[] = {
-
-    // { "equiangular", no_argument, &equiangularFlag, true },
-
-    { "help", no_argument, &verboseHelpFlag, true },
-
-    { "flip-dec", no_argument, &flipDecFlag, true },
-
-    { "flip-ra", no_argument, &flipRAFlag, true },
-
-    { "flip-v", no_argument, &flipVFlag, true },
-
-    { "no-wcs", no_argument, &noWcsFlag, true},
-    { "nw", no_argument, &noWcsFlag, true},
-
-    { "null-value", required_argument, 0, 'N'},
-
-    { "reorient-north", no_argument, &reorientNorthFlag, true },
-
-    { "rotate-sky", required_argument, &rotateSkyFlag,
-      true },
-
-    { "RIP", no_argument, &ripOrientationFlag, true },
-
-    { "scale-dec", required_argument, &scaleDecFlag, true },
-
-    { "typical", no_argument, &typicalFlag, true },
-
-    { "verbose", no_argument, &verboseFlag, true },
-
+    // { "equiangular", no_argument,       &equiangularFlag,   true },
+    { "help",           no_argument,       &verboseHelpFlag,   true },
+    { "flip-dec",       no_argument,       &flipDecFlag,       true },
+    { "flip-ra",        no_argument,       &flipRaFlag,        true },
+    { "flip-v",         no_argument,       &flipVFlag,         true },
+    { "logo",           no_argument,       &logoFlag,          true },
+    { "no-wcs",         no_argument,       &noWcsFlag,         true},
+    { "nw",             no_argument,       &noWcsFlag,         true},
+    { "null-value",     required_argument, 0,                  'N'},
+    { "reorient-north", no_argument,       &reorientNorthFlag, true },
+    { "rotate-sky",     required_argument, &rotateSkyFlag,     true },
+    { "RIP",            no_argument,       &ripOrientationFlag, true },
+    { "scale-dec",      required_argument, &scaleDecFlag,       true },
+    { "typical",        no_argument,       &typicalFlag,        true },
+    { "verbose",        no_argument,       &verboseFlag,        true },
+    { "xml",            no_argument,       &slicerXmlModuleDescriptionFlag,
+         true },
     { null, 0, null, 0 }
   };
-
 
   // Do the parsing:
   while ((optionChar = getopt_long(argc,
@@ -344,12 +365,15 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
 	} else if (flipDecFlag) {
 	  flipDecFlag = false;
 	  _flipDecFlag = true;
-	} else if (flipRAFlag) {
-	  flipRAFlag = false;
-	  _flipRAFlag = true;
+	} else if (flipRaFlag) {
+	  flipRaFlag = false;
+	  _flipRaFlag = true;
 	} else if (flipVFlag) {
 	  flipVFlag = false;
 	  _flipVFlag = true;
+	} else if (logoFlag) {
+	  logoFlag = false;
+	  _logoFlag = true;
 	} else if (noWcsFlag) {
 	  noWcsFlag = false;
 	  // FITSImageIO::SetSuppressWCS(true);
@@ -377,6 +401,9 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
 	} else if (verboseFlag) {
 	  verboseFlag = false;
 	  da::setVerbosityLevel(1);
+	} else if (slicerXmlModuleDescriptionFlag) {
+	  slicerXmlModuleDescriptionFlag = false;
+	  _slicerXmlModuleDescriptionFlag = true;
 	} else {
 	  usage();
 	}
@@ -388,11 +415,15 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
       } // switch
     } // while
 
+
   // Parse the command line positional arguments:
-  if (_dontWrite) {
-    if (argc - ::optind != 1) usage();
+  const int nPositionalParams = argc - ::optind;
+  if (_slicerXmlModuleDescriptionFlag or _logoFlag) {
+    if (nPositionalParams != 0) usage();
+  } else if (_dontWrite) {
+    if (nPositionalParams != 1) usage();
   } else {
-    if (argc - ::optind != 2) usage();
+    if (nPositionalParams != 2) usage();
     _outputFilepath = argv[::optind + 1];
   }
   _inputFilepath = argv[::optind];
@@ -449,29 +480,26 @@ template <class PixelType>
 local proc int
 convertInputFileToItkFile(CommandLineParser& cl)
 {
+  printClock("Begin convertInputFileToItkFile()"); //d
   typedef itk::Image<PixelType, c_dims> ImageType;
   typedef itk::ImageFileReader<ImageType> ReaderType;
 
+  printClock("Before ReaderType::New()"); //d  
   typename ReaderType::Pointer reader = ReaderType::New();
+  printClock("Before reader->SetFileName()"); //d
   reader->SetFileName(cl.getInputFilepath());
+  printClock("After reader->SetFileName()"); //d
   typename ImageType::Pointer image = reader->GetOutput();
-  if (cl.getFlipImageFilterFlag()) {
-    image = applyFlipImageFilter<PixelType>(image);
-  }
-  if (cl.getBinomialBlurFlag()) {
-    image = applyBinomialBlurFilter<PixelType>(image);
-  }
-  if (cl.getIdentityFlipFlag()) {
-    image = applyFlipImageFilter<PixelType>(image);
-    image = applyFlipImageFilter<PixelType>(image);
-  }
   reflectPixels<PixelType>(*image,
-			   cl.getFlipRAFlag(),
+			   cl.getFlipRaFlag(),
 			   cl.getFlipDecFlag(),
 			   cl.getFlipVFlag());
+  printClock("After refect"); //d
 
   // TODO: Figure out how to do this without reading in the entire image.
+  printClock("Before reader->Update()"); //d
   reader->Update();
+  printClock("After reader->Update()"); //d
   typename FITSImage<ImageType>::Params params;
   params.itkImage = image;
   FITSImage<ImageType> fitsImage (params);
@@ -492,12 +520,28 @@ convertInputFileToItkFile(CommandLineParser& cl)
 //     }
 //   }
 
+  printClock("Before filters"); //d
+  if (cl.getFlipImageFilterFlag()) {
+    image = applyFlipImageFilter<PixelType>(image);
+  }
+  if (cl.getBinomialBlurFlag()) {
+    image = applyBinomialBlurFilter<PixelType>(image);
+  }
+  if (cl.getIdentityFlipFlag()) {
+    image = applyFlipImageFilter<PixelType>(image);
+    image = applyFlipImageFilter<PixelType>(image);
+  }
+  printClock("After filters, before reflect"); //d
+
   if (cl.getOutputFilepath()) {
     typedef itk::ImageFileWriter<ImageType> WriterType;
     typename WriterType::Pointer writer = WriterType::New();
     writer->SetInput(image);
     writer->SetFileName(cl.getOutputFilepath());
+
+    printClock("Before writer->Update()"); //d
     writer->Update();
+    printClock("After writer->Update()"); //d
   } else {
     reader->Update();
   }
@@ -551,9 +595,17 @@ setItkAutoloadPath()
 #endif
   
     const char* oldAutoloadPath = getenv("ITK_AUTOLOAD_PATH");
-    const string newAutoloadPath = oldAutoloadPath
+    if (oldAutoloadPath) { //d
+      cout << "oldAutoloadPath=" << oldAutoloadPath << endl; //d
+    } else { //d
+      cout << "No oldAutoloadPath." << endl; //d
+    }
+    const string newAutoloadPath =
+      oldAutoloadPath
       ? string(pathToExecutableDir()) + pathSeparator + oldAutoloadPath
       : string(pathToExecutableDir());
+//    const string newAutoloadPath = string(pathToExecutableDir()); //d
+    cout << "newAutoloadPath=" << newAutoloadPath << endl; //d
     setenv("ITK_AUTOLOAD_PATH", newAutoloadPath.c_str(), true);
   }
 }
@@ -574,6 +626,18 @@ main(const int argc, const char* const argv[])
   setArgv(argc, argv);
   setItkAutoloadPath();
   CommandLineParser cl(argc, argv);
+
+  if (!cl.getSlicerXmlModuleDescriptionFlag()) { //d
+    printClock("Main start"); //d
+  } //d
+
+  if (cl.getSlicerXmlModuleDescriptionFlag()) {
+    writeSlicerXmlModuleDescription(cout);
+    return 0;
+  }
+
+  if (cl.getLogoFlag()) usage();
+
   handleOptions(cl);
 
   // This is how we used to register FITSImageIOFactory, before we changed to
@@ -588,7 +652,13 @@ main(const int argc, const char* const argv[])
   } else if (cl.getCoerceToUnsignedShorts()) {
     status = convertInputFileToItkFile<unsigned short>(cl);
   } else {
+    printClock("Before conversion"); //d
     status = convertInputFileToItkFile<float>(cl);
+    printClock("After conversion"); //d
   }
+  cout << "num of factories = " //d
+       << itk::ObjectFactoryBase::GetRegisteredFactories().size() //d
+       << endl; //d
+  printClock("Main end"); //d
   return status;
 }

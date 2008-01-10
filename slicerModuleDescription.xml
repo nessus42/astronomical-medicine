@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- <executable> -->
+<!--    <title>FITS Reader</title> -->
+<!--    <description> -->
+<!--       Converts FITS files into NRRD files so that they can be -->
+<!--       understood by Slicer -->
+<!--       </description> -->
+<!-- </executable> -->
+
+<executable>
+  <category>Test Menu</category>
+  <title>FITS Reader</title>
+  <description>FITS Reader for Slicer</description>
+  <version>0.4dev.12pending.10</version>
+  <documentation-url>http://am.iic.harvard.edu</documentation-url>
+  <license>The MIT License</license>
+  <contributor>Douglas Alan, S.B.</contributor>
+  <acknowledgements>This work is funded by the Harvard Initiative
+     in Innovative Computing.
+  </acknowledgements>
+  <parameters>
+    <label>Input/Output</label>
+    <description>TODO: Does this description actually show up anywhere?
+    </description>
+    <file>
+      <name>fooInputFITSFile</name>
+      <label>Input FITS File</label>
+      <channel>input</channel>
+      <index>0</index>
+      <default>None</default>
+      <description>TODO: Does this description actually show up anywhere?
+      </description>
+    </file>
+    <image>
+      <name>fooOutputVolume</name>
+      <label>Output Volume</label>
+      <channel>output</channel>
+      <index>1</index>
+      <default>None</default>
+      <description>TODO: Does this description actually show up anywhere?
+      </description>
+    </image>
+  </parameters>
+  <parameters>
+    <label>Options</label>
+    <description>TODO: Does this description actually show up anywhere?
+    </description>
+    <double>
+      <name>fooNullValue</name>
+      <longflag>--null</longflag>
+      <description>TODO: Does this description actually show up anywhere?
+      </description>
+      <label>Null Value</label>
+      <default>0.0</default>
+    </double>
+  </parameters>
+</executable>
