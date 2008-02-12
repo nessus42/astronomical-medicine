@@ -12,7 +12,7 @@
 //=============================================================================
 
 
-extern const char fits2itkVersion[] = "Version 0.4dev.10.3";
+extern const char fits2itkVersion[] = "Version 0.4dev.10.3velocity";
 
 //=============================================================================
 // Change Log
@@ -438,6 +438,26 @@ extern const char fits2itkVersion[] = "Version 0.4dev.10.3";
 // *** Tue Sep 18, 2007 ***
 
 // Make compile under Linux.
+
+//----------------------------
+// Version 0.4dev.10.3velocity
+//----------------------------
+
+// *** Tue Feb 12, 2008 ***
+
+// This version include two enhancements:
+//
+// 1.  The velocity axis will be scaled to km/s.  To do so, fits2itk the
+//     questionable assumption that the FITS headers for the velocity dimension
+//     are specified in meters/sec, and a bunch of other assumptions about the
+//     WCS system used that may or may not be true for the input file.
+//
+// 2. The "-r" option scales the image with respect to the image's world
+//     origin, rather than with respect to the image's index origin.  In this
+//     manner registration will work when this option is specified.
+//
+// These options have not be really tested yet, however, so who knows if they
+// actually work?
 
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***

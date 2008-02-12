@@ -276,9 +276,12 @@ applySkyRotation(vector<double> changeOfBasisMatrix[c_dims], double degrees)
 //-----------------------------------------------------------------------------
 
 local proc void
-applyRAScale(vector<double> changeOfBasisMatrix[c_dims], double scaleFactor)
+applyRAScale(vector<double> changeOfBasisMatrix[c_dims],
+	     double origin[],
+	     double scaleFactor)
 {
   if (scaleFactor != 1) {
+    origin[c_vel] *= scaleFactor;
     for (int axis = c_i; axis <= c_k; ++axis) {
       changeOfBasisMatrix[c_ra][axis] *= scaleFactor;
     }
@@ -460,6 +463,8 @@ FITSImageIO::CanWriteFile(const char* const name)
 local void 
 calcWCSCoordinateFrame(const string& fitsHeader,
 		       const long lengthsOfAxesInPixels[],
+		       const double velocityAtIndexOrigin,
+		       const double velocityDelta,
 		       double origin[],
 		       vector<double> changeOfBasisMatrix[],
 		       FITSWCSTransform<double, c_dims>::Pointer& transform)
@@ -591,12 +596,7 @@ calcWCSCoordinateFrame(const string& fitsHeader,
     velocityPerK = max(rectWidth, rectHeight) / lengthsOfAxesInPixels[2];
 
   } else {
-
-    // TODO: Here we are just setting each voxel to one unit of velocity, which
-    // is rather arbitrary.  Really we should figure out how to get this
-    // information out of the FITS header.  The WCS library that we are using
-    // does not support this, however.
-    velocityPerK = 1;
+    velocityPerK = velocityDelta;
   }
 
   debugPrint("velocityPerK=" << velocityPerK);
@@ -610,7 +610,7 @@ calcWCSCoordinateFrame(const string& fitsHeader,
   // Create the origin vector (what we called "o" in the exposition above):
   origin[c_ra ] = lowerLeftRA;
   origin[c_dec] = lowerLeftDec;
-  origin[c_vel] = 0;
+  origin[c_vel] = velocityAtIndexOrigin;
 
   // Each column of the matrix represents a vector that transforms a
   // unit vector in i, j, k space to RA, V, DEC (a.k.a. LPS) space:
@@ -634,9 +634,28 @@ calcWCSCoordinateFrame(const string& fitsHeader,
 // calcCoordinateFrame(): local proc
 //-----------------------------------------------------------------------------
 
+// Requires:
+//    o `fitsHeader` is a valid FITS header
+//    o The information in `lengthsOfAxesInPixels` is consisent with the
+//      information in `fitsHeader`.
+//    o All array arguments are big enough to hold 3 elements.
+//
+// In:  fitsHeader, lengthsOfAxesInPixels, velocityAtIndexOrigin,
+//      velocityDelta, various class variables
+// Out: origin, spacing, directionCosines, transform
+//      cerr iff 
+//
+// Effects: the out arguments are set with the coordinate frame transformation
+//    required to convert from index coordinates of the FITS image
+//    associated with `fitsHeader`.  `transform` is a procedure transform that
+//    may not be linear, while the other out arguments specify a linear
+//    transform, which might be an inaccurate approximation.
+
 local void
 calcCoordinateFrame(const string& fitsHeader,
 		    const long lengthsOfAxesInPixels[],
+		    const double velocityAtIndexOrigin,
+		    const double velocityDelta,
 		    double origin[],
 		    double spacing[],
 		    vector<double> directionCosines[],
@@ -667,8 +686,9 @@ calcCoordinateFrame(const string& fitsHeader,
   }
 
   if (!FITSImageIO::GetSuppressWCS()) {
-    calcWCSCoordinateFrame(fitsHeader, lengthsOfAxesInPixels, origin,
-			   changeOfBasisMatrix, transform);
+    calcWCSCoordinateFrame(fitsHeader, lengthsOfAxesInPixels,
+			   velocityAtIndexOrigin, velocityDelta,
+			   origin, changeOfBasisMatrix, transform);
   }
 
   if (FITSImageIO::GetDebugLevel()) {
@@ -682,7 +702,7 @@ calcCoordinateFrame(const string& fitsHeader,
   }
 
   applySkyRotation(changeOfBasisMatrix, FITSImageIO::GetRotateSky());
-  applyRAScale(changeOfBasisMatrix, FITSImageIO::GetScaleRA());
+  applyRAScale(changeOfBasisMatrix, origin, FITSImageIO::GetScaleRA());
   applyDecScale(changeOfBasisMatrix, FITSImageIO::GetScaleDec());
   applyVelocityScale(changeOfBasisMatrix, FITSImageIO::GetScaleVelocity());
   applyScaleToAllAxes(changeOfBasisMatrix, FITSImageIO::GetScaleAllAxes());
@@ -765,7 +785,42 @@ FITSImageIO::ReadImageInformation()
     // TODO: Remove this restriction?
   }
 
-  // BEGIN getting RA and Dec of border pixels.
+  // TODO: The code below for getting the velocity information is fragile, and
+  // depends on quite a few assumptions about the format of the FITS file.  It
+  // would be quite nice of this could be made more robust, but it's not clear
+  // at all how to do so.  A more fully-featured WCS library might be able to
+  // navigate this minefield.  But then again, maybe it can't.
+
+  // Get the coordinate frame information regarding the velocity axis from the
+  // FITS file:
+  double velocityAtIndexOrigin;
+  double velocityDelta;
+  {
+    double referenceVelocity;
+    double referenceVelocityIndex;
+    char dummyComment[81];
+    
+    fits_read_key(m_fitsFile, TDOUBLE, "CRVAL3", &referenceVelocity,
+		  dummyComment, &status);
+    fits_read_key(m_fitsFile, TDOUBLE, "CRPIX3", &referenceVelocityIndex,
+		  dummyComment, &status);
+    fits_read_key(m_fitsFile, TDOUBLE, "CDELT3", &velocityDelta,
+		  dummyComment, &status);
+    if (status) {
+      itkExceptionMacro("FITSImageIO could not read velocity WCS info from"
+			" FITS file \""
+			<< this->GetFileName() << "\": "
+			<< ::getAllFitsErrorMessages(status) << '.');
+    }
+    velocityAtIndexOrigin = 
+      referenceVelocity - velocityDelta * ( 1 - referenceVelocityIndex);
+    velocityAtIndexOrigin /= 1000; // Convert from m/s to km/s
+    debugPrint(
+      "velocityAtIndexOrigin=" << velocityAtIndexOrigin << "\n"
+      "indexOfZeroVelocity="
+         << referenceVelocityIndex - (referenceVelocity / velocityDelta)
+    );
+  }
 
   // TODO: Check to make sure that wcsinit copies the string handed to it by
   // fitsHeader.c_str(), as I believe that the string returned by
@@ -776,8 +831,9 @@ FITSImageIO::ReadImageInformation()
   double origin[c_dims];
   double spacing[c_dims];
   vector<double> directionCosines[c_dims];
-  itk::calcCoordinateFrame(fitsHeader, lengthsOfAxesInPixels, origin,
-			   spacing, directionCosines, m_WCSTransform);
+  calcCoordinateFrame(fitsHeader, lengthsOfAxesInPixels,
+		      velocityAtIndexOrigin, velocityDelta,
+		      origin, spacing, directionCosines, m_WCSTransform);
 
   // URGENT TODO: Fix this attrocity!
   g_theFITSWCSTransform = m_WCSTransform;
