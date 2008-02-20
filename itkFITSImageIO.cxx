@@ -260,6 +260,8 @@ rightMultiply(vector<double> leftMatrix[c_dims],
 local proc void
 applySkyRotation(vector<double> changeOfBasisMatrix[c_dims], double degrees)
 {
+  // TODO: This does not preserve the WCS origin.
+
   if (degrees != 0) {
     const double s = sin(degrees/180 * PI);
     const double c = cos(degrees/180 * PI);
@@ -281,7 +283,7 @@ applyRAScale(vector<double> changeOfBasisMatrix[c_dims],
 	     double scaleFactor)
 {
   if (scaleFactor != 1) {
-    origin[c_vel] *= scaleFactor;
+    origin[c_ra] *= scaleFactor;
     for (int axis = c_i; axis <= c_k; ++axis) {
       changeOfBasisMatrix[c_ra][axis] *= scaleFactor;
     }
@@ -294,9 +296,12 @@ applyRAScale(vector<double> changeOfBasisMatrix[c_dims],
 //-----------------------------------------------------------------------------
 
 local proc void
-applyDecScale(vector<double> changeOfBasisMatrix[c_dims], double scaleFactor)
+applyDecScale(vector<double> changeOfBasisMatrix[c_dims],
+	      double origin[],
+	      double scaleFactor)
 {
   if (scaleFactor != 1) {
+    origin[c_dec] *= scaleFactor;
     for (int axis = c_i; axis <= c_k; ++axis) {
       changeOfBasisMatrix[c_dec][axis] *= scaleFactor;
     }
@@ -310,9 +315,11 @@ applyDecScale(vector<double> changeOfBasisMatrix[c_dims], double scaleFactor)
 
 local proc void
 applyVelocityScale(vector<double> changeOfBasisMatrix[c_dims],
+		   double origin[],
 		   double scaleFactor)
 {
   if (scaleFactor != 1) {
+    origin[c_vel] *= scaleFactor;
     for (int axis = c_i; axis <= c_k; ++axis) {
       changeOfBasisMatrix[c_vel][axis] *= scaleFactor;
     }
@@ -326,12 +333,16 @@ applyVelocityScale(vector<double> changeOfBasisMatrix[c_dims],
 
 local proc void
 applyScaleToAllAxes(vector<double> changeOfBasisMatrix[c_dims],
+		    double origin[],
 		    double scaleFactor)
 {
   if (scaleFactor != 1) {
-    for (int indexAxis = c_i; indexAxis <= c_k; ++indexAxis)
-      for (int physicalAxis = 0; physicalAxis < c_dims; ++physicalAxis)
-	  changeOfBasisMatrix[physicalAxis][indexAxis] *= scaleFactor;
+    for (int indexAxis = c_i; indexAxis <= c_k; ++indexAxis) {
+      origin[indexAxis] *= scaleFactor;
+      for (int physicalAxis = 0; physicalAxis < c_dims; ++physicalAxis) {
+	changeOfBasisMatrix[physicalAxis][indexAxis] *= scaleFactor;
+      }
+    }
   }
 }
 
@@ -616,16 +627,16 @@ calcWCSCoordinateFrame(const string& fitsHeader,
   // unit vector in i, j, k space to RA, V, DEC (a.k.a. LPS) space:
   {
     changeOfBasisMatrix[c_ra] [c_i] = raPerI;
-    changeOfBasisMatrix[c_vel][c_i] = 0;
     changeOfBasisMatrix[c_dec][c_i] = decPerI;
+    changeOfBasisMatrix[c_vel][c_i] = 0;
 
     changeOfBasisMatrix[c_ra] [c_j] = raPerJ;
-    changeOfBasisMatrix[c_vel][c_j] = 0;
     changeOfBasisMatrix[c_dec][c_j] = decPerJ;
+    changeOfBasisMatrix[c_vel][c_j] = 0;
 
     changeOfBasisMatrix[c_ra] [c_k] = 0;
-    changeOfBasisMatrix[c_vel][c_k] = velocityPerK;
     changeOfBasisMatrix[c_dec][c_k] = 0;
+    changeOfBasisMatrix[c_vel][c_k] = velocityPerK;
   }
 }
 
@@ -667,10 +678,13 @@ calcCoordinateFrame(const string& fitsHeader,
   origin[1] = 0;
   origin[2] = 0;
 
-  // The default change-of-basis matrix, maps the FITS image array axes onto
-  // LPS axes, without doing any additional tranformations to map to physical
+  // The default change-of-basis matrix maps the FITS image array axes onto LPS
+  // axes, without doing any additional tranformations to map to physical
   // coordinates.  This matrix will most likely end up being overwritten, but
-  // not all of the time:
+  // not all of the time.  Note that the change-of-basis is in row-major form,
+  // even though the resulting direction cosine matrix needs to be fed into ITK
+  // in column-major form.  The translation between forms will be done at the
+  // last possible moment:
   vector<double> changeOfBasisMatrix[c_dims];
   for (int axis = 0; axis < c_dims; ++axis) {
     changeOfBasisMatrix[axis].resize(c_dims);
@@ -701,11 +715,20 @@ calcCoordinateFrame(const string& fitsHeader,
     }
   }
 
-  applySkyRotation(changeOfBasisMatrix, FITSImageIO::GetRotateSky());
-  applyRAScale(changeOfBasisMatrix, origin, FITSImageIO::GetScaleRA());
-  applyDecScale(changeOfBasisMatrix, FITSImageIO::GetScaleDec());
-  applyVelocityScale(changeOfBasisMatrix, FITSImageIO::GetScaleVelocity());
-  applyScaleToAllAxes(changeOfBasisMatrix, FITSImageIO::GetScaleAllAxes());
+  applySkyRotation(changeOfBasisMatrix,
+		   FITSImageIO::GetRotateSky());
+  applyRAScale(changeOfBasisMatrix,
+	       origin,
+	       FITSImageIO::GetScaleRA());
+  applyDecScale(changeOfBasisMatrix,
+		origin,
+		FITSImageIO::GetScaleDec());
+  applyVelocityScale(changeOfBasisMatrix,
+		     origin,
+		     FITSImageIO::GetScaleVelocity());
+  applyScaleToAllAxes(changeOfBasisMatrix,
+		      origin,
+		      FITSImageIO::GetScaleAllAxes());
 
 
   { // Create a direction cosine matrix and spacing vector by factoring the
@@ -812,9 +835,12 @@ FITSImageIO::ReadImageInformation()
 			<< this->GetFileName() << "\": "
 			<< ::getAllFitsErrorMessages(status) << '.');
     }
+
+    // Convert from m/s to km/s:
+    referenceVelocity /= 1000; 
+    velocityDelta /= 1000; 
     velocityAtIndexOrigin = 
       referenceVelocity - velocityDelta * ( 1 - referenceVelocityIndex);
-    velocityAtIndexOrigin /= 1000; // Convert from m/s to km/s
     debugPrint(
       "velocityAtIndexOrigin=" << velocityAtIndexOrigin << "\n"
       "indexOfZeroVelocity="
@@ -853,8 +879,10 @@ FITSImageIO::ReadImageInformation()
 
       // Write debugging output if debug output option is set:
       if (_cv_debugLevel) {
-	cerr << "spacing=" << indexAxis << "," << spacing[indexAxis] << " ";
-	cerr << "directions=";
+	cerr << "axis " << indexAxis << ": "
+	     << "origin=" << origin[indexAxis]
+	     << ", spacing=" << spacing[indexAxis]
+	     << ", directions=";
 	for (int physicalAxis = 0; physicalAxis < c_dims; ++physicalAxis) {
 	  cerr << directionCosines[indexAxis][physicalAxis] << " ";
 	}

@@ -11,8 +11,7 @@
 // See LICENSE.txt for for details.
 //=============================================================================
 
-
-extern const char fits2itkVersion[] = "Version 0.4dev.10.3velocity";
+extern const char fits2itkVersion[] = "Version 0.4dev.10.3velocity.1pending.2";
 
 //=============================================================================
 // Change Log
@@ -462,3 +461,30 @@ extern const char fits2itkVersion[] = "Version 0.4dev.10.3velocity";
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
 //----------------------------------------------------------------------
+
+//-------------------------------------
+// Version 0.4dev.10.3velocity.1pending
+//-------------------------------------
+
+// *** Wed Feb 13, 2008 ***
+
+// Found a bug my velocity calculations.  Fixed it.
+
+//---------------------------------------
+// Version 0.4dev.10.3velocity.1pending.1
+//---------------------------------------
+
+// *** Tue Feb 12, 2008 ***
+
+// Well, maybe I didn't fix it.  Am going to add more debugging output.
+
+//---------------------------------------
+// Version 0.4dev.10.3velocity.1pending.2
+//---------------------------------------
+
+// *** Tue Feb 12, 2008 ***
+
+// Corrected a bunch of places where the WCS origin was not being preserved
+// during scaling operations, and also found a typo where I had "c_vel", rather
+// than "c_ra".  (Or was that the other way around?  In any case, it should be
+// fixed now.)
