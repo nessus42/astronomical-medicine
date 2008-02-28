@@ -480,26 +480,19 @@ template <class PixelType>
 local proc int
 convertInputFileToItkFile(CommandLineParser& cl)
 {
-  printClock("Begin convertInputFileToItkFile()"); //d
   typedef itk::Image<PixelType, c_dims> ImageType;
   typedef itk::ImageFileReader<ImageType> ReaderType;
 
-  printClock("Before ReaderType::New()"); //d  
   typename ReaderType::Pointer reader = ReaderType::New();
-  printClock("Before reader->SetFileName()"); //d
   reader->SetFileName(cl.getInputFilepath());
-  printClock("After reader->SetFileName()"); //d
   typename ImageType::Pointer image = reader->GetOutput();
   reflectPixels<PixelType>(*image,
 			   cl.getFlipRaFlag(),
 			   cl.getFlipDecFlag(),
 			   cl.getFlipVFlag());
-  printClock("After refect"); //d
 
   // TODO: Figure out how to do this without reading in the entire image.
-  printClock("Before reader->Update()"); //d
   reader->Update();
-  printClock("After reader->Update()"); //d
   typename FITSImage<ImageType>::Params params;
   params.itkImage = image;
   FITSImage<ImageType> fitsImage (params);
@@ -520,7 +513,6 @@ convertInputFileToItkFile(CommandLineParser& cl)
 //     }
 //   }
 
-  printClock("Before filters"); //d
   if (cl.getFlipImageFilterFlag()) {
     image = applyFlipImageFilter<PixelType>(image);
   }
@@ -531,17 +523,13 @@ convertInputFileToItkFile(CommandLineParser& cl)
     image = applyFlipImageFilter<PixelType>(image);
     image = applyFlipImageFilter<PixelType>(image);
   }
-  printClock("After filters, before reflect"); //d
 
   if (cl.getOutputFilepath()) {
     typedef itk::ImageFileWriter<ImageType> WriterType;
     typename WriterType::Pointer writer = WriterType::New();
     writer->SetInput(image);
     writer->SetFileName(cl.getOutputFilepath());
-
-    printClock("Before writer->Update()"); //d
     writer->Update();
-    printClock("After writer->Update()"); //d
   } else {
     reader->Update();
   }
@@ -595,17 +583,10 @@ setItkAutoloadPath()
 #endif
   
     const char* oldAutoloadPath = getenv("ITK_AUTOLOAD_PATH");
-    if (oldAutoloadPath) { //d
-      cout << "oldAutoloadPath=" << oldAutoloadPath << endl; //d
-    } else { //d
-      cout << "No oldAutoloadPath." << endl; //d
-    }
     const string newAutoloadPath =
       oldAutoloadPath
       ? string(pathToExecutableDir()) + pathSeparator + oldAutoloadPath
       : string(pathToExecutableDir());
-//    const string newAutoloadPath = string(pathToExecutableDir()); //d
-    cout << "newAutoloadPath=" << newAutoloadPath << endl; //d
     setenv("ITK_AUTOLOAD_PATH", newAutoloadPath.c_str(), true);
   }
 }
@@ -626,10 +607,6 @@ main(const int argc, const char* const argv[])
   setArgv(argc, argv);
   setItkAutoloadPath();
   CommandLineParser cl(argc, argv);
-
-  if (!cl.getSlicerXmlModuleDescriptionFlag()) { //d
-    printClock("Main start"); //d
-  } //d
 
   if (cl.getSlicerXmlModuleDescriptionFlag()) {
     writeSlicerXmlModuleDescription(cout);
@@ -652,13 +629,7 @@ main(const int argc, const char* const argv[])
   } else if (cl.getCoerceToUnsignedShorts()) {
     status = convertInputFileToItkFile<unsigned short>(cl);
   } else {
-    printClock("Before conversion"); //d
     status = convertInputFileToItkFile<float>(cl);
-    printClock("After conversion"); //d
   }
-  cout << "num of factories = " //d
-       << itk::ObjectFactoryBase::GetRegisteredFactories().size() //d
-       << endl; //d
-  printClock("Main end"); //d
   return status;
 }

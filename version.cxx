@@ -542,28 +542,31 @@ extern const char fits2itkVersion[] = "Version 0.4dev.12pending.10";
 
 // Commented out unused code, etc.
 
-//----------------------------------------------------------------------
-// *** Changes described above this line are checked in to Mercurial ***
-//----------------------------------------------------------------------
-
 //----------------------------
 // Version 0.4dev.12pending.10
 //----------------------------
 
-// I am working on this version at NA-MIC 2008 Winter Project Week.
+// I worked on this version at NA-MIC 2008 Winter Project Week.
 
-// Working on now:
+// Features added:
 
-// Adding --xml option to support use of fits2itk as a Slicer3 CLI plugin.
+// The "--xml" option to support use of fits2itk as a Slicer3 CLI plugin.
 
-// [][][][][]
-
-// Working on sometime soon: Reimplementation of features lost during
-// refactoring.
+//----------------------------------------------------------------------
+// *** Changes described above this line are checked in to Mercurial ***
+//----------------------------------------------------------------------
 
 // Things that I need to do soon:
+
+// o Reimplementation of features lost during my major refactoring effort.
+//
 
 // o To see the options that are going to be in the next released version, see
 //   NOTES.txt.
 
 // o Replace debug-level in FITSImageIO with an environment variable lookup.
+
+// o Change CMake config to not dependent libraries being built by my CMake.
+//   Instead do it the more normal way of telling CMake that my stuff depends
+//   on other stuff outside of the CMake directory.  Then also write a build
+//   script that will build everything.  (*Maybe* use scons to do this.)
