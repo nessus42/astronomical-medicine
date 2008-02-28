@@ -28,7 +28,6 @@
 
 #include <itkFlipImageFilter.h>
 #include <itkBinomialBlurImageFilter.h>
-#include <itkMakeNaNMaskFilter.h> //d
 // #include <itkDerivativeImageFilter.h>
 // #include <itkMeanImageFilter.h>
 // #include <itkBinaryMedianImageFilter.h>
@@ -284,22 +283,11 @@ template <class PixelType>
 typename Image<PixelType, c_dims>::Pointer
 applyBinomialBlurFilter(const typename Image<PixelType, c_dims>::Pointer& image)
 {
-  //d Here we have commented out the binomial blur filter and replaced it with
-  //d a completely different filter altogether for extreme programming
-  //d purposes.  Put everything wehre it belongs soon.
-
-//   typedef Image<PixelType, c_dims> ImageType;
-//   typedef itk::BinomialBlurImageFilter<ImageType, ImageType> FilterType;
-//   typename FilterType::Pointer filter = FilterType::New();
-//   filter->SetInput(image);
-//   filter->SetRepetitions(1);
-//   filter->Update();
-//   return filter->GetOutput();
-
   typedef Image<PixelType, c_dims> ImageType;
-  typedef itk::MakeNaNMaskFilter<ImageType, ImageType> FilterType;
+  typedef itk::BinomialBlurImageFilter<ImageType, ImageType> FilterType;
   typename FilterType::Pointer filter = FilterType::New();
   filter->SetInput(image);
+  filter->SetRepetitions(1);
   filter->Update();
   return filter->GetOutput();
 }

@@ -74,9 +74,6 @@ FITSImageIOFactory::GetDescription() const
 /*proc*/ extern "C" itk::ObjectFactoryBase*
 itkLoad()
 {
-  printClock("itkLoad start"); //d
-  std::cout << "Hey, I've been LOADED.  Yow!!!!!" << std::endl; //d
   static itk::FITSImageIOFactory::Pointer f = itk::FITSImageIOFactory::New();
-  printClock("itkLoad end"); //d
   return f;
 }
