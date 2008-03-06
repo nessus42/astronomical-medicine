@@ -6,6 +6,10 @@ syntax: glob
 .gdb_history
 .DS_Store
 .svn
+.snprj
+fits2itk.dev.proj
+BROWSE
+tags
 
 syntax: regexp
 .*\#.*\#$

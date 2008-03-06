@@ -1,345 +1,476 @@
-Mockup of future help output
-============================
+# -*- Mode: Outline; fill-column: 70; outline-regexp: "[ \t]*-" -*-
 
-usage:
+- Mockup of future help output
 
-  fits2itk [option ...] input-file output-file
+  usage:
 
-The input file should be a FITS file (CFITSIO extended filename syntax
-is supported).  The output file should be typically be a NRRD file,
-but other file formats supported by ITK may work, albeit most likely
-in a somewhat buggy manner.  The default physical units for the output
-file will be microdegrees.
+    fits2itk [option ...] input-file output-file
 
-For informational purposes, fits2itk will output something like the
-following to stdout:
+  The input file should be a FITS file (CFITSIO extended filename syntax
+  is supported).  The output file should be typically be a NRRD file,
+  but other file formats supported by ITK may work, albeit most likely
+  in a somewhat buggy manner.  The default physical units for the output
+  file will be microdegrees.
 
-      Input file: foo.fits
-      Output file: foo.nrrd
-      Image center, in pixels: (86, 41.5, 314.5)
-      Image center, in RA/Dec/V: (56.5541, 32.9725, 0)
-      Pixel size in degrees: 0.0127778 x 0.0127778
-      Pixel size in arcseconds: #@$@#$ x #@#$#@#
-      Pixel size in km/s: 8.321
+  For informational purposes, fits2itk will output something like the
+  following to stdout:
 
-      [ TODO: The above needs work.  It doesn't currently contain all
-        the information that an astronomer might want. ]
+	Input file: foo.fits
+	Output file: foo.nrrd
+	Image center, in pixels: (86, 41.5, 314.5)
+	Image center, in RA/Dec/V: (56.5541, 32.9725, 0)
+	Pixel size in degrees: 0.0127778 x 0.0127778
+	Pixel size in arcseconds: #@$@#$ x #@#$#@#
+	Pixel size in km/s: 8.321
 
-Options:
+	[ TODO: The above needs work.  It doesn't currently contain all
+	  the information that an astronomer might want. ]
 
---quiet
+  Options:
 
-          Suppresses the above mentioned output.
+  --quiet
 
--h
+	    Suppresses the above mentioned output.
 
-          Outputs the terse usage message.
+  -h
 
---help
+	    Outputs the terse usage message.
 
-          Outputs the verbose usage message.
+  --help
 
--n
+	    Outputs the verbose usage message.
 
-          Tells fits2itk to not actually write an output file, but
-          instead to just write to stdout whatever it would have
-          written to stdout without this option.
+  -n
 
-          Note: When this option is selected, you should not include
-          the ouput file on the command line.
+	    Tells fits2itk to not actually write an output file, but
+	    instead to just write to stdout whatever it would have
+	    written to stdout without this option.
 
---use-index-space
+	    Note: When this option is selected, you should not include
+	    the ouput file on the command line.
 
-          Causes the output file to be written with an identity
-          coordinate transformation, rather than the default
-          transformation that converts between index space and world
-          space.
+  --use-index-space
 
-	  This option is is turned on automatically when the output
-          file is an Analyze file.
+	    Causes the output file to be written with an identity
+	    coordinate transformation, rather than the default
+	    transformation that converts between index space and world
+	    space.
 
---north-up
+	    This option is is turned on automatically when the output
+	    file is an Analyze file.
 
-          Rotates the image so that north is up.  Only allowed in conjunction
-          with --use-index-space.
+  --north-up
 
---west-right
+	    Rotates the image so that north is up.  Only allowed in conjunction
+	    with --use-index-space.
 
-          Rotates the image so that west is to the right.  Only works in
-          conjunction with --use-index-space
+  --west-right
 
---ra
+	    Rotates the image so that west is to the right.  Only works in
+	    conjunction with --use-index-space
 
-          Scales the east/west axis to represent right ascension,
-          rather than angular degrees.  (This used to be the default
-          behavior of fits2itk.)
+  --ra
 
---west-axis-scale NUM
+	    Scales the east/west axis to represent right ascension,
+	    rather than angular degrees.  (This used to be the default
+	    behavior of fits2itk.)
 
-          Sets the west-axis scale to be NUM microdegrees.  The default
-          value is 1.
+  --west-axis-scale NUM
 
-          If --ra or --use-index-space is selected, then this option
-          scales respectively the RA values or the index values,
-          rather than the angular degree values.
+	    Sets the west-axis scale to be NUM microdegrees.  The default
+	    value is 1.
 
---north-axis-scale NUM
+	    If --ra or --use-index-space is selected, then this option
+	    scales respectively the RA values or the index values,
+	    rather than the angular degree values.
 
-          Sets the y-axis scale to be NUM microdegrees.  The default
-          value is 1.
+  --north-axis-scale NUM
 
-          If --use-index-space is selected, then this option scales
-          the index values, rather than the angular degree values.
+	    Sets the y-axis scale to be NUM microdegrees.  The default
+	    value is 1.
 
---sky-scale NUM
+	    If --use-index-space is selected, then this option scales
+	    the index values, rather than the angular degree values.
 
-           Equivalent to --west-axis-scale NUM --north-axis-scale NUM.
+  --sky-scale NUM
 
---no-v-axis-autoscale
+	     Equivalent to --west-axis-scale NUM --north-axis-scale NUM.
 
-          Suppresses autoscaling of the velocity axis.  The velocity
-          axis will be left in index space instead.
+  --no-v-axis-autoscale
 
---v-axis-scale NUM
+	    Suppresses autoscaling of the velocity axis.  The velocity
+	    axis will be left in index space instead.
 
-          Multiplies the units on the velocity axis by NUM.
+  --v-axis-scale NUM
 
---null-value NUM
+	    Multiplies the units on the velocity axis by NUM.
 
-          Remaps the FITS null value to NUM in the output file.  The
-          default null value is typically NaN for floating point FITS
-          files.  NaNs often cause trouble in medical imaging
-          applications, however, so this option is provided in order
-          to work around this issue.
+  --null-value NUM
 
-          Unfortunately you can't set this to 0, due to a limitation
-          in CFITSIO, but you can set it to, e.g., 0.0000001.
+	    Remaps the FITS null value to NUM in the output file.  The
+	    default null value is typically NaN for floating point FITS
+	    files.  NaNs often cause trouble in medical imaging
+	    applications, however, so this option is provided in order
+	    to work around this issue.
 
---debug-level INT
+	    Unfortunately you can't set this to 0, due to a limitation
+	    in CFITSIO, but you can set it to, e.g., 0.0000001.
 
-          Sets the debug level to INT.  The default value is 0.
+  --debug-level INT
 
---pixel-scale NUM
+	    Sets the debug level to INT.  The default value is 0.
 
-          Every pixel value will be multiplied by NUM before writing
-          to the output file.
+  --pixel-scale NUM
 
---flip-west
---flip-north
---flip-v
+	    Every pixel value will be multiplied by NUM before writing
+	    to the output file.
 
-          These options flip the image before writing to the output
-          file.  They do this by moving pixels around, not by setting
-          the coordinate transformation.  Consequently, these options
-          are only allowed in conjunction with --use-index-space.
+  --flip-west
+  --flip-north
+  --flip-v
 
---rotate-sky NUM
+	    These options flip the image before writing to the output
+	    file.  They do this by moving pixels around, not by setting
+	    the coordinate transformation.  Consequently, these options
+	    are only allowed in conjunction with --use-index-space.
 
-          Rotates the image by NUM degrees clockwise (via ITK's
-          coordinate transformation).
+  --rotate-sky NUM
 
---verbose
+	    Rotates the image by NUM degrees clockwise (via ITK's
+	    coordinate transformation).
 
-          Causes fits2itk to output extra useless information.
+  --verbose
 
---show-fits-header
+	    Causes fits2itk to output extra useless information.
 
-          Tells fits2itk to output the FITS header to stdout.
+  --show-fits-header
 
---coerce-to-shorts
---coerce-to-unsigned-shorts
+	    Tells fits2itk to output the FITS header to stdout.
 
-          The output file will be written using respectively shorts or
-          unsigned shorts rather than the default of single precision
-          floats.
+  --coerce-to-shorts
+  --coerce-to-unsigned-shorts
 
---lps
+	    The output file will be written using respectively shorts or
+	    unsigned shorts rather than the default of single precision
+	    floats.
 
-          By default, fits2itk writes the output file with a kludge
-          transformation that compensates for Slicer's conversion from
-          LPS to RAS.  For use with other software that doesn't do
-          such a conversion, this option is provided to turn off the
-          kludge transformation.
+  --lps
 
+	    By default, fits2itk writes the output file with a kludge
+	    transformation that compensates for Slicer's conversion from
+	    LPS to RAS.  For use with other software that doesn't do
+	    such a conversion, this option is provided to turn off the
+	    kludge transformation.
 
-These are the options that should be supported in the next version
-==================================================================
 
-XXX The DLL:
+- These are the options that should be supported in the next version
 
-   XXX This should just load the data cube and do nothing related to WCS with
-   it.  I.e., it should be just like --no-wcs.
+  XXX The DLL:
 
-{default}
+     XXX This should just load the data cube and do nothing related to WCS with
+     it.  I.e., it should be just like --no-wcs.
 
-   Does what "--reorient-north --equiangular" does now.  The axes are in
-   microdegrees.  The pixel values should also be scaled by 1000 (for
-   floating point images, but not for integer images), and the
-   velocity axis should be auto-scaled.
+  {default}
 
-   Should output some of what is currently output for the verbose
-   option should be output:
+     Does what "--reorient-north --equiangular" does now.  The axes are in
+     microdegrees.  The pixel values should also be scaled by 1000 (for
+     floating point images, but not for integer images), and the
+     velocity axis should be auto-scaled.
 
-      Current format:
+     Should output some of what is currently output for the verbose
+     option should be output:
 
-      Image center, in IJK space with (0,0,0) index origin: [86, 41.5, 314.5]
-      Image center, in RA/Dec: [56.5541, 32.9725, 0]
-      I vector, in RA/Dec: [-0.015231, -1.84831e-06, 0]
-      J vector, in RA/Dec: [-2.20355e-06, 0.0127778, 0]
-      I vector, in approximate angular space: [-0.0127778, -1.84831e-06, 0]
-      J vector, in approximate angular space: [-1.84863e-06, 0.0127778, 0]
-      |I|, in approximate angular space: 0.0127778
-      |J|, in approximate angular space: 0.0127778
-      North vector in IJK space: [-0.0001447, 1, 0]
-      Rotation of J from North:  0.00829069
-      Direction cosines:
-      -1 0.0146564 0
-      0 0 1
-      -0.000121346 0.999893 0
-      Image spacing: [0.01514, 0.0127782, 1]
-      Image origin: [57.8563, 0, 32.4356]
+	Current format:
 
+	Image center, in IJK space with (0,0,0) index origin: [86, 41.5, 314.5]
+	Image center, in RA/Dec: [56.5541, 32.9725, 0]
+	I vector, in RA/Dec: [-0.015231, -1.84831e-06, 0]
+	J vector, in RA/Dec: [-2.20355e-06, 0.0127778, 0]
+	I vector, in approximate angular space: [-0.0127778, -1.84831e-06, 0]
+	J vector, in approximate angular space: [-1.84863e-06, 0.0127778, 0]
+	|I|, in approximate angular space: 0.0127778
+	|J|, in approximate angular space: 0.0127778
+	North vector in IJK space: [-0.0001447, 1, 0]
+	Rotation of J from North:  0.00829069
+	Direction cosines:
+	-1 0.0146564 0
+	0 0 1
+	-0.000121346 0.999893 0
+	Image spacing: [0.01514, 0.0127782, 1]
+	Image origin: [57.8563, 0, 32.4356]
 
-      New format:
 
-      Input file: foo.fits
-      Output file: foo.nrrd
-      Image center, in pixels: (86, 41.5, 314.5)
-      Image center, in RA/Dec/V: (56.5541, 32.9725, 0)
-      Pixel size in degrees: 0.0127778 x 0.0127778
-      Pixel size in arcseconds: #@$@#$ x #@#$#@#
-      Pixel size in km/s:
+	New format:
 
+	Input file: foo.fits
+	Output file: foo.nrrd
+	Image center, in pixels: (86, 41.5, 314.5)
+	Image center, in RA/Dec/V: (56.5541, 32.9725, 0)
+	Pixel size in degrees: 0.0127778 x 0.0127778
+	Pixel size in arcseconds: #@$@#$ x #@#$#@#
+	Pixel size in km/s:
 
 
-       NOTE: Put the comments in the help text, rather than here.
-       Also for velocity, may have to instead do something like:
 
-       Pixel size in velocity: $#@$@$#@
-       Velocity units: km/s
+	 NOTE: Put the comments in the help text, rather than here.
+	 Also for velocity, may have to instead do something like:
 
+	 Pixel size in velocity: $#@$@$#@
+	 Velocity units: km/s
 
---quiet, -q
 
-  Suppress the above mentioned output.
+  --quiet, -q
 
-XXX -h
+    Suppress the above mentioned output.
 
-   Outputs the terse usage message.
+  XXX -h
 
-XXX -n
+     Outputs the terse usage message.
 
-   Don't actually do anything.
+  XXX -n
 
-XXX --help
-   Outputs the verbose usage message.
+     Don't actually do anything.
 
---no-wcs, --nw
-   Leaves the image alone.
+  XXX --help
+     Outputs the verbose usage message.
 
-   --north-up
-     Rotates the image so that north is up.  Only works in conjunction
-     with --no-wcs.
+  --no-wcs, --nw
+     Leaves the image alone.
 
-   --west-right
-     Rotates the image so thata west is to the right.  Only works in
-     conjunction with --no-wcs.
+     --north-up
+       Rotates the image so that north is up.  Only works in conjunction
+       with --no-wcs.
 
---force-ra-dec, --frd
-   Forces the axes to be RA and Dec, rather than angular degrees.
+     --west-right
+       Rotates the image so thata west is to the right.  Only works in
+       conjunction with --no-wcs.
 
---west-axis-scale NUM, --was NUM
-  Sets the x-axis scale to be NUM microdegrees.  The default value is 1.
-  TODO: Figure out what this should do if --no-wcs is set.
+  --force-ra-dec, --frd
+     Forces the axes to be RA and Dec, rather than angular degrees.
 
---north-axis-scale NUM, --nas NUM
-  Sets the y-axis scale to be NUM microdegrees.  The default value is 1.
-  TODO: Figure out what this should do if --no-wcs is set.
+  --west-axis-scale NUM, --was NUM
+    Sets the x-axis scale to be NUM microdegrees.  The default value is 1.
+    TODO: Figure out what this should do if --no-wcs is set.
 
---v-axis-scale NUM, --vas NUM
-  TODO: Figure out what this should do.
+  --north-axis-scale NUM, --nas NUM
+    Sets the y-axis scale to be NUM microdegrees.  The default value is 1.
+    TODO: Figure out what this should do if --no-wcs is set.
 
---scale-all-axes {x}, --saa NUM, -a NUM
-  TODO: Figure out precisely what this should do.
+  --v-axis-scale NUM, --vas NUM
+    TODO: Figure out what this should do.
 
---null-value NUM, -N NUM
-  Sets the null value.  The default value is NaN.  (TODO: Find out
-  what it is for integer FITS types.)  You can't set this to 0, due to
-  a limitation in CFITSIO.  (TODO: Post to fitsbits or something to
-  see if this is really true.)
+  --scale-all-axes {x}, --saa NUM, -a NUM
+    TODO: Figure out precisely what this should do.
 
---debug-level INT, -D INT
-  Sets the debug level to INT.  The default value is 0.
+  --null-value NUM, -N NUM
+    Sets the null value.  The default value is NaN.  (TODO: Find out
+    what it is for integer FITS types.)  You can't set this to 0, due to
+    a limitation in CFITSIO.  (TODO: Post to fitsbits or something to
+    see if this is really true.)
 
---pixel-scale {x}, --ps
-  Every pixel will be multiplied by x upon converting from FITS to ITK.  The
-  default value is 1000.
+  --debug-level INT, -D INT
+    Sets the debug level to INT.  The default value is 0.
 
---flip-west, --fw
---flip-north, --fn
---flip-v, --fv
+  --pixel-scale {x}, --ps
+    Every pixel will be multiplied by x upon converting from FITS to ITK.  The
+    default value is 1000.
 
---rotate-sky {x}, --rs
-  Rotates the image by x degrees counter-clockwise.
+  --flip-west, --fw
+  --flip-north, --fn
+  --flip-v, --fv
 
---verbose
+  --rotate-sky {x}, --rs
+    Rotates the image by x degrees counter-clockwise.
 
---show-fits-header
+  --verbose
 
---derivative-image-filter
---flip-image-filter
---binomial-blur-filter
---suppress-metadata-dictionary
---identity-flip
+  --show-fits-header
 
---coerce-to-shorts, --cts
---coerce-to-unsigned-shorts, --ctus
+  --derivative-image-filter
+  --flip-image-filter
+  --binomial-blur-filter
+  --suppress-metadata-dictionary
+  --identity-flip
 
---lps
-  For use with programs other than Slicer that do not need the kludge
-  that compensates for Slicer's conversion to RAS.
+  --coerce-to-shorts, --cts
+  --coerce-to-unsigned-shorts, --ctus
 
+  --lps
+    For use with programs other than Slicer that do not need the kludge
+    that compensates for Slicer's conversion to RAS.
 
-OPTIONS TO REMOVE
-=================
 
+- Options to remove
 
---RIP
+  --RIP
 
-  Replace this with noticing that the output file format is ".hdr" or
-  ".dat" and set the option automatically.
+    Replace this with noticing that the output file format is ".hdr" or
+    ".dat" and set the option automatically.
 
--A
+  -A
 
-  This does velocity autoscaling, but should be set by default.
+    This does velocity autoscaling, but should be set by default.
 
---auto-scale-v-axis, --asva, -A
-  Auto-scales the velocity axis.  It does this by making it the same size as
-  the larger of the west and north axes.
+  --auto-scale-v-axis, --asva, -A
+    Auto-scales the velocity axis.  It does this by making it the same size as
+    the larger of the west and north axes.
 
-  TODO: I think this is going to be the default, and there should be
-  another option to not do this.
+    TODO: I think this is going to be the default, and there should be
+    another option to not do this.
 
 
-OTHER THINGS TO CONSIDER
-========================
+- Other things to consider
 
-o BUNITS is the FITS header that describes the units for the intensity
-  scale.  We may want to output it, if it is present, but it doesn't
-  occur in all FITS files.
+  - BUNITS is the FITS header that describes the units for the intensity
+    scale.  We may want to output it, if it is present, but it doesn't
+    occur in all FITS files.
 
-o Here is an exemplar of the velocity information for a data cube.  This
-  one is just a bunch of slices with a linear delta between slices:
+  - Here is an exemplar of the velocity information for a data cube.  This
+    one is just a bunch of slices with a linear delta between slices:
 
-     CRVAL3  =       -9970.58488358 /
-     CRPIX3  =              1.00000 /
-     CDELT3  =        63.5021900000 /
-     CTYPE3  = 'VELO-LSR'           /
+       CRVAL3  =       -9970.58488358 /
+       CRPIX3  =              1.00000 /
+       CDELT3  =        63.5021900000 /
+       CTYPE3  = 'VELO-LSR'           /
 
-  VELO-LSR here means Local Standard Region, which means that the
-  doppler shifts have been adjusted to the average velocity of a
-  canonical area of the galaxy around our sun.  Notice, however, that
-  there are no units.  Jens says that there is a standard default
-  units.  I should look this up in the FITS standards document to see
-  what it has to say on the issue.
+    VELO-LSR here means Local Standard Region, which means that the
+    doppler shifts have been adjusted to the average velocity of a
+    canonical area of the galaxy around our sun.  Notice, however, that
+    there are no units.  Jens says that there is a standard default
+    units.  I should look this up in the FITS standards document to see
+    what it has to say on the issue.
 
+- Design notes
+
+  TODO: 
+
+
+- New features requested by Mike:
+
+  - Grid transform approximation output
+
+    - Summary of Mike's request
+
+      - Program to take a FITS file as input and write out a NRRD file
+        for which every voxel is the WCS coordinate of the voxel.
+
+        - We will typically want to down-sample the data, as
+          interpolation can be used to determine the WCS coordinates
+          for pixels not explicitly represented.  We will only need to
+          or three layers for the velocity axis, as this is typically
+          linear.
+
+        - Me: Maybe I can just use the CFITSIO extended filename
+          syntax 
+
+    - Text of Mike's request
+
+      I propose we do a grid transform approximation to the true WCS
+      transform.  In a grid transform, we transform every nth voxel in the
+      volume from pixel space to WCS space, and write out the
+      result. Interpolation is later used to find transformed values for
+      other voxels.
+
+      Since Slicer deals well with images, we'll use an image volume (in a
+      NRRD file) to store the result.  The NRRD images representing the
+      transform can get across the execution module bridge to Slicer.  The
+      level of approximation can be set in the user interface.
+
+      VTK has a Grid Transform object, which handles inverse transforms and
+      interpolation issues.  On the Slicer side, we'll use the
+      vtkGridTransform and the mechanism I've talked about before for
+      handling multiple coordinate systems in the scene. I think I can talk
+      Steve into adding this functionality, since it has much more utility
+      than just our application.
+
+      So, your action item would be populating and writing out this new NRRD
+      file as an extra parameter of the filter.
+
+      If we have that, I think we have a pretty complete package --
+      everything else needs to happen inside Slicer (with the possible
+      exception of NaNs).
+
+
+  - Summary of Mike's request
+
+    - Program to take as input
+
+         (1) a 2D image
+         (2) a FITS file (or header)
+         (3) a velocity range
+         (4) a channel select
+
+      and ouput a NRRD file (in the same format as that output by
+      fits2itk) from #1 that contains two copies of the image, the
+      FITS header, and a transformation matrix that causes the image
+      to be extruded throughout the velocity range specified by #3.
+      The channel select lets you chose which channels of image you
+      wish to put into the NRRD file.
+
+  - Text of Mike's request
+
+    I was thinking that it might be time to write a new command-line
+    filter for Slicer3, one that can be used standalone much like the
+    existing fits2itk.
+
+    This is one that will make a nrrd volume from a single image, much
+    like Alyssa's wanted to do forever.
+
+    Inputs:
+
+    image) a PNG/JPEG/TIFF file
+    fits_header_or_image) a FITS file
+    z_min, z_max) a numeric range for the third dimension
+    channel_select) which image channel to use
+
+    Output:
+
+    output) a NRRD file with the encoded FITS information, like fits2itk
+    outputs.
+
+    Operation:
+
+    This filter takes the contents of a 2D raster image and turns it into
+    a synthetic volume with the given extent for Slicer3.
+
+    The image data is extracted from the "image" input, with the option of
+    using the RGB information (if it exists) or a single color channel as
+    specified by the "channel_select" input.
+
+    This information is combined with the FITS header found in the
+    "fits_header_or_image" input.  This FITS file is produced by an
+    outside provider such as astrometry.net, or a custom IDL file.
+
+    If "image" is provided, the FITS file is used only as a header
+    describing the spatial orientation of the image.  If "image" isn't
+    specified, the 2D image data in "fits_header_or_image" is used.  In
+    this case, channel_select is honored as well if the FITS file contains
+    multiple channels.
+
+    The "z_min" and "z_max" values provide the extent of the volume in the
+    dimension orthogonal to the image itself.  For now, we'll assume the
+    image lies in the two spatial dimensions, so "z" will be our velocity
+    dimension.
+
+    The output image is a NRRD file that uses the same coordinate
+    conventions as fits2itk.  It would be a volume with two copies of the
+    data, effectively the front and back planes.  (This isn't the most
+    elegant way I can think of to do this implementation, but we know it
+    will work without any internal itk or Slicer hacking.)
+
+    The filter should be able to run on either command line or as a slicer
+    execution module.
+
+    This would be a big win for everyone, saving Michelle and Jens the
+    trouble of doing this stuff by hand.
+
+    I would suspect you could probably leverage most of the environment
+    you've already built for fits2itk to implement this filter.
+
+    What do you think about giving this a go?
+
+    Jens, Michelle, anything more we'd need in this filter?
+
+    Thanks.
+
+    --Mike

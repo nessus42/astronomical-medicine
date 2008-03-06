@@ -256,8 +256,7 @@ writeImageInfo(const FITSImage<ImageType>& image, ostream& out)
 /*proc*/
 template <class PixelType>
 typename Image<PixelType, c_dims>::Pointer
-applyFlipImageFilter(const typename
-		     Image<PixelType, c_dims>::Pointer& image)
+applyFlipImageFilter(const typename Image<PixelType, c_dims>::Pointer& image)
 {
   typedef Image<PixelType, c_dims> ImageType;
   typedef itk::FlipImageFilter<ImageType> FilterType;
