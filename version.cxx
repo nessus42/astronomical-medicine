@@ -11,7 +11,7 @@
 // See LICENSE.txt for for details.
 //=============================================================================
 
-extern const char fits2itkVersion[] = "Version 0.4dev.12pending.10";
+extern const char fits2itkVersion[] = "Version 0.4dev.12pending.10.gt.pending.0";
 
 //=============================================================================
 // Change Log
@@ -552,14 +552,39 @@ extern const char fits2itkVersion[] = "Version 0.4dev.12pending.10";
 
 // The "--xml" option to support use of fits2itk as a Slicer3 CLI plugin.
 
+//-----------------------------------------
+// Version 0.4dev.12pending.10.gt.pending.0
+//-----------------------------------------
+
+// Made an initial stab at Mike's request for a program to generate grid
+// transform approximation output.  I got it to compile and work, modulo
+// velocities in the output file, which are all currently set to 0.  Also, I
+// currently output a WCS pixel for each pixel in the original image.  First I
+// need to change this to output only two slices, as the velocity information
+// is completely linear (at least in the files that we are looking at), and
+// then I need to modify it to output a WCS pixel for every nth pixel in the
+// original image, where n is set on the command line.
+
+// I examined the output data like so:
+
+//    cat wcs-image.nrrd | unu save -f nrrd -e ascii | less
+
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
 //----------------------------------------------------------------------
 
+// What I'm working on now:
+
+// o Figure out why the velocity output is always 0.
+
+// o Output only two slices.
+
+// o Output a WCS pixel for every nth pixel in the original image, where n is
+//   set on the command line.
+
 // Things that I need to do soon:
 
 // o Reimplementation of features lost during my major refactoring effort.
-//
 
 // o To see the options that are going to be in the next released version, see
 //   NOTES.txt.
