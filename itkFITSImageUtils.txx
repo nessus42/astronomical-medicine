@@ -261,14 +261,14 @@ applyFlipImageFilter(const typename Image<PixelType, c_dims>::Pointer& image)
   typedef Image<PixelType, c_dims> ImageType;
   typedef itk::FlipImageFilter<ImageType> FilterType;
   typedef typename FilterType::FlipAxesArrayType FlipAxesArrayType;
-  typename FilterType::Pointer filter = FilterType::New();
+  static typename FilterType::Pointer filter = FilterType::New();
   FlipAxesArrayType flipArray;
   flipArray[0] = 0;
   flipArray[1] = 1;
   flipArray[2] = 0;
   filter->SetFlipAxes(flipArray);
   filter->SetInput(image);
-  filter->Update();
+  // filter->Update();
   return filter->GetOutput();
 }
 
@@ -280,14 +280,15 @@ applyFlipImageFilter(const typename Image<PixelType, c_dims>::Pointer& image)
 /*proc*/ 
 template <class PixelType>
 typename Image<PixelType, c_dims>::Pointer
-applyBinomialBlurFilter(const typename Image<PixelType, c_dims>::Pointer& image)
+applyBinomialBlurFilter(
+      const typename Image<PixelType, c_dims>::Pointer& image)
 {
   typedef Image<PixelType, c_dims> ImageType;
   typedef itk::BinomialBlurImageFilter<ImageType, ImageType> FilterType;
-  typename FilterType::Pointer filter = FilterType::New();
+  static typename FilterType::Pointer filter = FilterType::New();
   filter->SetInput(image);
   filter->SetRepetitions(1);
-  filter->Update();
+  // filter->Update();
   return filter->GetOutput();
 }
 
@@ -339,11 +340,12 @@ reflectPixels(Image<PixelType, c_dims>& image,
   image.Update();
 
   typedef Image<PixelType, c_dims> ImageType;
-  typedef typename ImageType::IndexType IndexType;
-  typedef typename ImageType::SizeType SizeType;
+  typedef typename ImageType::IndexType   IndexType;
+  typedef typename ImageType::SizeType    SizeType;
+  typedef typename ImageType::RegionType  RegionType;
 
-  typename ImageType::RegionType allOfImage = image.GetLargestPossibleRegion();
-  typename ImageType::SizeType imageSize = allOfImage.GetSize();
+  RegionType allOfImage = image.GetLargestPossibleRegion();
+  SizeType imageSize = allOfImage.GetSize();
   IndexType imageOrigin = allOfImage.GetIndex();
 
   enum { c_i = FITSImageIO::c_i,

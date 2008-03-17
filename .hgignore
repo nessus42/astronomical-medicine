@@ -9,6 +9,7 @@ syntax: glob
 .snprj
 fits2itk.dev.proj
 BROWSE
+TAGS
 tags
 
 syntax: regexp

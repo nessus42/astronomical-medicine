@@ -40,6 +40,7 @@ using itk::Image;
 
 #include <itkImageFileReader.h>
 #include <itkImageFileWriter.h>
+#include <itkVector.h>
 
 #include <itkFITSImageIO.h>
 using itk::FITSImageIO;
@@ -167,8 +168,8 @@ namespace {
     double	   _nullValue;
     bool	   _reorientNorth;
     // bool	   _transformToEquiangular;
+    bool	   _wcsImageFlag;
     bool           _slicerXmlModuleDescriptionFlag;
-
 
     bool	   _binomialBlurFlag;
     bool           _derivativeImageFilterFlag;
@@ -199,6 +200,7 @@ namespace {
     bool	getReorientNorth() const { return _reorientNorth; }
 //     bool	getTransformToEquiangular() const
 //                           { return _transformToEquiangular; }
+    bool	getWcsImageFlag() const { return _wcsImageFlag; }
     bool	getSlicerXmlModuleDescriptionFlag() const
                    { return _slicerXmlModuleDescriptionFlag; }
 
@@ -255,6 +257,7 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
   int scaleDecFlag =                   false;
   int typicalFlag =                    false;
   int verboseFlag =                    false;
+  int wcsImageFlag =                   false;
   int slicerXmlModuleDescriptionFlag = false;
 
   // Specify the allowed short options:
@@ -277,6 +280,7 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
     { "scale-dec",      required_argument, &scaleDecFlag,       true },
     { "typical",        no_argument,       &typicalFlag,        true },
     { "verbose",        no_argument,       &verboseFlag,        true },
+    { "wcs-image", 	no_argument,	   &wcsImageFlag,       true},
     { "xml",            no_argument,       &slicerXmlModuleDescriptionFlag,
          true },
     { null, 0, null, 0 }
@@ -401,6 +405,9 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
 	} else if (verboseFlag) {
 	  verboseFlag = false;
 	  da::setVerbosityLevel(1);
+	} else if (wcsImageFlag) {
+	  wcsImageFlag = false;
+	  _wcsImageFlag = true;
 	} else if (slicerXmlModuleDescriptionFlag) {
 	  slicerXmlModuleDescriptionFlag = false;
 	  _slicerXmlModuleDescriptionFlag = true;
@@ -491,8 +498,14 @@ convertInputFileToItkFile(CommandLineParser& cl)
 			   cl.getFlipDecFlag(),
 			   cl.getFlipVFlag());
 
-  // TODO: Figure out how to do this without reading in the entire image.
+  // The call to Update() here causes the image to be read in to ram.  This is
+  // not ideal as it may cause more ram to be used that would otherwise be
+  // required.  I think that the only thing requiring that Update() be called
+  // here is so that the MDD will exist when we get to the construction of
+  // `fitsImage` immediately following.  TODO: Figure out how how to avoid
+  // having to call Update() here:
   reader->Update();
+
   typename FITSImage<ImageType>::Params params;
   params.itkImage = image;
   FITSImage<ImageType> fitsImage (params);
@@ -520,6 +533,10 @@ convertInputFileToItkFile(CommandLineParser& cl)
     image = applyBinomialBlurFilter<PixelType>(image);
   }
   if (cl.getIdentityFlipFlag()) {
+    // Note: This option isn't going to work anymore because we've added the
+    // very same filter twice into the same filtering chain, and ITK isn't
+    // going to deal with that well.  No biggie, though, as this was only here
+    // for testing anyway.
     image = applyFlipImageFilter<PixelType>(image);
     image = applyFlipImageFilter<PixelType>(image);
   }
@@ -552,6 +569,97 @@ convertInputFileToItkFile(CommandLineParser& cl)
   //   } 
 }
 
+
+//-----------------------------------------------------------------------------
+// convertInputFileToWcsMap(): local function
+//-----------------------------------------------------------------------------
+
+local proc int
+convertInputFileToWcsMap(CommandLineParser& cl)
+{
+  typedef itk::Image<short, c_dims> InputImage;
+  typedef itk::ImageFileReader<InputImage> Reader;
+
+  Reader::Pointer reader = Reader::New();
+  reader->SetFileName(cl.getInputFilepath());
+  InputImage::Pointer inputImage = reader->GetOutput();
+
+  // TODO: Hopefully we can get rid of this call to Update() at some point.
+  // See note about this in convertInputFileToItkFile():
+  reader->Update();
+
+  FITSImage<InputImage>::Params params;
+  params.itkImage = inputImage;
+  FITSImage<InputImage> fitsImage (params);
+
+  // Create a new image to hold the WCS information:
+  typedef itk::Vector<double, 3> WcsMapPixel;
+  typedef itk::Image<WcsMapPixel, c_dims> WcsMapImage;
+  WcsMapImage::Pointer wcsMapImage = WcsMapImage::New();
+
+  // Set the size of the new image:
+  {
+    WcsMapImage::RegionType allOfImage;
+    allOfImage.SetSize(inputImage->GetLargestPossibleRegion().GetSize());
+    wcsMapImage->SetRegions(allOfImage);
+    wcsMapImage->Allocate();
+  }
+
+  // Write the WCS info into WCS map image:
+  {
+    typedef WcsMapImage::IndexType WcsMapIndex;
+
+    InputImage::RegionType allOfInputImage =
+      inputImage->GetLargestPossibleRegion();
+    InputImage::SizeType inputImageSize = allOfInputImage.GetSize();
+    InputImage::IndexType inputImageOrigin = allOfInputImage.GetIndex();
+    
+    enum { c_i = FITSImageIO::c_i,
+	   c_j = FITSImageIO::c_j,
+	   c_k = FITSImageIO::c_k };
+
+    const size_t minRaIndex   = inputImageOrigin[c_i];
+    const size_t minDecIndex = inputImageOrigin[c_j];
+    const size_t minVelIndex  = inputImageOrigin[c_k];
+
+    const size_t maxRaIndex  = minRaIndex  + inputImageSize[c_i];
+    const size_t maxDecIndex = minDecIndex + inputImageSize[c_j];
+    const size_t maxVelIndex = minVelIndex + inputImageSize[c_k];
+
+    FITSImage<InputImage>::WcsTransformConstPtr wcsTransform =
+      fitsImage.wcsTransform();
+    // InputImage::IndexType pixelIndex;  // deleteme
+    // InputImage::PixelType inputPixel;  // deleteme
+    // InputImage::PointType imageOrigin; // deleteme
+    WcsMapImage::IndexType pixelIndex;
+    WcsMapImage::PointType pixelPoint;
+    WcsMapImage::PixelType wcsPixel;
+    WcsMapImage::PointType wcsPoint;
+
+    for (size_t vel_i = minVelIndex; vel_i < maxVelIndex; ++vel_i) {
+      for (size_t dec_i = minDecIndex; dec_i < maxDecIndex; ++dec_i) {
+	for (size_t ra_i = minRaIndex; ra_i < maxRaIndex; ++ra_i) {
+	  pixelPoint[c_i] = pixelIndex[c_i] = ra_i;
+	  pixelPoint[c_j] = pixelIndex[c_j] = dec_i;
+	  pixelPoint[c_k] = pixelIndex[c_k] = vel_i;
+	  wcsPoint = wcsTransform->TransformPoint(pixelPoint);
+	  wcsPixel[c_i] = wcsPoint[c_i];
+	  wcsPixel[c_j] = wcsPoint[c_j];
+	  wcsPixel[c_k] = wcsPoint[c_k];
+	  wcsMapImage->SetPixel(pixelIndex, wcsPixel);
+	}
+      }
+    }
+  }
+
+  typedef itk::ImageFileWriter<WcsMapImage> Writer;
+  Writer::Pointer writer = Writer::New();
+  writer->SetInput(wcsMapImage);
+  writer->SetFileName(cl.getOutputFilepath());
+  writer->Update();
+
+  return EXIT_SUCCESS;
+}
 
 //-----------------------------------------------------------------------------
 // handleOptions(): local function
@@ -624,7 +732,9 @@ main(const int argc, const char* const argv[])
 
   int status = -666;   // If the following code is correct, this value will
                        // always get overwritten.
-  if (cl.getCoerceToShorts()) {
+  if (cl.getWcsImageFlag()) {
+    status = convertInputFileToWcsMap(cl);
+  } else if (cl.getCoerceToShorts()) {
     status = convertInputFileToItkFile<short>(cl);
   } else if (cl.getCoerceToUnsignedShorts()) {
     status = convertInputFileToItkFile<unsigned short>(cl);
