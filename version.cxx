@@ -11,7 +11,7 @@
 // See LICENSE.txt for for details.
 //=============================================================================
 
-extern const char fits2itkVersion[] = "Version 0.4dev.12pending.10.gt.pending.0";
+extern const char fits2itkVersion[] = "Version 0.4dev.12pending.10.gt.pending.1";
 
 //=============================================================================
 // Change Log
@@ -569,6 +569,16 @@ extern const char fits2itkVersion[] = "Version 0.4dev.12pending.10.gt.pending.0"
 
 //    cat wcs-image.nrrd | unu save -f nrrd -e ascii | less
 
+//-----------------------------------------
+// Version 0.4dev.12pending.10.gt.pending.1
+//-----------------------------------------
+
+// In this version, we only output two slices into the WCS grid, and we
+// decimate both the RA and Dec axes by factors of five (more or less).
+
+// In the next version we should make the decimation factor be configurable on
+// the command line.
+
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
 //----------------------------------------------------------------------
@@ -577,10 +587,7 @@ extern const char fits2itkVersion[] = "Version 0.4dev.12pending.10.gt.pending.0"
 
 // o Figure out why the velocity output is always 0.
 
-// o Output only two slices.
-
-// o Output a WCS pixel for every nth pixel in the original image, where n is
-//   set on the command line.
+// o Make the decimation factor be configurable on the command line.
 
 // Things that I need to do soon:
 
