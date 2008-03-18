@@ -11,7 +11,7 @@
 // See LICENSE.txt for for details.
 //=============================================================================
 
-extern const char fits2itkVersion[] = "Version 0.4dev.12pending.10.gt.pending.1";
+extern const char fits2itkVersion[] = "Version 0.4dev.12pending.10.gt.pending.2";
 
 //=============================================================================
 // Change Log
@@ -579,13 +579,18 @@ extern const char fits2itkVersion[] = "Version 0.4dev.12pending.10.gt.pending.1"
 // In the next version we should make the decimation factor be configurable on
 // the command line.
 
+//-----------------------------------------
+// Version 0.4dev.12pending.10.gt.pending.2
+//-----------------------------------------
+
+// Fixed the problem wherein the velocity was always 0 in the WCS grid output.
+
+
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
 //----------------------------------------------------------------------
 
 // What I'm working on now:
-
-// o Figure out why the velocity output is always 0.
 
 // o Make the decimation factor be configurable on the command line.
 

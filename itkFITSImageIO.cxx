@@ -765,6 +765,48 @@ FITSImageIO::ReadImageInformation()
   // URGENT TODO: Fix this attrocity!
   // g_theFITSWCSTransform = m_WCSTransform;
 
+
+  // TODO: The code below for getting the velocity information is fragile, and
+  // depends on quite a few assumptions about the format of the FITS file.  It
+  // would be quite nice of this could be made more robust, but it's not clear
+  // at all how to do so.  A more fully-featured WCS library might be able to
+  // navigate this minefield.  But then again, maybe it can't.
+
+  // Get the coordinate frame information regarding the velocity axis from the
+  // FITS file:
+  double velocityAtIndexOrigin;
+  double velocityDelta;
+  {
+    double referenceVelocity;
+    double referenceVelocityIndex;
+    char dummyComment[81];
+    
+    fits_read_key(m_fitsFile, TDOUBLE, "CRVAL3", &referenceVelocity,
+		  dummyComment, &status);
+    fits_read_key(m_fitsFile, TDOUBLE, "CRPIX3", &referenceVelocityIndex,
+		  dummyComment, &status);
+    fits_read_key(m_fitsFile, TDOUBLE, "CDELT3", &velocityDelta,
+		  dummyComment, &status);
+    if (status) {
+      itkExceptionMacro("FITSImageIO could not read velocity WCS info from"
+			" FITS file \""
+			<< this->GetFileName() << "\": "
+			<< ::getAllFitsErrorMessages(status) << '.');
+    }
+
+    // Convert from m/s to km/s:
+    referenceVelocity /= 1000; 
+    velocityDelta /= 1000; 
+    velocityAtIndexOrigin = 
+      referenceVelocity - velocityDelta * ( 1 - referenceVelocityIndex);
+    debugPrint(
+      "velocityAtIndexOrigin=" << velocityAtIndexOrigin << "\n"
+      "indexOfZeroVelocity="
+         << referenceVelocityIndex - (referenceVelocity / velocityDelta)
+    );
+  }
+
+
   // Set up the ITK image:
   { 
     // TODO: Note that we set the "component type" to float immediately below,
@@ -819,6 +861,25 @@ FITSImageIO::ReadImageInformation()
 
       // TODO: You need to put the comments and units somewhere too.
     }
+
+    // Put the velocity of the first slice and the last slice into the MDD so
+    // that I can extract it easily in fits2itk.c:
+    {
+      EncapsulateMetaData(dict, "fits2itk.velocityAtIndexOrigin",
+			  velocityAtIndexOrigin);
+      EncapsulateMetaData(dict, "fits2itk.velocityDelta", velocityDelta);
+    }
+
+    // TODO: Making separate MDD entries for the above velocites is a bit
+    // gross, and perhaps it would just be better to grab them out of the ITK
+    // Image spacing and origin information.  The problem with doing that,
+    // however, is that if velocity autoscaling is set, then the velocity
+    // information will not be accurate.  I think, however, that in the future
+    // taking that approach may be okay, as I think that autoscaling will not
+    // be done here, but rather more directly in fits2itk.c (or one of its
+    // helper files), and it can do the autoscaling after it has extracted the
+    // real velocity information out of the Image object.
+
     // TODO: Check status and raise exception.
   }
 
