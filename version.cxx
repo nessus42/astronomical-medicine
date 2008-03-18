@@ -11,7 +11,7 @@
 // See LICENSE.txt for for details.
 //=============================================================================
 
-extern const char fits2itkVersion[] = "Version 0.4dev.12pending.10.gt.pending.2";
+extern const char fits2itkVersion[] = "Version 0.4dev.12pending.10.gt";
 
 //=============================================================================
 // Change Log
@@ -519,7 +519,7 @@ extern const char fits2itkVersion[] = "Version 0.4dev.12pending.10.gt.pending.2"
 // Made the default behavior be "--equiangular --reorient-north" so that you
 // don't have to specify these options anymore.  With all this changing of
 // things around, there were some bugs related to ITK's smart pointers causing
-// core dumps, but I fixed them.
+// core dumps, but I> fixed them.
 
 //---------------------------
 // Version 0.4dev.12pending.8
@@ -585,14 +585,25 @@ extern const char fits2itkVersion[] = "Version 0.4dev.12pending.10.gt.pending.2"
 
 // Fixed the problem wherein the velocity was always 0 in the WCS grid output.
 
+//-----------------------------------------
+// Version 0.4dev.12pending.10.gt
+//-----------------------------------------
+
+// Made the WCS grid image decimation factor be configurable on the command
+// line.
 
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
 //----------------------------------------------------------------------
 
+//-----------------------------------------
+// Version 0.4dev.12pending.10.gt.pending.3
+//-----------------------------------------
+
 // What I'm working on now:
 
-// o Make the decimation factor be configurable on the command line.
+// o Need to add an option to take in a 2D FITS image and write out the same
+//   image as 3D extruded through all of velocity space.
 
 // Things that I need to do soon:
 
