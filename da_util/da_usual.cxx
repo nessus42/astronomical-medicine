@@ -168,7 +168,7 @@ programName()
 proc void
 setDebugLevel(int debugLevel)
 {
-  assertm(!debugLevel,
+  assertm(!internal::debugLevel,
 	  "setDebugLevel() must not be be invoked more than once");
   internal::debugLevel = debugLevel;
 }

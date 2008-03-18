@@ -38,6 +38,11 @@ using std::string;
 #include <itkImage.h>
 using itk::Image;
 
+#include <itkMetaDataObject.h>
+using itk::MetaDataDictionary;
+using itk::MetaDataObject;
+using itk::MetaDataObjectBase;
+
 #include <itkImageFileReader.h>
 #include <itkImageFileWriter.h>
 #include <itkVector.h>
@@ -304,7 +309,7 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
 	break;
 
       case 'D':
-	setDebugLevel(strtol(optarg, null, cBase10));
+	_debugLevel = strtol(optarg, null, cBase10);
 	break;
 
       case 'h': usage(false);
@@ -597,6 +602,32 @@ convertInputFileToWcsMap(CommandLineParser& cl)
   typedef itk::Image<WcsMapPixel, c_dims> WcsMapImage;
   WcsMapImage::Pointer wcsMapImage = WcsMapImage::New();
 
+  // Extract the velocity information from the MDD:
+  double velocityAtIndexOrigin;
+  double velocityDelta;
+  {
+    const MetaDataDictionary& mdd = inputImage->GetMetaDataDictionary();
+    const MetaDataObjectBase* const velocityAtIndexOriginMdob
+      = mdd["fits2itk.velocityAtIndexOrigin"];
+    const MetaDataObjectBase* const velocityDeltaMdob
+      = mdd["fits2itk.velocityDelta"];
+    
+    // TODO: Add error checking.  If these items aren't in the MDD, we'll dump
+    // core.
+    
+    const MetaDataObject<double>* const velocityAtIndexOriginMdo
+      = dynamic_cast<const MetaDataObject<double>*>(velocityAtIndexOriginMdob);
+    const MetaDataObject<double>* const velocityDeltaMdo
+      = dynamic_cast<const MetaDataObject<double>*>(velocityDeltaMdob);
+
+    velocityAtIndexOrigin = velocityAtIndexOriginMdo->GetMetaDataObjectValue();
+    velocityDelta = velocityDeltaMdo->GetMetaDataObjectValue();
+    
+    debugPrint("velocityAtIndexOrigin=" << velocityAtIndexOrigin);
+    debugPrint("velocityDelta=" << velocityDelta);
+  }
+
+
   // Write the WCS info into WCS map image:
   {
     typedef WcsMapImage::IndexType WcsMapIndex;
@@ -628,9 +659,6 @@ convertInputFileToWcsMap(CommandLineParser& cl)
 
     FITSImage<InputImage>::WcsTransformConstPtr wcsTransform =
       fitsImage.wcsTransform();
-    // InputImage::IndexType pixelIndex;  // deleteme
-    // InputImage::PixelType inputPixel;  // deleteme
-    // InputImage::PointType imageOrigin; // deleteme
     WcsMapImage::IndexType pixelIndex;
     WcsMapImage::PointType pixelPoint;
     WcsMapImage::PixelType wcsPixel;
@@ -649,7 +677,8 @@ convertInputFileToWcsMap(CommandLineParser& cl)
     for (unsigned slice = 0; slice < velIndexCount; ++slice) {
       pixelIndex[c_k] = slice;
       size_t vel_i = (slice == 0) ? minVelIndex : maxVelIndex;
-      pixelPoint[c_k] = vel_i;
+      double velocity = velocityAtIndexOrigin + vel_i * velocityDelta;
+      // pixelPoint[c_k] = vel_i;
 
       pixelIndex[c_j] = 0;
       for (size_t dec_i = 0; dec_i < decIndexCount; ++dec_i, ++pixelIndex[c_j])
@@ -667,42 +696,11 @@ convertInputFileToWcsMap(CommandLineParser& cl)
 	      wcsPoint = wcsTransform->TransformPoint(pixelPoint);
 	      wcsPixel[c_i] = wcsPoint[c_i];
 	      wcsPixel[c_j] = wcsPoint[c_j];
-	      wcsPixel[c_k] = wcsPoint[c_k];
+	      wcsPixel[c_k] = velocity;
 	      wcsMapImage->SetPixel(pixelIndex, wcsPixel);
 	    }
 	}
     }
-
-
-    // TODO: Delete this code:
-
-//       for (double dec_i = minDecIndex;
-// 	   dec_i <= maxDecIndex;
-// 	   dec_i = minDecIndex +
-// 	     decSampleNum * inputImageSize[c_j] / decimationFactor)
-// 	{
-// 	  ++decSampleNum;
-// 	  ++pixelIndex[c_j];
-// 	  pixelPoint[c_j] = dec_i;
-
-// 	  pixelIndex[c_i] = 0;
-// 	  size_t raSampleNum = 0;
-// 	  for (double ra_i = minRaIndex;
-// 	       ra_i <= maxRaIndex;
-// 	       ra_i = minRaIndex +
-// 		 raSampleNum * inputImageSize[c_i] / decimationFactor)
-// 	    {
-// 	      ++raSampleNum;
-// 	      ++pixelIndex[c_i];
-// 	      pixelPoint[c_i] = ra_i;
-// 	      wcsPoint = wcsTransform->TransformPoint(pixelPoint);
-// 	      wcsPixel[c_i] = wcsPoint[c_i];
-// 	      wcsPixel[c_j] = wcsPoint[c_j];
-// 	      wcsPixel[c_k] = wcsPoint[c_k];
-// 	      wcsMapImage->SetPixel(pixelIndex, wcsPixel);
-// 	    }
-// 	}
-
   }
 
   // Write `wcsMapImage` to the output file:
