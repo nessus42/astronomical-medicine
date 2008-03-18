@@ -173,7 +173,7 @@ namespace {
     double	   _nullValue;
     bool	   _reorientNorth;
     // bool	   _transformToEquiangular;
-    bool	   _wcsImageFlag;
+    double	   _wcsImageDecimationFactor;
     bool           _slicerXmlModuleDescriptionFlag;
 
     bool	   _binomialBlurFlag;
@@ -205,7 +205,8 @@ namespace {
     bool	getReorientNorth() const { return _reorientNorth; }
 //     bool	getTransformToEquiangular() const
 //                           { return _transformToEquiangular; }
-    bool	getWcsImageFlag() const { return _wcsImageFlag; }
+    double	getWcsImageDecimationFactor() const
+                   { return _wcsImageDecimationFactor; }
     bool	getSlicerXmlModuleDescriptionFlag() const
                    { return _slicerXmlModuleDescriptionFlag; }
 
@@ -237,6 +238,7 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
     _reorientNorth(false),
     _slicerXmlModuleDescriptionFlag(false),
     // _transformToEquiangular(false),
+    _wcsImageDecimationFactor(0),
     _binomialBlurFlag(false),
     _derivativeImageFilterFlag(false),
     _flipImageFilterFlag(false),
@@ -270,22 +272,22 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
 
   // Specify the allowed long options:
   struct option longopts[] = {
-    // { "equiangular", no_argument,       &equiangularFlag,   true },
-    { "help",           no_argument,       &verboseHelpFlag,   true },
-    { "flip-dec",       no_argument,       &flipDecFlag,       true },
-    { "flip-ra",        no_argument,       &flipRaFlag,        true },
-    { "flip-v",         no_argument,       &flipVFlag,         true },
-    { "logo",           no_argument,       &logoFlag,          true },
-    { "no-wcs",         no_argument,       &noWcsFlag,         true},
-    { "nw",             no_argument,       &noWcsFlag,         true},
-    { "null-value",     required_argument, 0,                  'N'},
-    { "reorient-north", no_argument,       &reorientNorthFlag, true },
-    { "rotate-sky",     required_argument, &rotateSkyFlag,     true },
+    // { "equiangular", no_argument,       &equiangularFlag,    true },
+    { "help",           no_argument,       &verboseHelpFlag,    true },
+    { "flip-dec",       no_argument,       &flipDecFlag,        true },
+    { "flip-ra",        no_argument,       &flipRaFlag,         true },
+    { "flip-v",         no_argument,       &flipVFlag,          true },
+    { "logo",           no_argument,       &logoFlag,           true },
+    { "no-wcs",         no_argument,       &noWcsFlag,          true},
+    { "nw",             no_argument,       &noWcsFlag,          true},
+    { "null-value",     required_argument, 0,                   'N'},
+    { "reorient-north", no_argument,       &reorientNorthFlag,  true },
+    { "rotate-sky",     required_argument, &rotateSkyFlag,      true },
     { "RIP",            no_argument,       &ripOrientationFlag, true },
     { "scale-dec",      required_argument, &scaleDecFlag,       true },
     { "typical",        no_argument,       &typicalFlag,        true },
     { "verbose",        no_argument,       &verboseFlag,        true },
-    { "wcs-image", 	no_argument,	   &wcsImageFlag,       true},
+    { "wcs-image", 	required_argument, &wcsImageFlag,       true},
     { "xml",            no_argument,       &slicerXmlModuleDescriptionFlag,
          true },
     { null, 0, null, 0 }
@@ -412,7 +414,8 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
 	  da::setVerbosityLevel(1);
 	} else if (wcsImageFlag) {
 	  wcsImageFlag = false;
-	  _wcsImageFlag = true;
+	  _wcsImageDecimationFactor = strtod(optarg, &endptr);
+	  checkEndptr(endptr);
 	} else if (slicerXmlModuleDescriptionFlag) {
 	  slicerXmlModuleDescriptionFlag = false;
 	  _slicerXmlModuleDescriptionFlag = true;
@@ -649,12 +652,15 @@ convertInputFileToWcsMap(CommandLineParser& cl)
     const size_t maxDecIndex = minDecIndex + inputImageSize[c_j] - 1;
     const size_t maxVelIndex = minVelIndex + inputImageSize[c_k] - 1;
 
-    const double decimationFactor = 5.0;
+    debugPrint("wcsImageDecimationFactor="
+	       << cl.getWcsImageDecimationFactor());
 
-    const size_t raIndexCount = size_t(ceil((maxRaIndex - minRaIndex) / 
-					    decimationFactor) + 1);
-    const size_t decIndexCount = size_t(ceil((maxDecIndex - minDecIndex) /
-					     decimationFactor) + 1);
+    const size_t raIndexCount =
+      size_t(ceil((maxRaIndex - minRaIndex) / 
+		  cl.getWcsImageDecimationFactor()) + 1);
+    const size_t decIndexCount =
+      size_t(ceil((maxDecIndex - minDecIndex) /
+		  cl.getWcsImageDecimationFactor()) + 1);
     const size_t velIndexCount = 2;
 
     FITSImage<InputImage>::WcsTransformConstPtr wcsTransform =
@@ -784,7 +790,7 @@ main(const int argc, const char* const argv[])
 
   int status = -666;   // If the following code is correct, this value will
                        // always get overwritten.
-  if (cl.getWcsImageFlag()) {
+  if (cl.getWcsImageDecimationFactor() > 0) {
     status = convertInputFileToWcsMap(cl);
   } else if (cl.getCoerceToShorts()) {
     status = convertInputFileToItkFile<short>(cl);
