@@ -597,34 +597,34 @@ convertInputFileToWcsMap(CommandLineParser& cl)
   typedef itk::Image<WcsMapPixel, c_dims> WcsMapImage;
   WcsMapImage::Pointer wcsMapImage = WcsMapImage::New();
 
-  // Set the size of the new image:
-  {
-    WcsMapImage::RegionType allOfImage;
-    allOfImage.SetSize(inputImage->GetLargestPossibleRegion().GetSize());
-    wcsMapImage->SetRegions(allOfImage);
-    wcsMapImage->Allocate();
-  }
-
   // Write the WCS info into WCS map image:
   {
     typedef WcsMapImage::IndexType WcsMapIndex;
+
+    enum { c_i = FITSImageIO::c_i,
+	   c_j = FITSImageIO::c_j,
+	   c_k = FITSImageIO::c_k };
 
     InputImage::RegionType allOfInputImage =
       inputImage->GetLargestPossibleRegion();
     InputImage::SizeType inputImageSize = allOfInputImage.GetSize();
     InputImage::IndexType inputImageOrigin = allOfInputImage.GetIndex();
     
-    enum { c_i = FITSImageIO::c_i,
-	   c_j = FITSImageIO::c_j,
-	   c_k = FITSImageIO::c_k };
-
     const size_t minRaIndex   = inputImageOrigin[c_i];
     const size_t minDecIndex = inputImageOrigin[c_j];
     const size_t minVelIndex  = inputImageOrigin[c_k];
 
-    const size_t maxRaIndex  = minRaIndex  + inputImageSize[c_i];
-    const size_t maxDecIndex = minDecIndex + inputImageSize[c_j];
-    const size_t maxVelIndex = minVelIndex + inputImageSize[c_k];
+    const size_t maxRaIndex  = minRaIndex  + inputImageSize[c_i] - 1;
+    const size_t maxDecIndex = minDecIndex + inputImageSize[c_j] - 1;
+    const size_t maxVelIndex = minVelIndex + inputImageSize[c_k] - 1;
+
+    const double decimationFactor = 5.0;
+
+    const size_t raIndexCount = size_t(ceil((maxRaIndex - minRaIndex) / 
+					    decimationFactor) + 1);
+    const size_t decIndexCount = size_t(ceil((maxDecIndex - minDecIndex) /
+					     decimationFactor) + 1);
+    const size_t velIndexCount = 2;
 
     FITSImage<InputImage>::WcsTransformConstPtr wcsTransform =
       fitsImage.wcsTransform();
@@ -636,22 +636,76 @@ convertInputFileToWcsMap(CommandLineParser& cl)
     WcsMapImage::PixelType wcsPixel;
     WcsMapImage::PointType wcsPoint;
 
-    for (size_t vel_i = minVelIndex; vel_i < maxVelIndex; ++vel_i) {
-      for (size_t dec_i = minDecIndex; dec_i < maxDecIndex; ++dec_i) {
-	for (size_t ra_i = minRaIndex; ra_i < maxRaIndex; ++ra_i) {
-	  pixelPoint[c_i] = pixelIndex[c_i] = ra_i;
-	  pixelPoint[c_j] = pixelIndex[c_j] = dec_i;
-	  pixelPoint[c_k] = pixelIndex[c_k] = vel_i;
-	  wcsPoint = wcsTransform->TransformPoint(pixelPoint);
-	  wcsPixel[c_i] = wcsPoint[c_i];
-	  wcsPixel[c_j] = wcsPoint[c_j];
-	  wcsPixel[c_k] = wcsPoint[c_k];
-	  wcsMapImage->SetPixel(pixelIndex, wcsPixel);
-	}
-      }
+    // Size the WCS map image:
+    {
+      WcsMapImage::RegionType wcsMapDims;
+      wcsMapDims.SetSize(c_i, raIndexCount);
+      wcsMapDims.SetSize(c_j, decIndexCount);
+      wcsMapDims.SetSize(c_k, velIndexCount);
+      wcsMapImage->SetRegions(wcsMapDims);
+      wcsMapImage->Allocate();
     }
+
+    for (unsigned slice = 0; slice < velIndexCount; ++slice) {
+      pixelIndex[c_k] = slice;
+      size_t vel_i = (slice == 0) ? minVelIndex : maxVelIndex;
+      pixelPoint[c_k] = vel_i;
+
+      pixelIndex[c_j] = 0;
+      for (size_t dec_i = 0; dec_i < decIndexCount; ++dec_i, ++pixelIndex[c_j])
+	{
+	  pixelPoint[c_j] =
+	    minDecIndex + dec_i * inputImageSize[c_j] / decIndexCount;
+
+	  pixelIndex[c_i] = 0;
+	  for (size_t ra_i = 0; ra_i < raIndexCount; ++ra_i, ++pixelIndex[c_i])
+	    {
+	      
+	      pixelPoint[c_i] =
+		minRaIndex + ra_i * inputImageSize[c_i] / raIndexCount;
+	  
+	      wcsPoint = wcsTransform->TransformPoint(pixelPoint);
+	      wcsPixel[c_i] = wcsPoint[c_i];
+	      wcsPixel[c_j] = wcsPoint[c_j];
+	      wcsPixel[c_k] = wcsPoint[c_k];
+	      wcsMapImage->SetPixel(pixelIndex, wcsPixel);
+	    }
+	}
+    }
+
+
+    // TODO: Delete this code:
+
+//       for (double dec_i = minDecIndex;
+// 	   dec_i <= maxDecIndex;
+// 	   dec_i = minDecIndex +
+// 	     decSampleNum * inputImageSize[c_j] / decimationFactor)
+// 	{
+// 	  ++decSampleNum;
+// 	  ++pixelIndex[c_j];
+// 	  pixelPoint[c_j] = dec_i;
+
+// 	  pixelIndex[c_i] = 0;
+// 	  size_t raSampleNum = 0;
+// 	  for (double ra_i = minRaIndex;
+// 	       ra_i <= maxRaIndex;
+// 	       ra_i = minRaIndex +
+// 		 raSampleNum * inputImageSize[c_i] / decimationFactor)
+// 	    {
+// 	      ++raSampleNum;
+// 	      ++pixelIndex[c_i];
+// 	      pixelPoint[c_i] = ra_i;
+// 	      wcsPoint = wcsTransform->TransformPoint(pixelPoint);
+// 	      wcsPixel[c_i] = wcsPoint[c_i];
+// 	      wcsPixel[c_j] = wcsPoint[c_j];
+// 	      wcsPixel[c_k] = wcsPoint[c_k];
+// 	      wcsMapImage->SetPixel(pixelIndex, wcsPixel);
+// 	    }
+// 	}
+
   }
 
+  // Write `wcsMapImage` to the output file:
   typedef itk::ImageFileWriter<WcsMapImage> Writer;
   Writer::Pointer writer = Writer::New();
   writer->SetInput(wcsMapImage);
