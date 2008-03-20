@@ -390,87 +390,77 @@
       everything else needs to happen inside Slicer (with the possible
       exception of NaNs).
 
+  - 2D to 3D image extrusion
 
-  - Summary of Mike's request
+    - Summary of Mike's request
 
-    - Program to take as input
+      - Program to take as input
 
-         (1) a 2D image
-         (2) a FITS file (or header)
-         (3) a velocity range
-         (4) a channel select
+	   (1) a 2D image
+	   (2) a FITS file (or header)
+	   (3) a velocity range
+	   (4) a channel select
 
-      and ouput a NRRD file (in the same format as that output by
-      fits2itk) from #1 that contains two copies of the image, the
-      FITS header, and a transformation matrix that causes the image
-      to be extruded throughout the velocity range specified by #3.
-      The channel select lets you chose which channels of image you
-      wish to put into the NRRD file.
+	and ouput a NRRD file (in the same format as that output by
+	fits2itk) from #1 that contains two copies of the image, the
+	FITS header, and a transformation matrix that causes the image
+	to be extruded throughout the velocity range specified by #3.
+	The channel select lets you chose which channels of image you
+	wish to put into the NRRD file.
 
-  - Text of Mike's request
+    - Text of Mike's request
 
-    I was thinking that it might be time to write a new command-line
-    filter for Slicer3, one that can be used standalone much like the
-    existing fits2itk.
+      I was thinking that it might be time to write a new command-line
+      filter for Slicer3, one that can be used standalone much like the
+      existing fits2itk.
 
-    This is one that will make a nrrd volume from a single image, much
-    like Alyssa's wanted to do forever.
+      This is one that will make a nrrd volume from a single image, much
+      like Alyssa's wanted to do forever.
 
-    Inputs:
+      Inputs:
 
-    image) a PNG/JPEG/TIFF file
-    fits_header_or_image) a FITS file
-    z_min, z_max) a numeric range for the third dimension
-    channel_select) which image channel to use
+      image) a PNG/JPEG/TIFF file
+      fits_header_or_image) a FITS file
+      z_min, z_max) a numeric range for the third dimension
+      channel_select) which image channel to use
 
-    Output:
+      Output:
 
-    output) a NRRD file with the encoded FITS information, like fits2itk
-    outputs.
+      output) a NRRD file with the encoded FITS information, like fits2itk
+      outputs.
 
-    Operation:
+      Operation:
 
-    This filter takes the contents of a 2D raster image and turns it into
-    a synthetic volume with the given extent for Slicer3.
+      This filter takes the contents of a 2D raster image and turns it into
+      a synthetic volume with the given extent for Slicer3.
 
-    The image data is extracted from the "image" input, with the option of
-    using the RGB information (if it exists) or a single color channel as
-    specified by the "channel_select" input.
+      The image data is extracted from the "image" input, with the option of
+      using the RGB information (if it exists) or a single color channel as
+      specified by the "channel_select" input.
 
-    This information is combined with the FITS header found in the
-    "fits_header_or_image" input.  This FITS file is produced by an
-    outside provider such as astrometry.net, or a custom IDL file.
+      This information is combined with the FITS header found in the
+      "fits_header_or_image" input.  This FITS file is produced by an
+      outside provider such as astrometry.net, or a custom IDL file.
 
-    If "image" is provided, the FITS file is used only as a header
-    describing the spatial orientation of the image.  If "image" isn't
-    specified, the 2D image data in "fits_header_or_image" is used.  In
-    this case, channel_select is honored as well if the FITS file contains
-    multiple channels.
+      If "image" is provided, the FITS file is used only as a header
+      describing the spatial orientation of the image.  If "image" isn't
+      specified, the 2D image data in "fits_header_or_image" is used.  In
+      this case, channel_select is honored as well if the FITS file contains
+      multiple channels.
 
-    The "z_min" and "z_max" values provide the extent of the volume in the
-    dimension orthogonal to the image itself.  For now, we'll assume the
-    image lies in the two spatial dimensions, so "z" will be our velocity
-    dimension.
+      The "z_min" and "z_max" values provide the extent of the volume in the
+      dimension orthogonal to the image itself.  For now, we'll assume the
+      image lies in the two spatial dimensions, so "z" will be our velocity
+      dimension.
 
-    The output image is a NRRD file that uses the same coordinate
-    conventions as fits2itk.  It would be a volume with two copies of the
-    data, effectively the front and back planes.  (This isn't the most
-    elegant way I can think of to do this implementation, but we know it
-    will work without any internal itk or Slicer hacking.)
+      The output image is a NRRD file that uses the same coordinate
+      conventions as fits2itk.  It would be a volume with two copies of the
+      data, effectively the front and back planes.  (This isn't the most
+      elegant way I can think of to do this implementation, but we know it
+      will work without any internal itk or Slicer hacking.)
 
-    The filter should be able to run on either command line or as a slicer
-    execution module.
+      The filter should be able to run on either command line or as a slicer
+      execution module.
 
-    This would be a big win for everyone, saving Michelle and Jens the
-    trouble of doing this stuff by hand.
-
-    I would suspect you could probably leverage most of the environment
-    you've already built for fits2itk to implement this filter.
-
-    What do you think about giving this a go?
-
-    Jens, Michelle, anything more we'd need in this filter?
-
-    Thanks.
-
-    --Mike
+      This would be a big win for everyone, saving Michelle and Jens the
+      trouble of doing this stuff by hand.
