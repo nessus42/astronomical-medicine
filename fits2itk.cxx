@@ -16,9 +16,9 @@
 // See LICENSE.txt for for details.
 //=============================================================================
 
-#include <libgen.h>			   // For basename()
+#include <libgen.h>                        // For basename()
 #include <getopt.h>
-#include <stdlib.h>			   // For getenv(), setenv()
+#include <stdlib.h>                        // For getenv(), setenv()
 #include <sys/param.h>                     // For MAXPATHLEN
 #include <cassert>
 #include <cmath>
@@ -85,7 +85,7 @@ usage1(bool exitWithFailure, bool verboseUsage)
   out << "usage:\n";
 
   const char* shortUsageFilepath = pteJoinPath(pathToExecutableDir(),
-					       "shortUsageMessage.txt");
+                                               "shortUsageMessage.txt");
 
   auto_ptr<ifstream> shortUsageMessage =
     da::openFileForReading(shortUsageFilepath, da::dieOnError);
@@ -131,7 +131,7 @@ writeSlicerXmlModuleDescription(ostream& out)
 {
   const char* moduleDescriptionFilepath =
     pteJoinPath(pathToExecutableDir(),
-		"slicerModuleDescription.xml");
+                "slicerModuleDescription.xml");
   auto_ptr<ifstream> moduleDescription =
     da::openFileForReading(moduleDescriptionFilepath, da::dieOnError);
   da::copyStream(*moduleDescription, out, da::dieOnError);
@@ -164,22 +164,22 @@ namespace {
 
     bool           _coerceToShorts;
     bool           _coerceToUnsignedShorts;
-    int		   _debugLevel;
-    bool	   _dontWrite;
-    bool	   _flipDecFlag;
-    bool	   _flipRaFlag;
-    bool	   _flipVFlag;
-    bool	   _logoFlag;
-    double	   _nullValue;
-    bool	   _reorientNorth;
-    // bool	   _transformToEquiangular;
-    double	   _wcsImageDecimationFactor;
+    int            _debugLevel;
+    bool           _dontWrite;
+    bool           _flipDecFlag;
+    bool           _flipRaFlag;
+    bool           _flipVFlag;
+    bool           _logoFlag;
+    double         _nullValue;
+    bool           _reorientNorth;
+    // bool        _transformToEquiangular;
+    double         _wcsImageStride;
     bool           _slicerXmlModuleDescriptionFlag;
 
-    bool	   _binomialBlurFlag;
+    bool           _binomialBlurFlag;
     bool           _derivativeImageFilterFlag;
     bool           _flipImageFilterFlag;
-    bool	   _identityFlipFlag;
+    bool           _identityFlipFlag;
 
     // Private non-virtual methods:
     void        parseExtendedOption(const char* const option);
@@ -196,28 +196,28 @@ namespace {
     bool        getCoerceToUnsignedShorts() const
                           { return _coerceToUnsignedShorts; }
     int         getDebugLevel() const { return _debugLevel; }
-    bool	getDontWrite() const { return _dontWrite; }
-    bool	getFlipDecFlag() const { return _flipDecFlag; }
+    bool        getDontWrite() const { return _dontWrite; }
+    bool        getFlipDecFlag() const { return _flipDecFlag; }
     bool        getFlipRaFlag() const { return _flipRaFlag; }
-    bool	getFlipVFlag() const { return _flipVFlag; }
+    bool        getFlipVFlag() const { return _flipVFlag; }
     bool        getLogoFlag() const { return _logoFlag; }
-    double	getNullValue() const { return _nullValue; }
-    bool	getReorientNorth() const { return _reorientNorth; }
-//     bool	getTransformToEquiangular() const
+    double      getNullValue() const { return _nullValue; }
+    bool        getReorientNorth() const { return _reorientNorth; }
+//     bool     getTransformToEquiangular() const
 //                           { return _transformToEquiangular; }
-    double	getWcsImageDecimationFactor() const
-                   { return _wcsImageDecimationFactor; }
-    bool	getSlicerXmlModuleDescriptionFlag() const
+    double      getWcsImageStride() const
+                   { return _wcsImageStride; }
+    bool        getSlicerXmlModuleDescriptionFlag() const
                    { return _slicerXmlModuleDescriptionFlag; }
 
 
-    bool	getBinomialBlurFlag() const
+    bool        getBinomialBlurFlag() const
                    { return _binomialBlurFlag; }
     bool        getDerivativeImageFilterFlag() const
                    { return _derivativeImageFilterFlag; }
     bool        getFlipImageFilterFlag() const
                    { return _flipImageFilterFlag; }
-    bool	getIdentityFlipFlag() const
+    bool        getIdentityFlipFlag() const
                    { return _identityFlipFlag; }
   };
 
@@ -238,7 +238,7 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
     _reorientNorth(false),
     _slicerXmlModuleDescriptionFlag(false),
     // _transformToEquiangular(false),
-    _wcsImageDecimationFactor(0),
+    _wcsImageStride(0),
     _binomialBlurFlag(false),
     _derivativeImageFilterFlag(false),
     _flipImageFilterFlag(false),
@@ -287,7 +287,7 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
     { "scale-dec",      required_argument, &scaleDecFlag,       true },
     { "typical",        no_argument,       &typicalFlag,        true },
     { "verbose",        no_argument,       &verboseFlag,        true },
-    { "wcs-image", 	required_argument, &wcsImageFlag,       true},
+    { "wcs-image",      required_argument, &wcsImageFlag,       true},
     { "xml",            no_argument,       &slicerXmlModuleDescriptionFlag,
          true },
     { null, 0, null, 0 }
@@ -295,44 +295,44 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
 
   // Do the parsing:
   while ((optionChar = getopt_long(argc,
-				   const_cast<char**>(argv),
-				   shortopts,
-				   longopts,
-				   null))
+                                   const_cast<char**>(argv),
+                                   shortopts,
+                                   longopts,
+                                   null))
          != -1)
     {
       switch (optionChar) {
 
       case 'a':
-	// XXX: You need to figure out a new way to scale all axes.
+        // XXX: You need to figure out a new way to scale all axes.
 
-	// FITSImageIO::SetScaleAllAxes(strtod(optarg, &endptr));
-	::checkEndptr(endptr);
-	break;
+        // FITSImageIO::SetScaleAllAxes(strtod(optarg, &endptr));
+        ::checkEndptr(endptr);
+        break;
 
       case 'D':
-	_debugLevel = strtol(optarg, null, cBase10);
-	break;
+        _debugLevel = strtol(optarg, null, cBase10);
+        break;
 
       case 'h': usage(false);
 
       case 'N':
-	_nullValue = strtod(optarg, &endptr);
-	checkEndptr(endptr);
-	break;
+        _nullValue = strtod(optarg, &endptr);
+        checkEndptr(endptr);
+        break;
 
       case 'n':
-	_dontWrite = true;
-	break;
+        _dontWrite = true;
+        break;
 
       case 'o':
-	this->parseExtendedOption(optarg);
-	break;
+        this->parseExtendedOption(optarg);
+        break;
 
       case 'r':
-	// FITSImageIO::SetScaleRA(strtod(optarg, &endptr));
-	checkEndptr(endptr);
-	break;
+        // FITSImageIO::SetScaleRA(strtod(optarg, &endptr));
+        checkEndptr(endptr);
+        break;
 
       case 'S':
         _coerceToShorts = true;
@@ -340,7 +340,7 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
 
       case 's':
         // FITSImageIO::SetScaleVoxelValues(strtod(optarg, &endptr));
-	checkEndptr(endptr);
+        checkEndptr(endptr);
         break;
 
       case 'U':
@@ -349,80 +349,80 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
 
       case 'v':
         // FITSImageIO::SetScaleVelocity(strtod(optarg, &endptr));
-	checkEndptr(endptr);
+        checkEndptr(endptr);
         break;
 
 
       case '?': 
-	// On BSD (e.g., OS X), we end up here for unknown long options.
-	// In this case, it seems next to impossible to tell the difference
-	// between this case and the case where the user specifies "-?" the
-	// command line.  Consequently, we should always consider it to be
-	// a parsing error.
-	usage();
+        // On BSD (e.g., OS X), we end up here for unknown long options.
+        // In this case, it seems next to impossible to tell the difference
+        // between this case and the case where the user specifies "-?" the
+        // command line.  Consequently, we should always consider it to be
+        // a parsing error.
+        usage();
 
       case ':': 
-	// We might end up here for options that should have had arguments
-	// but didn't, depending on the platform.
-	usage();
+        // We might end up here for options that should have had arguments
+        // but didn't, depending on the platform.
+        usage();
 
       case 0:
-	// Parse long options:
-	if (verboseHelpFlag) {
-	  verboseUsage();
-// 	} else if (equiangularFlag) {
-// 	  equiangularFlag =  false;
-// 	  _transformToEquiangular = true;
-	} else if (flipDecFlag) {
-	  flipDecFlag = false;
-	  _flipDecFlag = true;
-	} else if (flipRaFlag) {
-	  flipRaFlag = false;
-	  _flipRaFlag = true;
-	} else if (flipVFlag) {
-	  flipVFlag = false;
-	  _flipVFlag = true;
-	} else if (logoFlag) {
-	  logoFlag = false;
-	  _logoFlag = true;
-	} else if (noWcsFlag) {
-	  noWcsFlag = false;
-	  // FITSImageIO::SetSuppressWCS(true);
-	} else if (reorientNorthFlag) {
-	  reorientNorthFlag = false;
-	  _reorientNorth = true;
-	} else if (ripOrientationFlag) {
-	  ripOrientationFlag = false;
-	  // FITSImageIO::SetRIPOrientation(true);
-	  // FITSImageIO::SetSuppressWCS(true);
-	} else if (rotateSkyFlag) {
-	  rotateSkyFlag = false;
-	  // FITSImageIO::SetRotateSky(strtod(optarg, &endptr));
-	  checkEndptr(endptr);
-	} else if (scaleDecFlag) {
-	  scaleDecFlag = false;
-	  // FITSImageIO::SetScaleDec(strtod(optarg, &endptr));
-	  checkEndptr(endptr);
-	} else if (typicalFlag) {
-	  typicalFlag = false;
-	  // FITSImageIO::SetAutoScaleVelocityAxis(true);
-	  // FITSImageIO::SetScaleAllAxes(1000);
-	  // FITSImageIO::SetScaleRA(-1);
-	  // FITSImageIO::SetScaleVoxelValues(1000);
-	} else if (verboseFlag) {
-	  verboseFlag = false;
-	  da::setVerbosityLevel(1);
-	} else if (wcsImageFlag) {
-	  wcsImageFlag = false;
-	  _wcsImageDecimationFactor = strtod(optarg, &endptr);
-	  checkEndptr(endptr);
-	} else if (slicerXmlModuleDescriptionFlag) {
-	  slicerXmlModuleDescriptionFlag = false;
-	  _slicerXmlModuleDescriptionFlag = true;
-	} else {
-	  usage();
-	}
-	break;
+        // Parse long options:
+        if (verboseHelpFlag) {
+          verboseUsage();
+//      } else if (equiangularFlag) {
+//        equiangularFlag =  false;
+//        _transformToEquiangular = true;
+        } else if (flipDecFlag) {
+          flipDecFlag = false;
+          _flipDecFlag = true;
+        } else if (flipRaFlag) {
+          flipRaFlag = false;
+          _flipRaFlag = true;
+        } else if (flipVFlag) {
+          flipVFlag = false;
+          _flipVFlag = true;
+        } else if (logoFlag) {
+          logoFlag = false;
+          _logoFlag = true;
+        } else if (noWcsFlag) {
+          noWcsFlag = false;
+          // FITSImageIO::SetSuppressWCS(true);
+        } else if (reorientNorthFlag) {
+          reorientNorthFlag = false;
+          _reorientNorth = true;
+        } else if (ripOrientationFlag) {
+          ripOrientationFlag = false;
+          // FITSImageIO::SetRIPOrientation(true);
+          // FITSImageIO::SetSuppressWCS(true);
+        } else if (rotateSkyFlag) {
+          rotateSkyFlag = false;
+          // FITSImageIO::SetRotateSky(strtod(optarg, &endptr));
+          checkEndptr(endptr);
+        } else if (scaleDecFlag) {
+          scaleDecFlag = false;
+          // FITSImageIO::SetScaleDec(strtod(optarg, &endptr));
+          checkEndptr(endptr);
+        } else if (typicalFlag) {
+          typicalFlag = false;
+          // FITSImageIO::SetAutoScaleVelocityAxis(true);
+          // FITSImageIO::SetScaleAllAxes(1000);
+          // FITSImageIO::SetScaleRA(-1);
+          // FITSImageIO::SetScaleVoxelValues(1000);
+        } else if (verboseFlag) {
+          verboseFlag = false;
+          da::setVerbosityLevel(1);
+        } else if (wcsImageFlag) {
+          wcsImageFlag = false;
+          _wcsImageStride = strtod(optarg, &endptr);
+          checkEndptr(endptr);
+        } else if (slicerXmlModuleDescriptionFlag) {
+          slicerXmlModuleDescriptionFlag = false;
+          _slicerXmlModuleDescriptionFlag = true;
+        } else {
+          usage();
+        }
+        break;
 
       default:
         cerr << "Bug!" << endl;
@@ -449,7 +449,7 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
 //       FITSImageIO::GetAutoScaleVelocityAxis())
 //     {
 //       da::warning("Velocity axis auto-scaling does not work when WCS\n"
-// 		  "     is suppressed.");
+//                "     is suppressed.");
 //     }
 }
   
@@ -486,6 +486,37 @@ parseExtendedOption(const char* const option)
 // Local functions
 //=============================================================================
 
+//-----------------------------------------------------------------------------
+// mapRange(): local inline function
+//-----------------------------------------------------------------------------
+
+// Implements this function:
+//
+// http://processing.org/reference/map_.html
+
+local inline double
+mapRange(const double value,
+         const double sourceLow, double sourceHigh,
+         const double destLow, double destHigh)
+{
+  return (value - sourceLow) / (sourceHigh - sourceLow) * (destHigh - destLow)
+    + destLow;
+}
+
+
+local inline double
+mapRange(const int value,
+         const int sourceLow, int sourceHigh,
+         const double destLow, double destHigh)
+{
+  if (value == sourceLow) return destLow;
+  if (value == sourceHigh) return destHigh;
+  return mapRange(
+            static_cast<double>(value),
+            static_cast<double>(sourceLow), static_cast<double>(sourceHigh),
+            destLow, destHigh);
+}
+
 
 //-----------------------------------------------------------------------------
 // convertInputFileToItkFile(): local template function
@@ -502,9 +533,9 @@ convertInputFileToItkFile(CommandLineParser& cl)
   reader->SetFileName(cl.getInputFilepath());
   typename ImageType::Pointer image = reader->GetOutput();
   reflectPixels<PixelType>(*image,
-			   cl.getFlipRaFlag(),
-			   cl.getFlipDecFlag(),
-			   cl.getFlipVFlag());
+                           cl.getFlipRaFlag(),
+                           cl.getFlipDecFlag(),
+                           cl.getFlipVFlag());
 
   // The call to Update() here causes the image to be read in to ram.  This is
   // not ideal as it may cause more ram to be used that would otherwise be
@@ -525,9 +556,9 @@ convertInputFileToItkFile(CommandLineParser& cl)
 
 //     if (cl.getTransformToEquiangular()) {
 //       if (cl.getReorientNorth()) {
-// 	transformToNorthOrientedEquiangular(*image);
+//      transformToNorthOrientedEquiangular(*image);
 //       } else {
-// 	transformToUnreorientedEquiangular(*image);
+//      transformToUnreorientedEquiangular(*image);
 //       }
 //     } else if (cl.getReorientNorth()) {
 //       reorientNorth(*image);
@@ -636,8 +667,8 @@ convertInputFileToWcsMap(CommandLineParser& cl)
     typedef WcsMapImage::IndexType WcsMapIndex;
 
     enum { c_i = FITSImageIO::c_i,
-	   c_j = FITSImageIO::c_j,
-	   c_k = FITSImageIO::c_k };
+           c_j = FITSImageIO::c_j,
+           c_k = FITSImageIO::c_k };
 
     InputImage::RegionType allOfInputImage =
       inputImage->GetLargestPossibleRegion();
@@ -652,15 +683,15 @@ convertInputFileToWcsMap(CommandLineParser& cl)
     const size_t maxDecIndex = minDecIndex + inputImageSize[c_j] - 1;
     const size_t maxVelIndex = minVelIndex + inputImageSize[c_k] - 1;
 
-    debugPrint("wcsImageDecimationFactor="
-	       << cl.getWcsImageDecimationFactor());
+    debugPrint("wcsImageStride="
+               << cl.getWcsImageStride());
 
-    const size_t raIndexCount =
+    const size_t numOfRaStrides =
       size_t(ceil((maxRaIndex - minRaIndex) / 
-		  cl.getWcsImageDecimationFactor()) + 1);
-    const size_t decIndexCount =
+                  cl.getWcsImageStride()) + 1);
+    const size_t numOfDecStrides =
       size_t(ceil((maxDecIndex - minDecIndex) /
-		  cl.getWcsImageDecimationFactor()) + 1);
+                  cl.getWcsImageStride()) + 1);
     const size_t velIndexCount = 2;
 
     FITSImage<InputImage>::WcsTransformConstPtr wcsTransform =
@@ -673,8 +704,8 @@ convertInputFileToWcsMap(CommandLineParser& cl)
     // Size the WCS map image:
     {
       WcsMapImage::RegionType wcsMapDims;
-      wcsMapDims.SetSize(c_i, raIndexCount);
-      wcsMapDims.SetSize(c_j, decIndexCount);
+      wcsMapDims.SetSize(c_i, numOfRaStrides);
+      wcsMapDims.SetSize(c_j, numOfDecStrides);
       wcsMapDims.SetSize(c_k, velIndexCount);
       wcsMapImage->SetRegions(wcsMapDims);
       wcsMapImage->Allocate();
@@ -687,25 +718,28 @@ convertInputFileToWcsMap(CommandLineParser& cl)
       // pixelPoint[c_k] = vel_i;
 
       pixelIndex[c_j] = 0;
-      for (size_t dec_i = 0; dec_i < decIndexCount; ++dec_i, ++pixelIndex[c_j])
-	{
-	  pixelPoint[c_j] =
-	    minDecIndex + dec_i * inputImageSize[c_j] / decIndexCount;
-
-	  pixelIndex[c_i] = 0;
-	  for (size_t ra_i = 0; ra_i < raIndexCount; ++ra_i, ++pixelIndex[c_i])
-	    {
-	      
-	      pixelPoint[c_i] =
-		minRaIndex + ra_i * inputImageSize[c_i] / raIndexCount;
-	  
-	      wcsPoint = wcsTransform->TransformPoint(pixelPoint);
-	      wcsPixel[c_i] = wcsPoint[c_i];
-	      wcsPixel[c_j] = wcsPoint[c_j];
-	      wcsPixel[c_k] = velocity;
-	      wcsMapImage->SetPixel(pixelIndex, wcsPixel);
-	    }
-	}
+      for (size_t decStrideNum = 1;
+           decStrideNum <= numOfDecStrides;
+           ++decStrideNum, ++pixelIndex[c_j])
+        {
+          pixelPoint[c_j] = mapRange(decStrideNum,
+                                     1, numOfDecStrides,
+                                     minDecIndex, maxDecIndex);
+          pixelIndex[c_i] = 0;
+          for (size_t raStrideNum = 1;
+               raStrideNum <= numOfRaStrides;
+               ++raStrideNum, ++pixelIndex[c_i])
+            {
+              pixelPoint[c_i] = mapRange(raStrideNum, 
+                                         1, numOfRaStrides,
+                                         minRaIndex, maxRaIndex);
+              wcsPoint = wcsTransform->TransformPoint(pixelPoint);
+              wcsPixel[c_i] = wcsPoint[c_i];
+              wcsPixel[c_j] = wcsPoint[c_j];
+              wcsPixel[c_k] = velocity;
+              wcsMapImage->SetPixel(pixelIndex, wcsPixel);
+            }
+        }
     }
   }
 
@@ -790,7 +824,7 @@ main(const int argc, const char* const argv[])
 
   int status = -666;   // If the following code is correct, this value will
                        // always get overwritten.
-  if (cl.getWcsImageDecimationFactor() > 0) {
+  if (cl.getWcsImageStride() > 0) {
     status = convertInputFileToWcsMap(cl);
   } else if (cl.getCoerceToShorts()) {
     status = convertInputFileToItkFile<short>(cl);
