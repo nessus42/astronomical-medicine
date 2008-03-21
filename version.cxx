@@ -11,7 +11,11 @@
 // See LICENSE.txt for for details.
 //=============================================================================
 
-extern const char fits2itkVersion[] = "Version 0.4dev.12pending.10.gt";
+//extern const char fits2itkVersion[] = 
+//   "Version 0.4dev.12pending.10.gt.2D-extrude.pending.0";
+
+extern const char fits2itkVersion[] = "Version 0.4dev.12pending.10.gt.1";
+
 
 //=============================================================================
 // Change Log
@@ -592,13 +596,20 @@ extern const char fits2itkVersion[] = "Version 0.4dev.12pending.10.gt";
 // Made the WCS grid image decimation factor be configurable on the command
 // line.
 
+//-----------------------------------------
+// Version 0.4dev.12pending.10.gt.1
+//-----------------------------------------
+
+// Added the function mapRange(), which had the positive side-effect of fixing
+// an insidious fencepost error.
+
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
 //----------------------------------------------------------------------
 
-//-----------------------------------------
-// Version 0.4dev.12pending.10.gt.pending.3
-//-----------------------------------------
+//----------------------------------------------------
+// Version 0.4dev.12pending.10.gt.2D-extrude.pending.0
+//----------------------------------------------------
 
 // What I'm working on now:
 
