@@ -1,0 +1,46 @@
+#!/usr/bin/env python2.5
+
+import copy, Image, pyfits, os
+from numpy import array, zeros
+
+hdulist = pyfits.open("%s/s/am/test/region1map.fits" % os.environ["HOME"])
+fitsImage = hdulist[0].data
+fitsHeader = hdulist[0].header
+
+# print fitsImage.shape #d
+# print fitsHeader["naxis"] #d
+
+newFitsImage = zeros((2,) + fitsImage.shape)
+newFitsHdu = pyfits.PrimaryHDU(newFitsImage)
+newFitsHdu.header = fitsHeader.copy()
+newFitsHeader = newFitsHdu.header
+newFitsFile = pyfits.HDUList([newFitsHdu])
+
+# help(pyfits.Header)
+
+# print newFitsImage.shape #d
+newFitsImage[0,:,:] = fitsImage[:,:]
+newFitsImage[1,:,:] = fitsImage[:,:]
+
+# print newFitsImage #d
+# print newFitsHeader #d
+
+newFitsHeader.update("crval3", -3e8)
+newFitsHeader.update("crpix3", 1)
+newFitsHeader.update("cdelt3", 3e8 * 2)
+newFitsHeader.update("ctype3", "VELO-LSR")
+
+os.remove("out.fits")
+newFitsFile.writeto("out.fits")
+
+# print "newFitsHeader=", newFitsHeader #d
+# print "fitsHeader=", fitsHeader #d
+
+# o Change dimensionality of new image to have two slices.
+
+# o Assign each slice to have the same image.
+
+# o Set the velocity headers so that they extend to the speed of light in
+#   both directions.
+
+

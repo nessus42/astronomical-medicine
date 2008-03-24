@@ -11,11 +11,8 @@
 // See LICENSE.txt for for details.
 //=============================================================================
 
-//extern const char fits2itkVersion[] = 
-//   "Version 0.4dev.12pending.10.gt.2D-extrude.pending.0";
-
-extern const char fits2itkVersion[] = "Version 0.4dev.12pending.10.gt.1";
-
+extern const char fits2itkVersion[] = 
+   "Version 0.4dev.12pending.10.gt.2D-extrude.pending.0";
 
 //=============================================================================
 // Change Log
