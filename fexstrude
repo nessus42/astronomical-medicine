@@ -1,46 +1,45 @@
 #!/usr/bin/env python2.5
 
-import copy, Image, pyfits, os
+from optparse import OptionParser
+
+usage = "usage: %prog {input-2D-FITS-file} {output-3D-FITS-file}"
+
+# Parse the command line:
+parser = OptionParser(usage=usage)
+options, args = parser.parse_args()
+if len(args) != 2:
+   parser.error("An input file and an output file are required.")
+inputFilepath = args[0]
+outputFilepath = args[1]
+
+import copy, Image, pyfits, os, sys
 from numpy import array, zeros
 
-hdulist = pyfits.open("%s/s/am/test/region1map.fits" % os.environ["HOME"])
-fitsImage = hdulist[0].data
-fitsHeader = hdulist[0].header
+# Read the input file:
+try:
+   fitsImage, fitsHeader = pyfits.getdata(inputFilepath, 0, header=True)
+except IndexError:
+   parser.error("The input file does not appear to be a FITS file.")
 
-# print fitsImage.shape #d
-# print fitsHeader["naxis"] #d
+# Check to make sure that the input file is 2D:
+if len(fitsImage.shape) != 2:
+   parser.error("The input file must be a 2D FITS image.")
 
-newFitsImage = zeros((2,) + fitsImage.shape)
-newFitsHdu = pyfits.PrimaryHDU(newFitsImage)
-newFitsHdu.header = fitsHeader.copy()
-newFitsHeader = newFitsHdu.header
-newFitsFile = pyfits.HDUList([newFitsHdu])
+# Create a new 3D image, which has two copies of the input image as
+# the two slices into the third dimension:
+newImage = zeros((2,) + fitsImage.shape)
+newImage[0, :, :] = fitsImage[:, :]
+newImage[1, :, :] = fitsImage[:, :]
 
-# help(pyfits.Header)
+# Make a new header for the new image by copying the original header:
+newHeader = fitsHeader.copy()
 
-# print newFitsImage.shape #d
-newFitsImage[0,:,:] = fitsImage[:,:]
-newFitsImage[1,:,:] = fitsImage[:,:]
+# Set the velocity axis to range from -c to +c:
+newHeader.update("crval3", -3e8)
+newHeader.update("crpix3", 1)
+newHeader.update("cdelt3", 3e8 * 2)
+newHeader.update("ctype3", "VELO-LSR")
 
-# print newFitsImage #d
-# print newFitsHeader #d
-
-newFitsHeader.update("crval3", -3e8)
-newFitsHeader.update("crpix3", 1)
-newFitsHeader.update("cdelt3", 3e8 * 2)
-newFitsHeader.update("ctype3", "VELO-LSR")
-
-os.remove("out.fits")
-newFitsFile.writeto("out.fits")
-
-# print "newFitsHeader=", newFitsHeader #d
-# print "fitsHeader=", fitsHeader #d
-
-# o Change dimensionality of new image to have two slices.
-
-# o Assign each slice to have the same image.
-
-# o Set the velocity headers so that they extend to the speed of light in
-#   both directions.
-
-
+# Write out the new FITS file:
+os.remove(outputFilepath)
+pyfits.writeto(outputFilepath, newImage, newHeader)
