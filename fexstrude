@@ -41,5 +41,8 @@ newHeader.update("cdelt3", 3e8 * 2)
 newHeader.update("ctype3", "VELO-LSR")
 
 # Write out the new FITS file:
-os.remove(outputFilepath)
+if os.path.exists(outputFilepath): os.remove(outputFilepath)
 pyfits.writeto(outputFilepath, newImage, newHeader)
+
+# TODO: Add more robust error checking before os.remove().  E.g.,
+# check to make sure that it's not a directory.
