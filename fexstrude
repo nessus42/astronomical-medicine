@@ -1,48 +1,115 @@
 #!/usr/bin/env python2.5
 
-from optparse import OptionParser
-
 usage = "usage: %prog {input-2D-FITS-file} {output-3D-FITS-file}"
 
-# Parse the command line:
-parser = OptionParser(usage=usage)
-options, args = parser.parse_args()
-if len(args) != 2:
-   parser.error("An input file and an output file are required.")
-inputFilepath = args[0]
-outputFilepath = args[1]
+from sys import stdout, stderr
+import sys
 
-import copy, Image, pyfits, os, sys
-from numpy import array, zeros
+#------------------------------------------------------------------------------
+# main()
+#------------------------------------------------------------------------------
 
-# Read the input file:
-try:
-   fitsImage, fitsHeader = pyfits.getdata(inputFilepath, 0, header=True)
-except IndexError:
-   parser.error("The input file does not appear to be a FITS file.")
+def main():
 
-# Check to make sure that the input file is 2D:
-if len(fitsImage.shape) != 2:
-   parser.error("The input file must be a 2D FITS image.")
+   parser = parseCommandLine()
+   inputFilepath = parser.largs[0]
+   outputFilepath = parser.largs[1]
+   options = parser.values
 
-# Create a new 3D image, which has two copies of the input image as
-# the two slices into the third dimension:
-newImage = zeros((2,) + fitsImage.shape)
-newImage[0, :, :] = fitsImage[:, :]
-newImage[1, :, :] = fitsImage[:, :]
+   replacementImage = None
+   if options.replacementImageFilepath:
+      import Image
+      replacementImage = Image.open(options.replacementImageFilepath)
 
-# Make a new header for the new image by copying the original header:
-newHeader = fitsHeader.copy()
+      # Convert the image to black and white:
+      replacementImage = (replacementImage.convert("L")
+                          .transpose(Image.ROTATE_180))
+      
+   import copy, Image, pyfits, os, sys
+   from numpy import array, asarray, zeros
 
-# Set the velocity axis to range from -c to +c:
-newHeader.update("crval3", -3e8)
-newHeader.update("crpix3", 1)
-newHeader.update("cdelt3", 3e8 * 2)
-newHeader.update("ctype3", "VELO-LSR")
+   # Read the input file:
+   try:
+      fitsImage, fitsHeader = pyfits.getdata(inputFilepath, 0, header=True)
+   except IndexError:
+      parser.error("The input file does not appear to be a FITS file.")
 
-# Write out the new FITS file:
-if os.path.exists(outputFilepath): os.remove(outputFilepath)
-pyfits.writeto(outputFilepath, newImage, newHeader)
+   # Check to make sure that the input file is 2D:
+   if len(fitsImage.shape) != 2:
+      parser.error("The input file must be a 2D FITS image.")
 
-# TODO: Add more robust error checking before os.remove().  E.g.,
-# check to make sure that it's not a directory.
+   if replacementImage != None:
+      replacementImage = replacementImage.resize(fitsImage.shape[::-1])
+      fitsImage = asarray(replacementImage)
+
+   # Create a new 3D image, which has two copies of the input image as
+   # the two slices into the third dimension:
+   newImage = zeros((2,) + fitsImage.shape)
+   newImage[0, :, :] = fitsImage[:, :]
+   newImage[1, :, :] = fitsImage[:, :]
+
+   # Make a new header for the new image by copying the original header:
+   newHeader = fitsHeader.copy()
+
+   # Set the velocity axis to range from -c to +c:
+   newHeader.update("crval3", -3e8)
+   newHeader.update("crpix3", 1)
+   newHeader.update("cdelt3", 3e8 * 2)
+   newHeader.update("ctype3", "VELO-LSR")
+
+   # Write out the new FITS file:
+   if os.path.exists(outputFilepath): os.remove(outputFilepath)
+   pyfits.writeto(outputFilepath, newImage, newHeader)
+
+   # TODO: Add more robust error checking before os.remove().  E.g.,
+   # check to make sure that it's not a directory.
+
+
+#------------------------------------------------------------------------------
+# parseCommandLine()
+#------------------------------------------------------------------------------
+
+def parseCommandLine():
+   from optparse import OptionParser
+   parser = OptionParser(usage=usage)
+
+   parser.add_option("--replace-image",
+                     dest="replacementImageFilepath",
+                     help=("replace the FITS image with the image from "
+                           "the specified file"),
+                     metavar="IMAGE-FILE")
+   
+   options, args = parser.parse_args()
+   if len(args) != 2:
+      parser.error("An input file and an output file are required.")
+   # inputFilepath = args[0]
+   # outputFilepath = args[1]
+   return parser
+
+
+#------------------------------------------------------------------------------
+# proc run_main()
+#    raises any
+#------------------------------------------------------------------------------
+
+def run_main():
+   import __main__
+   try:
+      if "--pdb" in sys.argv:
+         sys.argv.remove("--pdb")
+         import pdb
+         pdb.run("main()")
+      else: __main__.main()
+   except SystemExit: raise
+   except KeyboardInterrupt: stderr.write("\nTerminated with Control-C.\n")
+   except:
+      stderr.write("FATAL ERROR: An unhandled exception occurred!\n"
+                   "A stack traceback follows:\n\n");
+      raise
+
+
+#-----------------------------------------------------------------------------
+# Execute the program 
+#-----------------------------------------------------------------------------
+ 
+if __name__ == "__main__": run_main()
