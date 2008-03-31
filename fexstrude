@@ -1,4 +1,5 @@
 #!/usr/bin/env python2.5
+# -*- Mode: Python; fill-column: 79; fill-prefix: "# " -*-
 
 usage = "usage: %prog {input-2D-FITS-file} {output-3D-FITS-file}"
 
@@ -19,11 +20,15 @@ def main():
    replacementImage = None
    if options.replacementImageFilepath:
       import Image
-      replacementImage = Image.open(options.replacementImageFilepath)
-
-      # Convert the image to black and white:
-      replacementImage = (replacementImage.convert("L")
+      replacementImage = (Image.open(options.replacementImageFilepath)
                           .transpose(Image.ROTATE_180))
+
+      # Convert the image to black and white, either by extracting one of the
+      # color components, or calculating the luminance.
+      if options.component == None:
+         replacementImage = replacementImage.convert("L")
+      else:
+         replacementImage = replacementImage.split()[options.component]
       
    import copy, Image, pyfits, os, sys
    from numpy import array, asarray, zeros
@@ -44,7 +49,8 @@ def main():
 
    # Create a new 3D image, which has two copies of the input image as
    # the two slices into the third dimension:
-   newImage = zeros((2,) + fitsImage.shape)
+   newImage = zeros((2,) + fitsImage.shape,
+                    fitsImage.dtype)
    newImage[0, :, :] = fitsImage[:, :]
    newImage[1, :, :] = fitsImage[:, :]
 
@@ -52,9 +58,10 @@ def main():
    newHeader = fitsHeader.copy()
 
    # Set the velocity axis to range from -c to +c:
-   newHeader.update("crval3", -3e8)
+   newHeader.update("crval3", options.velocityRange[0])
    newHeader.update("crpix3", 1)
-   newHeader.update("cdelt3", 3e8 * 2)
+   newHeader.update("cdelt3",
+                    options.velocityRange[1] - options.velocityRange[0])
    newHeader.update("ctype3", "VELO-LSR")
 
    # Write out the new FITS file:
@@ -73,15 +80,55 @@ def parseCommandLine():
    from optparse import OptionParser
    parser = OptionParser(usage=usage)
 
+   parser.set_defaults(velocityRange=(-3e8, 3e8))
+
    parser.add_option("--replace-image",
                      dest="replacementImageFilepath",
                      help=("replace the FITS image with the image from "
                            "the specified file"),
-                     metavar="IMAGE-FILE")
-   
+                     metavar="IMAGE-FILE",
+                     )
+#    parser.add_option("--red-component",
+#                      action="append_const", const=0, dest="colorComponent",
+#                      help=("use the red component of the RGB replacement "
+#                            "image")
+#                      )
+#    parser.add_option("--green-component",
+#                      action="append_const", const=1, dest="colorComponent",
+#                      help=("use the green component of the RGB replacement "
+#                            "image")
+#                      )
+#    parser.add_option("--blue-component",
+#                      action="append_const", const=2, dest="colorComponent",
+#                      help=("use the blue component of the RGB replacement "
+#                            "image")
+#                      )
+
+   componentChoices = ["red", "green", "blue"]
+
+   parser.add_option("--component",
+                     action="store",
+                     choices=componentChoices,
+                     dest="component",
+                     )
+   parser.add_option("--velocity-range",
+                     type="float", nargs=2, dest="velocityRange",
+                     )
+
    options, args = parser.parse_args()
+
    if len(args) != 2:
       parser.error("An input file and an output file are required.")
+
+   if options.component:
+      options.component = componentChoices.index(options.component)
+
+#    if options.colorComponent:
+#       if len(options.colorComponent) == 1:
+#          options.colorComponent = options.colorComponent[0]
+#       else:
+#          parser.error("Only one color component is allowed")
+
    # inputFilepath = args[0]
    # outputFilepath = args[1]
    return parser
