@@ -3,6 +3,161 @@
 
 usage = "usage: %prog {input-2D-FITS-file} {output-3D-FITS-file}"
 
+
+#------------------------------------------------------------------------------
+# Slicer module description
+#------------------------------------------------------------------------------
+
+slicerModuleDescription = \
+"""
+<?xml version="1.0" encoding="utf-8"?>
+<executable>
+  <category>Astronomical Medicine</category>
+  <title>FITS 2D->3D Extruder</title>
+  <description>The IIC Astronomical Medicine FITS Extruder provides for loading 2D astronomy images into 3D Slicer while extruding them into p-p-v data cubes.  See http://am.iic.harvard.edu.</description>
+  <version>0.1</version>
+  <documentation-url>http://am.iic.harvard.edu</documentation-url>
+  <license>The freeware MIT License</license>
+  <contributor>Douglas Alan &lt;douglas_alan@harvard.edu&gt;</contributor>
+  <acknowledgements>This work is funded by the Harvard University Initiative in Innovative Computing.
+  </acknowledgements>
+
+  <parameters>
+
+    <!-- Note that the <name> tags *are* needed below, albeit only
+         with dummy values, even though for our use here they serve no
+         real purpose.  Without them, however, Slicer misbehaves,
+         sometimes in subtle but tragic ways. -->
+
+    <label>Input</label>
+    <description>Select an input file and an output volume.
+    </description>
+    <file>
+      <label>Input FITS File</label>
+      <name>dummyInputFile</name>
+      <channel>input</channel>
+      <index>0</index>
+      <default></default>
+      <description>Select a 2D FITS image to load.
+      </description>
+    </file>
+    <image>
+      <label>Slicer Volume</label>
+      <name>dummySlicerVolume</name>
+      <channel>output</channel>
+      <index>1</index>
+      <default>None</default>
+      <description>Select a Slicer volume.
+      </description>
+    </image>
+  </parameters>
+
+  <!--
+
+  <parameters advanced="true">
+    <label>Advanced Options</label>
+    <description>Options that one would typically leave in their default settings.
+    </description>
+
+    <boolean>
+      <label>Suppress Velocity Axis Autoscaling</label>
+      <name>dummySuppressVelocityAxisAutocaling</name>
+      <longflag>dont_autoscale_velocity</longflag>
+      <description>
+	If you do not select this option, then the velocity axis is autoscaled so as to fit it into a cube that is defined by the larger of the two positional axes.  If autoscaling is left on and used in conjunction with other scaling options (such as Velocity Scale, for instance), then velocity axis autoscaling is applied first. The other scaling option are then also applied, multiplicatively.
+      </description>
+    </boolean>
+
+    <double>
+      <label>Null Value</label>
+      <name>dummyNullValue</name>
+      <flag>N</flag>
+      <default>0.0</default>
+      <description>
+	FITS images often use NaNs to represent undefined pixels, but unfortunately not all software can handle NaNs.  "NaN" means "not a number" and is a special floating point value that represents undefined values.  If NaNs in your FITS image are causing trouble with Slicer, this option allows you to replace all the NaNs with a floating point value of your choice.  (Note: This option does not modify the original file -- it only effects what is seen by Slicer. The value you specify cannot be 0, because zero is a special value that causes the NaNs to be left as is, but your specified replacement value can be, for instance, 0.000001.) In addition to supporting undefined floating point values, FITS also has a notion of an undefined value for a FITS image with integral pixel values. Unlike for floating point values, however, there is no special integer value that represents an undefined values.  Consequently, FITS allows the creator of a FITS image to specify whatever integer he or she would like to represent undefined pixels.  If, as it so happens, that you don't like the specific integer chosen by the creator of a FITS image for representing undefined pixels, you can remap the undefined value to a different integer using this option.
+      </description>
+    </double>
+
+    <double>
+      <label>All Axes Scale</label>
+      <name>dummyAxesScale</name>
+      <flag>a</flag>
+      <default>1</default>
+      <description>Scales all of the axes.</description>
+    </double>
+
+    <double>
+      <label>RA Axis Scale</label>
+      <name>dummyRaScale</name>
+      <flag>r</flag>
+      <default>-1</default>
+      <description>
+	Scales the right ascension axis.  The default value is -1 in order to flip it into the orientation to which astronomers are accustomed.
+      </description>
+    </double>
+    
+    <double>
+      <label>Velocity Axis Scale</label>
+      <name>dummyVScale</name>
+      <flag>v</flag>
+      <default>1</default>
+      <description>
+	Scales the velocity axis.
+      </description>
+    </double>
+
+    <double>
+      <label>Pixel Scale</label>
+      <name>dummyPixelScale</name>
+      <flag>s</flag>
+      <default>1.0</default>
+      <description>Scales the pixel values.</description>
+    </double>
+
+    <boolean>
+      <label>Suppress Physical Coordinates</label>
+      <name>dummySuppressPhysicalCoordiantes</name>
+      <longflag>no_wcs</longflag>
+      <description>
+	If the physcial (i.e. WCS) coordinates are suppressed, then index coordinates will be used instead.
+      </description>
+    </boolean>
+
+    <string-enumeration>
+      <label>Pixel type:</label>
+      <name>dummyPixelType</name>
+      <longflag>pixel_type</longflag>
+      <description>The data type that will be used for the pixels within Slicer.  If you are unsure what to set this to, leave it as the default of "float".  If you know the data type of your FITS file, it is best to set it to whatever that data type is.  Sometimes you may wish to coerce a FITS float image into a Slicer "short integer" image in order to reduce Slicer's RAM requirements, and this setting allows you to do that.  Typically, however, you would not want to read in a short integer image in as a float image, as that would waste RAM for little gain.
+      </description>
+      <default>float</default>
+      <element>float</element>
+      <element>short integer</element>
+      <element>unsigned short integer</element>
+    </string-enumeration>
+  </parameters>
+
+
+  <parameters advanced="true">
+    <label>Obscure Options</label>
+    <description>Options that are not for the faint of heart.
+    </description>
+    
+    <string>
+      <label>CFITSIO Extended Filename</label>
+      <name>dummyCFITSIOExtendedFilename</name>
+      <longflag>cfitsio_extended_filename</longflag>
+      <description>This field is appended onto the input file to make a CFITSIO "Extended Filename".  This provides a bevy of useful features, which are documented at http://heasarc.nasa.gov/docs/software/fitsio/c/c_user/node79.html.  As an example, "[*,*,50:130:2]" would make it so that only velocity slice #50 through velocity slice #130 is read into Slicer, while also skipping every other slice.  This would, for instance, reduce the RAM requirements for examining this data set for the case in which the data that has been discarded is not critical to the visualization.
+      </description>
+    </string>
+  </parameters>
+
+-->
+
+</executable>
+"""
+
+slicerModuleDescription = slicerModuleDescription[1:]
+
 from sys import stdout, stderr
 import sys
 
@@ -77,12 +232,12 @@ def main():
 #------------------------------------------------------------------------------
 
 def parseCommandLine():
-   from optparse import OptionParser
+   from optparse import OptionGroup, OptionParser
    parser = OptionParser(usage=usage)
 
    parser.set_defaults(velocityRange=(-3e8, 3e8))
 
-   parser.add_option("--replace-image",
+   parser.add_option("--replace_image",
                      dest="replacementImageFilepath",
                      help=("replace the FITS image with the image from "
                            "the specified file"),
@@ -111,11 +266,26 @@ def parseCommandLine():
                      choices=componentChoices,
                      dest="component",
                      )
-   parser.add_option("--velocity-range",
+   parser.add_option("--velocity_range",
                      type="float", nargs=2, dest="velocityRange",
                      )
 
+   group = OptionGroup(parser, "Esoteric Options",
+                       "These options are for use by other programs that"
+                       " invoke this program.  You almost certainly don't"
+                       " want to use them."
+                       )
+   group.add_option("--xml", action="store_true",
+                    dest="outputSlicerModuleDescriptionFlag",
+                    help=("output 3D Slicer XML module description"),
+                    )
+   parser.add_option_group(group)
+
    options, args = parser.parse_args()
+
+   if (options.outputSlicerModuleDescriptionFlag):
+      print slicerModuleDescription,
+      sys.exit(0)
 
    if len(args) != 2:
       parser.error("An input file and an output file are required.")
