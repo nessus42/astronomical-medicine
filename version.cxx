@@ -600,18 +600,15 @@ extern const char fits2itkVersion[] =
 // Added the function mapRange(), which had the positive side-effect of fixing
 // an insidious fencepost error.
 
-//----------------------------------------------------------------------
-// *** Changes described above this line are checked in to Mercurial ***
-//----------------------------------------------------------------------
-
 //----------------------------------------------------
 // Version 0.4dev.12pending.10.gt.2D-extrude.pending.0
 //----------------------------------------------------
 
-// What I'm working on now:
+// Implemented the "fexstrude" script.
 
-// o Need to add an option to take in a 2D FITS image and write out the same
-//   image as 3D extruded through all of velocity space.
+//----------------------------------------------------------------------
+// *** Changes described above this line are checked in to Mercurial ***
+//----------------------------------------------------------------------
 
 // Things that I need to do soon:
 
