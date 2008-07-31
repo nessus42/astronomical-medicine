@@ -11,6 +11,8 @@ fits2itk.dev.proj
 BROWSE
 TAGS
 tags
+semantic.cache
+*.proj
 
 syntax: regexp
 .*\#.*\#$
