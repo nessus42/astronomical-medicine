@@ -23,7 +23,6 @@
 #include <wcs.h>
 
 #include <itkImage.h>
-#include <itkMatrix.h>
 #include <itkMetaDataObject.h>
 
 #include <itkFlipImageFilter.h>
@@ -62,8 +61,8 @@ using std::string;
 //-----------------------------------------------------------------------------
 
 /*ctor*/
-template <class ImageType>
-FITSImage<ImageType>::FITSImage(const typename Self::Params& params)
+template <class ImageT>
+FITSImage<ImageT>::FITSImage(const typename Self::Params& params)
   : _params(params), _itkImage(*params.itkImage)
 {
   assert(&_itkImage);
@@ -76,9 +75,16 @@ FITSImage<ImageType>::FITSImage(const typename Self::Params& params)
     setCoordinateFrameTransformation(
        _itkImage,
        this->raDecVToLpsMatrix()
-       * scalingMatrix(angularUnitsScaling, angularUnitsScaling, 1e4)
+       * scalingMatrix(angularUnitsScaling * params.raScale,
+                       angularUnitsScaling,
+                       1e4)
        * this->ijkToNorthOrientedEquiangularMatrix());
   }
+
+  // YOU ARE HERE: You want to make the ijkToNorthOrientedEquiangularMatrix be
+  // null if the suppress WCS flag is set to be true.  Also, you probably want to
+  // suppress reading the WCS information to begin with if this is the case, as
+  // Jens has some FITS images that have no WCS data.
 
   // YOU ARE HERE: You need to add back in autoscaling for Vel, rather than
   // just multiplying it by 1e4.
@@ -89,14 +95,14 @@ FITSImage<ImageType>::FITSImage(const typename Self::Params& params)
 // initializeInstanceVars(): private method of FITSImage template class
 //-----------------------------------------------------------------------------
 
-template <class ImageType>
+template <class ImageT>
 void 
-FITSImage<ImageType>::initializeInstanceVars()
+FITSImage<ImageT>::initializeInstanceVars()
 {
-  typename ImageType::RegionType
+  typename ImageT::RegionType
     allOfImage = _itkImage.GetLargestPossibleRegion();
-  typename ImageType::SizeType imageSize = allOfImage.GetSize();
-  typename ImageType::IndexType imageOrigin = allOfImage.GetIndex();
+  typename ImageT::SizeType imageSize = allOfImage.GetSize();
+  typename ImageT::IndexType imageOrigin = allOfImage.GetIndex();
 
   enum { c_i = FITSImageIO::c_i,
  	 c_j = FITSImageIO::c_j,
@@ -187,9 +193,9 @@ FITSImage<ImageType>::initializeInstanceVars()
 //-----------------------------------------------------------------------------
 
 /*proc*/
-template <class ImageType>
-typename FITSImage<ImageType>::WcsTransformConstPtr
-FITSImage<ImageType>::makeWcsTransform()
+template <class ImageT>
+typename FITSImage<ImageT>::WcsTransformConstPtr
+FITSImage<ImageT>::makeWcsTransform()
 {
   using itk::MetaDataDictionary;
   using itk::MetaDataObject;
@@ -218,11 +224,11 @@ FITSImage<ImageType>::makeWcsTransform()
 //-----------------------------------------------------------------------------
 
 /*proc*/
-template <class ImageType>
+template <class ImageT>
 void
-writeImageInfo(const FITSImage<ImageType>& image, ostream& out)
+writeImageInfo(const FITSImage<ImageT>& image, ostream& out)
 {
-  const ImageType& itkImage = *image.getITKImage();
+  const ImageT& itkImage = *image.getITKImage();
   out << "Image center, in IJK space with (0,0,0) index origin: "
       << image.ijkCenter() << "\n"
       << "Image center, in RA/Dec: " << image.wcsCenter() << "\n"
@@ -254,12 +260,12 @@ writeImageInfo(const FITSImage<ImageType>& image, ostream& out)
 //-----------------------------------------------------------------------------
 
 /*proc*/
-template <class PixelType>
-typename Image<PixelType, c_dims>::Pointer
-applyFlipImageFilter(const typename Image<PixelType, c_dims>::Pointer& image)
+template <class PixelT>
+typename Image<PixelT, c_dims>::Pointer
+applyFlipImageFilter(const typename Image<PixelT, c_dims>::Pointer& image)
 {
-  typedef Image<PixelType, c_dims> ImageType;
-  typedef itk::FlipImageFilter<ImageType> FilterType;
+  typedef Image<PixelT, c_dims> ImageT;
+  typedef itk::FlipImageFilter<ImageT> FilterType;
   typedef typename FilterType::FlipAxesArrayType FlipAxesArrayType;
   static typename FilterType::Pointer filter = FilterType::New();
   FlipAxesArrayType flipArray;
@@ -278,13 +284,13 @@ applyFlipImageFilter(const typename Image<PixelType, c_dims>::Pointer& image)
 //-----------------------------------------------------------------------------
 
 /*proc*/ 
-template <class PixelType>
-typename Image<PixelType, c_dims>::Pointer
+template <class PixelT>
+typename Image<PixelT, c_dims>::Pointer
 applyBinomialBlurFilter(
-      const typename Image<PixelType, c_dims>::Pointer& image)
+      const typename Image<PixelT, c_dims>::Pointer& image)
 {
-  typedef Image<PixelType, c_dims> ImageType;
-  typedef itk::BinomialBlurImageFilter<ImageType, ImageType> FilterType;
+  typedef Image<PixelT, c_dims> ImageT;
+  typedef itk::BinomialBlurImageFilter<ImageT, ImageT> FilterType;
   static typename FilterType::Pointer filter = FilterType::New();
   filter->SetInput(image);
   filter->SetRepetitions(1);
@@ -297,21 +303,54 @@ applyBinomialBlurFilter(
 // applyMeanFilter(): template function
 //-----------------------------------------------------------------------------
 
-// template <class PixelType>
+// template <class PixelT>
 // local proc void
-// doMeanFilter(Image<PixelType, c_dims>& image)
+// doMeanFilter(Image<PixelT, c_dims>& image)
 // {
-// //     typedef itk::MeanImageFilter<ImageType, ImageType> FilterType;
+// //     typedef itk::MeanImageFilter<ImageT, ImageT> FilterType;
 // //     typename FilterType::Pointer filter = FilterType::New();
-// //     typename ImageType::SizeType indexRadius;
+// //     typename ImageT::SizeType indexRadius;
 // //     indexRadius[0] = 5;
 // //     indexRadius[1] = 5;
 // //     indexRadius[2] = 5;
 // //     filter->SetRadius(indexRadius);
 
 
+
 //-----------------------------------------------------------------------------
-// reflectPixels(): template function
+// scalePixelValues(): template function
+//-----------------------------------------------------------------------------
+
+// This function scales the values of all the pixels of an ITK image by
+// multiplying them all by specified value.
+
+/*proc*/
+template <class PixelT>
+void
+scalePixelValues(Image<PixelT, c_dims>& image,
+                 double multiplier)
+{
+  if (multiplier == 1) return;
+
+  std::cerr << "multiplier=" << multiplier << std::endl; //d
+
+  // Make sure that we actually have the pixels loaded into the image:
+  image.Update();
+
+  typedef Image<PixelT, c_dims> ImageT;
+  typedef ImageRegionIterator<ImageT> IterT;
+  typedef typename ImageT::RegionType  RegionT;
+  RegionT allOfImage = image.GetLargestPossibleRegion();
+  IterT it(&image, allOfImage);
+  for (it.GoToBegin(); !it.IsAtEnd(); ++it) {
+    PixelT& pixel = it.Value();
+    pixel *= multiplier;
+  }
+}
+
+
+//-----------------------------------------------------------------------------
+// reflectPixels(): template functiona
 //-----------------------------------------------------------------------------
 
 // This functions flips the image around the specified axes.  It does this by
@@ -326,9 +365,9 @@ applyBinomialBlurFilter(
 // designed to be used with OsiriX, we can live with this caveat.
 
 /*proc*/
-template <class PixelType>
+template <class PixelT>
 void
-reflectPixels(Image<PixelType, c_dims>& image,
+reflectPixels(Image<PixelT, c_dims>& image,
 	      bool flipRAFlag, bool flipDecFlag, bool flipVFlag)
 {
   // CAVEAT: This code will break if c_dims ever changes from 3.
@@ -339,10 +378,10 @@ reflectPixels(Image<PixelType, c_dims>& image,
   // Make sure that we actually have the pixels loaded into the image:
   image.Update();
 
-  typedef Image<PixelType, c_dims> ImageType;
-  typedef typename ImageType::IndexType   IndexType;
-  typedef typename ImageType::SizeType    SizeType;
-  typedef typename ImageType::RegionType  RegionType;
+  typedef Image<PixelT, c_dims> ImageT;
+  typedef typename ImageT::IndexType   IndexType;
+  typedef typename ImageT::SizeType    SizeType;
+  typedef typename ImageT::RegionType  RegionType;
 
   RegionType allOfImage = image.GetLargestPossibleRegion();
   SizeType imageSize = allOfImage.GetSize();
@@ -415,7 +454,7 @@ reflectPixels(Image<PixelType, c_dims>& image,
 	      oppositePixelIndex[c_i] = flipRAFlag  ? raReverse_i  : ra_i;
 	      oppositePixelIndex[c_j] = flipDecFlag ? decReverse_i : dec_i;
 	      oppositePixelIndex[c_k] = flipVFlag   ? velReverse_i : vel_i;
-	      PixelType tmp = image.GetPixel(thisPixelIndex);
+	      PixelT tmp = image.GetPixel(thisPixelIndex);
 	      image.SetPixel(thisPixelIndex,
 			      image.GetPixel(oppositePixelIndex));
 	      image.SetPixel(oppositePixelIndex, tmp);
@@ -430,19 +469,19 @@ reflectPixels(Image<PixelType, c_dims>& image,
 //-----------------------------------------------------------------------------
 
 // /*private method*/
-// template <typename ImageType>
+// template <typename ImageT>
 // void
-// FITSImage<ImageType>::initializeChangeOfBasis()
+// FITSImage<ImageT>::initializeChangeOfBasis()
 // {
-//   const size_t dims = ImageType::ImageDimension;
+//   const size_t dims = ImageT::ImageDimension;
 
 //   // Set the origin to (0, 0, 0):
-//   typename ImageType::PointType origin;
+//   typename ImageT::PointType origin;
 //   for (size_t d = 0; d < dims; ++d) origin[d] = 0;
 //   _itkImage.SetOrigin(origin);
 
 //   // Set the spacing vector to (1, 1, 1):
-//   typename ImageType::SpacingType spacing;
+//   typename ImageT::SpacingType spacing;
 //   for (size_t d = 0; d < dims; ++d) spacing[d] = 1;
 //   _itkImage.SetSpacing(spacing);
 
@@ -453,7 +492,7 @@ reflectPixels(Image<PixelType, c_dims>& image,
 
 //   // Set the direction cosine matrix to properly orient RA, Dec, and V into LPS
 //   // space:
-//   typename ImageType::DirectionType direction;
+//   typename ImageT::DirectionType direction;
 //   direction(l, ra) = -1;
 //   direction(p, v) = 1;
 //   direction(s, dec) = 1;
@@ -466,60 +505,68 @@ reflectPixels(Image<PixelType, c_dims>& image,
 //-----------------------------------------------------------------------------
 
 /*private method*/
-template <typename ImageType>
-Matrix
-FITSImage<ImageType>::raDecVToLpsMatrix()
+template <typename ImageT>
+HMatrix
+FITSImage<ImageT>::raDecVToLpsMatrix()
 {
   // TODO: Replace these constants with something somewhere that is more
   // globally accessible.
   enum {ra, dec, v};
   enum {l, p, s};
 
-  Matrix retval;
+  HMatrix retval;
   retval(l, ra) = -1;
   retval(p, v) = 1;
   retval(s, dec) = 1;
+  retval(3, 3) = 1;
   return retval;
 }
 
 
 //-----------------------------------------------------------------------------
-// rightConcatinateTransformation(): internal template function
+// rightConcatenateTransformation(): template function
 //-----------------------------------------------------------------------------
 
-// /*internal proc*/ 
-// template <class ImageType>
-// void
-// rightConcatinateTransformation(ImageType& image, const Matrix& m)
- 			       
-// {
-//   typename ImageType::SpacingType spacingMultiplier;
+// This function right-concatenates `m` onto the coordinate frame
+// transformation that is already stored in `image`.
 
-//   for (size_t col = 0; col < 3; ++col) {
-//     spacingMultiplier[col] = sqrt(square(m(0, col)) +
-// 				  square(m(1, col)) +
-// 				  square(m(2, col)));
-//   }
-
-//   // Do an element-by-element multiplication:
-//   image.SetSpacing(image.GetSpacing() * spacingMultiplier);
-
-//   Matrix directionMultiplier;
-//   for (size_t row = 0; row < 3; ++row) {
-//     for (size_t col = 0; col < 3; ++col) {
-//       directionMultiplier(row, col) = m(row, col) / spacingMultiplier[col]; 
-//     }
-//   }
-//   image.SetDirection(image.GetDirection() * directionMultiplier);
-// }
+/*proc*/ 
+template <class ImageT>
+void
+rightConcatenateTransformation(ImageT& image, const HMatrix& m)
+{
+  setCoordinateFrameTransformation(
+     image,
+     getCoordinateFrameTransformation(image) * m
+     );
+}
 
 
 //-----------------------------------------------------------------------------
-// setCoordinateFrameTransformation(): internal template function
+// leftConcatenateTransformation(): template function
 //-----------------------------------------------------------------------------
 
-// This function sets the matrix that is used to convert coordinates from Index
-// Space to LPS space.
+// This function left-concatenates `m` onto the coordinate frame
+// transformation that is already stored in `image`.
+
+/*proc*/ 
+template <class ImageT>
+void
+leftConcatenateTransformation(ImageT& image, const HMatrix& m)
+{
+  setCoordinateFrameTransformation(
+     image,
+     getCoordinateFrameTransformation(image) * m
+     );
+}
+
+
+//-----------------------------------------------------------------------------
+// setCoordinateFrameTransformation(): template function
+//-----------------------------------------------------------------------------
+
+// This function sets the matrix stored within an ITK image that is used to
+// convert coordinates from Index Space to LPS space.
 
 // Note: There is alternative conception of the term "coordinate frame
 // transformation", according to which the matrix, instead of transforming
@@ -528,36 +575,75 @@ FITSImage<ImageType>::raDecVToLpsMatrix()
 // alternative conception is merely the inverse of the matrix that we are using
 // here.
 
-/*internal proc*/ 
-template <class ImageType>
+/*proc*/ 
+template <class ImageT>
 void
-setCoordinateFrameTransformation(ImageType& image, const Matrix& m)
+setCoordinateFrameTransformation(ImageT& image, const HMatrix& m)
  			       
 {
-  const size_t dims = ImageType::ImageDimension;
-  const size_t mDims = 3;
-
-  // At the moment, we don't preserve the origin at all, so we'll just set it
-  // to (0, 0, 0):
-  typename ImageType::PointType origin;
-  for (size_t d = 0; d < dims; ++d) origin[d] = 0;
+  typename ImageT::PointType origin;
+  for (size_t d = 0; d < c_dims; ++d) origin[d] = m(d, 3);
   image.SetOrigin(origin);
 
-  typename ImageType::SpacingType spacing;
-  for (size_t col = 0; col < dims; ++col) {
+  typename ImageT::SpacingType spacing;
+  for (size_t col = 0; col < c_dims; ++col) {
     spacing[col] = sqrt(square(m(0, col)) +
 			square(m(1, col)) +
 			square(m(2, col)));
   }
   image.SetSpacing(spacing);
 
-  Matrix directionCosines;
-  for (size_t row = 0; row < mDims; ++row) {
-    for (size_t col = 0; col < mDims; ++col) {
+  Matrix<double, 3, 3> directionCosines;
+  for (size_t row = 0; row < c_dims; ++row) {
+    for (size_t col = 0; col < c_dims; ++col) {
       directionCosines(row, col) = m(row, col) / spacing[col]; 
     }
   }
   image.SetDirection(directionCosines);
+}
+
+
+//-----------------------------------------------------------------------------
+// getCoordinateFrameTransformation(): template function
+//-----------------------------------------------------------------------------
+
+// This function gets the matrix stored within an ITK image that is used to
+// convert coordinates from Index Space to LPS space.
+
+// Note: There is alternative conception of the term "coordinate frame
+// transformation", according to which the matrix, instead of transforming
+// coordinates from Index Space to LPS Space would transform the basis vectors
+// for Index Space to the basis vectors for LPS space.  The matrix for this
+// alternative conception is merely the inverse of the matrix that we are using
+// here.
+
+/*proc*/ 
+template <class ImageT>
+HMatrix
+getCoordinateFrameTransformation(const ImageT& image)
+{
+  typedef typename ImageT::PointType Point;
+  typedef typename ImageT::SpacingType Spacing;
+  typedef typename ImageT::DirectionType Direction;
+
+  Point& origin = image.GetOrigin();
+  Spacing& spacing = image.GetSpacing();
+  Direction& direction = image.GetDirection();
+
+  // Set the origin column of the retval matrix:
+  HMatrix retval;
+  for (size_t row = 0; row < c_dims; ++row) {
+    retval(row, 3) = origin[row];
+  }
+  retval(3, 3) = 1;
+  
+  // Set the basis vector columns of the retval matrix:
+  for (size_t row = 0; row < c_dims; ++row) {
+    for (size_t col = 0; col < c_dims; ++col) {
+      retval(row, col) = direction(row, col) * spacing[col];
+    }
+  }
+  return retval;
 }
 
 
@@ -567,9 +653,9 @@ setCoordinateFrameTransformation(ImageType& image, const Matrix& m)
 //-----------------------------------------------------------------------------
 
 // /*method*/
-// template <class ImageType>
+// template <class ImageT>
 // void
-// FITSImage<ImageType>::transformToNorthOrientedEquiangular()
+// FITSImage<ImageT>::transformToNorthOrientedEquiangular()
 // {
 //   enum {ra, dec};
 //   Matrix m;
@@ -596,25 +682,35 @@ setCoordinateFrameTransformation(ImageType& image, const Matrix& m)
 //-----------------------------------------------------------------------------
 
 /*method*/
-template <class ImageType>
-Matrix
-FITSImage<ImageType>::ijkToNorthOrientedEquiangularMatrix()
+template <class ImageT>
+HMatrix
+FITSImage<ImageT>::ijkToNorthOrientedEquiangularMatrix()
 {
+  // YOU ARE HERE: I don't think that this is right at all.  Make it right.
+
   enum {ra, dec};
-  Matrix retval;
+  HMatrix retval;
 
   retval(0, 0) = this->unitIInApproximateAngularSpace()[ra];
   retval(0, 1) = this->unitIInApproximateAngularSpace()[dec];
   retval(0, 2) = 0;
+  retval(0, 3) = 0;
 
   retval(1, 0) = this->unitJInApproximateAngularSpace()[ra];
   retval(1, 1) = this->unitJInApproximateAngularSpace()[dec];
   retval(1, 2) = 0;
+  retval(1, 3) = 0;
 
   retval(2, 0) = 0;
   retval(2, 1) = 0;
   retval(2, 2) = 1;
+  retval(2, 3) = 0;
 
+  retval(3, 0) = 0;
+  retval(3, 1) = 0;
+  retval(3, 2) = 0;
+  retval(3, 3) = 1;
+    
   return retval;
 }
 
@@ -624,16 +720,16 @@ FITSImage<ImageType>::ijkToNorthOrientedEquiangularMatrix()
 // //-----------------------------------------------------------------------------
 
 // /*proc*/
-// template <class ImageType>
+// template <class ImageT>
 // void
-// transformToUnreorientedEquiangular(ImageType& image)
+// transformToUnreorientedEquiangular(ImageT& image)
 // {
   
-//   const FITSImage<ImageType> info(image);
+//   const FITSImage<ImageT> info(image);
 //   const double iAngleLen = info.unitIInApproximateAngularSpace().GetNorm();
 //   const double jAngleLen = info.unitJInApproximateAngularSpace().GetNorm();
 
-//   typename ImageType::SpacingType spacing;
+//   typename ImageT::SpacingType spacing;
 //   spacing[0] = iAngleLen * 1000 * 1000;
 //   spacing[1] = jAngleLen * 1000 * 1000;
 //   spacing[2] = (iAngleLen + jAngleLen) / 2 * 1000 * 1000;
@@ -647,11 +743,11 @@ FITSImage<ImageType>::ijkToNorthOrientedEquiangularMatrix()
 // //-----------------------------------------------------------------------------
 
 // /*proc*/
-// template <class ImageType>
+// template <class ImageT>
 // void
-// reorientNorth(ImageType& image)
+// reorientNorth(ImageT& image)
 // {
-//   const FITSImage<ImageType> info(image);
+//   const FITSImage<ImageT> info(image);
 
 //   // Multiply the direction cosine matrix by a rotation matrix to compensate
 //   // for image rotation:
@@ -672,7 +768,13 @@ FITSImage<ImageType>::ijkToNorthOrientedEquiangularMatrix()
 using _internal::applyFlipImageFilter;
 using _internal::applyBinomialBlurFilter;
 using _internal::reflectPixels;
+using _internal::scalePixelValues;
 using _internal::writeImageInfo;
+
+using _internal::setCoordinateFrameTransformation;
+using _internal::getCoordinateFrameTransformation;
+using _internal::rightConcatenateTransformation;
+using _internal::leftConcatenateTransformation;
 
 // using _internal::reorientNorth;
 // using _internal::transformToUnreorientedEquiangular;

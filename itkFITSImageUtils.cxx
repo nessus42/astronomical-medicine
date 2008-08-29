@@ -37,10 +37,10 @@ loadFITSImageIO()
   static void* library = 0;
   if (!library) {
     const char* const libFilePath = pteJoinPath(pathToExecutableDir(),
-						"libitkFITSImageIO.so");
+                                                "libitkFITSImageIO.dylib");
     library = dlopen(libFilePath, RTLD_LAZY);
     if (!library) {
-      runTimeError("Could not load libitkFITSImageIO.so");
+      runTimeError("Could not load libitkFITSImageIO.dylib");
     }
   }
   return library;
@@ -53,10 +53,10 @@ loadFITSImageIO()
 
 /*internal proc*/
 void
-fillMatrix(Matrix& m, const double vals[3][3])
+fillMatrix(HMatrix& m, const double vals[4][4])
 {
-  for (int row = 0; row < 3; ++row) {
-    for (int col = 0; col < 3; ++col) {
+  for (int row = 0; row < 4; ++row) {
+    for (int col = 0; col < 4; ++col) {
       m(row, col) = vals[row][col];
     }
   }
@@ -67,19 +67,20 @@ fillMatrix(Matrix& m, const double vals[3][3])
 //-----------------------------------------------------------------------------
 
 /*internal proc*/
-Matrix
+HMatrix
 rotationMatrix(double degrees)
 {
   const double radians = degreesToRadians(degrees);
   const double s = sin(radians);
   const double c = cos(radians);
-  const double matrixVals[3][3] =
+  const double matrixVals[4][4] =
     { 
-        c, 0, s,
-	0, 1, 0,
-	s, 0, c 
+      c, 0, s, 0,
+      0, 1, 0, 0,
+      s, 0, c, 0,
+      0, 0, 0, 1,
     };
-  Matrix retval;
+  HMatrix retval;
   fillMatrix(retval, matrixVals);
   return retval;
 }
@@ -90,16 +91,17 @@ rotationMatrix(double degrees)
 //-----------------------------------------------------------------------------
 
 /*internal proc*/
-Matrix
+HMatrix
 scalingMatrix(double xScale, double yScale, double zScale)
 {
-  const double matrixVals[3][3] =
+  const double matrixVals[4][4] =
     { 
-      xScale,   0,        0,
-      0,        yScale,   0,
-      0,        0,        zScale 
+      xScale,   0,        0,       0,
+      0,        yScale,   0,       0,
+      0,        0,        zScale,  0,
+      0,        0,        0,       1,
     };
-  Matrix retval;
+  HMatrix retval;
   fillMatrix(retval, matrixVals);
   return retval;
 }
