@@ -18,6 +18,7 @@
 #define _itkFITSImageUtils_h
 
 #include <itkMatrix.h>
+#include <itkImageRegionIterator.h>
 #include <itkFITSWCSTransform.h>
 #include <itkFITSImageIO.h>
 
@@ -27,7 +28,7 @@ namespace fits {
 namespace _internal {
 
 // Internal typedefs:
-typedef Matrix<double, 3, 3> Matrix;
+typedef Matrix<double, 4, 4> HMatrix;
 
 
 // Global functions:
@@ -59,6 +60,7 @@ public:
   struct Params {
     typename ImageType::Pointer           itkImage;
     double                                angularUnitsInMicroDegrees;
+    double				  raScale;
 
     Params()
       : itkImage(0),
@@ -88,8 +90,8 @@ private:
 
   // Private methods:
   void	 initializeInstanceVars();
-  Matrix ijkToNorthOrientedEquiangularMatrix();
-  Matrix raDecVToLpsMatrix();
+  HMatrix ijkToNorthOrientedEquiangularMatrix();
+  HMatrix raDecVToLpsMatrix();
 
   // Deactivate copy ctor and and assignment:
   FITSImage(const FITSImage&);
@@ -99,8 +101,6 @@ public:
 
   // Constructors:
   explicit FITSImage(const Params& params);
-
-  // YOU ARE HERE: You need to modify the constructor to accept the params.
 
   // Accessor methods::
   typename ImageType::Pointer
@@ -126,13 +126,12 @@ public:
                    { return _rotationOfJFromIjkNorthVectorInDegrees; }
   double        raAngularScalingFactor() const
                    { return _raAngularScalingFactor; }
-
 };
 
 // Internal functions:
-void     fillMatrix(Matrix& m, const double vals[3][3]);
-Matrix   rotationMatrix(double degrees);
-Matrix	 scalingMatrix(double xScale, double yScale, double zScale);
+void     fillMatrix(HMatrix& m, const double vals[4][4]);
+HMatrix  rotationMatrix(double degrees);
+HMatrix	 scalingMatrix(double xScale, double yScale, double zScale);
 
 // Inline internal functions:
 

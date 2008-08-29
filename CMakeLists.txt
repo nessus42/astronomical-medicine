@@ -1,5 +1,7 @@
 # -*- Mode: CMake; fill-column: 79 -*-
 
+cmake_minimum_required(VERSION 2.6)
+
 # TODO: Break out stuff that is not configuration into an included macro
 # definitions file, so that this file can contain almost only stuff that might
 # change from day to day.
@@ -76,13 +78,21 @@ add_executable (fits2itk
 
 
 # Specify the dll's that we need to build:
-add_library(itkFITSImageIO MODULE
+add_library(itkFITSImageIO SHARED
   ${itkFITSImageIO_source_files}
   )
 
-# Note re above: "MODULE" is the option that causes itkFITSImageIO to be built
-# as a .so file file (i.e., a dynamically loaded library).  If we had needed a
-# .dylib file instead, then the option to use would have been SHARED.
+# Note re above: "SHARED" is the option that causes itkFITSImageIO to be built
+# as a .dylib file file (aka an "MH_DYLIB" file).  If we had needed a .so file
+# instead (aka an "MH_BUNDLE" file), then the option to use would have been
+# "MODULE".  For some reason they changed what ITK wants to see between
+# versions recently, and so this option had to be reversed above to make things
+# work again.  The advantage of using .dylib files is that they are probably
+# more common.  The advantage of using .so files is that they can be unloaded.
+# MH_BUNDLE files cannot be used as dependent libraries on OS X, however, which
+# is probably why they are less common.  If there are other advantages to
+# "dylib" libraries over "bundle" libraries, I don't currently know what they
+# are.
 
 
 # Specify the libaries that are used by our dll:

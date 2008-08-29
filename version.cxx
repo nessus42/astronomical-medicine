@@ -11,8 +11,7 @@
 // See LICENSE.txt for for details.
 //=============================================================================
 
-extern const char fits2itkVersion[] = 
-   "Version 0.4dev.12pending.10.gt.2D-extrude.pending.0";
+extern const char fits2itkVersion[] = "0.4dev.12pending.11";
 
 //=============================================================================
 // Change Log
@@ -609,6 +608,13 @@ extern const char fits2itkVersion[] =
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
 //----------------------------------------------------------------------
+
+//----------------------------------------------------
+// Version 0.4dev.12pending.11
+//----------------------------------------------------
+
+// Beginning work on merging changes from fits2itk.fixes into this version.
+// Also reimplementing the features that were lost when I refactored the code.
 
 // Things that I need to do soon:
 

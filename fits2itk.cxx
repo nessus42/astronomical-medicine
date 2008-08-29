@@ -58,6 +58,7 @@ using itk::fits::FITSImage;
 using itk::fits::applyFlipImageFilter;
 using itk::fits::applyBinomialBlurFilter;
 using itk::fits::reflectPixels;
+using itk::fits::scalePixelValues;
 using itk::fits::setNullValue;
 using itk::fits::writeImageInfo;
 
@@ -162,6 +163,9 @@ namespace {
     const char*    _inputFilepath;
     const char*    _outputFilepath;
 
+    double	   _pixelScale;
+    double	   _raScale;
+
     bool           _coerceToShorts;
     bool           _coerceToUnsignedShorts;
     int            _debugLevel;
@@ -172,9 +176,9 @@ namespace {
     bool           _logoFlag;
     double         _nullValue;
     bool           _reorientNorth;
+    bool           _slicerXmlModuleDescriptionFlag;
     // bool        _transformToEquiangular;
     double         _wcsImageStride;
-    bool           _slicerXmlModuleDescriptionFlag;
 
     bool           _binomialBlurFlag;
     bool           _derivativeImageFilterFlag;
@@ -192,6 +196,10 @@ namespace {
     // Accessor methods:
     const char* getInputFilepath() const { return _inputFilepath;}
     const char* getOutputFilepath() const { return _outputFilepath; }
+
+    double	getPixelScale() const { return _pixelScale; }
+    double	getRaScale() const { return _raScale; }
+
     bool        getCoerceToShorts() const { return _coerceToShorts; }
     bool        getCoerceToUnsignedShorts() const
                           { return _coerceToUnsignedShorts; }
@@ -203,8 +211,8 @@ namespace {
     bool        getLogoFlag() const { return _logoFlag; }
     double      getNullValue() const { return _nullValue; }
     bool        getReorientNorth() const { return _reorientNorth; }
-//     bool     getTransformToEquiangular() const
-//                           { return _transformToEquiangular; }
+//?     bool     getTransformToEquiangular() const
+//?                           { return _transformToEquiangular; }
     double      getWcsImageStride() const
                    { return _wcsImageStride; }
     bool        getSlicerXmlModuleDescriptionFlag() const
@@ -226,6 +234,8 @@ ctor
 CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
   : _inputFilepath(0),
     _outputFilepath(0),
+    _pixelScale(1),
+    _raScale(1),
     _coerceToShorts(false),
     _coerceToUnsignedShorts(false),
     _debugLevel(0),
@@ -304,9 +314,9 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
       switch (optionChar) {
 
       case 'a':
-        // XXX: You need to figure out a new way to scale all axes.
+        // TODO: You need to figure out a new way to scale all axes.
 
-        // FITSImageIO::SetScaleAllAxes(strtod(optarg, &endptr));
+        //? FITSImageIO::SetScaleAllAxes(strtod(optarg, &endptr));
         ::checkEndptr(endptr);
         break;
 
@@ -330,7 +340,7 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
         break;
 
       case 'r':
-        // FITSImageIO::SetScaleRA(strtod(optarg, &endptr));
+        _raScale = strtod(optarg, &endptr);
         checkEndptr(endptr);
         break;
 
@@ -339,7 +349,7 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
         break;
 
       case 's':
-        // FITSImageIO::SetScaleVoxelValues(strtod(optarg, &endptr));
+        _pixelScale = strtod(optarg, &endptr);
         checkEndptr(endptr);
         break;
 
@@ -348,7 +358,7 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
         break;
 
       case 'v':
-        // FITSImageIO::SetScaleVelocity(strtod(optarg, &endptr));
+        //? FITSImageIO::SetScaleVelocity(strtod(optarg, &endptr));
         checkEndptr(endptr);
         break;
 
@@ -370,9 +380,9 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
         // Parse long options:
         if (verboseHelpFlag) {
           verboseUsage();
-//      } else if (equiangularFlag) {
-//        equiangularFlag =  false;
-//        _transformToEquiangular = true;
+//?      } else if (equiangularFlag) {
+//?        equiangularFlag =  false;
+//?        _transformToEquiangular = true;
         } else if (flipDecFlag) {
           flipDecFlag = false;
           _flipDecFlag = true;
@@ -387,28 +397,28 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
           _logoFlag = true;
         } else if (noWcsFlag) {
           noWcsFlag = false;
-          // FITSImageIO::SetSuppressWCS(true);
+          //? FITSImageIO::SetSuppressWCS(true);
         } else if (reorientNorthFlag) {
           reorientNorthFlag = false;
           _reorientNorth = true;
         } else if (ripOrientationFlag) {
           ripOrientationFlag = false;
-          // FITSImageIO::SetRIPOrientation(true);
-          // FITSImageIO::SetSuppressWCS(true);
+          //? FITSImageIO::SetRIPOrientation(true);
+          //? FITSImageIO::SetSuppressWCS(true);
         } else if (rotateSkyFlag) {
           rotateSkyFlag = false;
-          // FITSImageIO::SetRotateSky(strtod(optarg, &endptr));
+          //? FITSImageIO::SetRotateSky(strtod(optarg, &endptr));
           checkEndptr(endptr);
         } else if (scaleDecFlag) {
           scaleDecFlag = false;
-          // FITSImageIO::SetScaleDec(strtod(optarg, &endptr));
+          //? FITSImageIO::SetScaleDec(strtod(optarg, &endptr));
           checkEndptr(endptr);
         } else if (typicalFlag) {
           typicalFlag = false;
-          // FITSImageIO::SetAutoScaleVelocityAxis(true);
-          // FITSImageIO::SetScaleAllAxes(1000);
-          // FITSImageIO::SetScaleRA(-1);
-          // FITSImageIO::SetScaleVoxelValues(1000);
+          //? FITSImageIO::SetAutoScaleVelocityAxis(true);
+          //? FITSImageIO::SetScaleAllAxes(1000);
+          //? FITSImageIO::SetScaleRA(-1);
+          //? FITSImageIO::SetScaleVoxelValues(1000);
         } else if (verboseFlag) {
           verboseFlag = false;
           da::setVerbosityLevel(1);
@@ -445,12 +455,12 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
 
   // Do some sanity checking to make sure that the options specified are
   // consistent with each other:
-//   if (FITSImageIO::GetSuppressWCS() and
-//       FITSImageIO::GetAutoScaleVelocityAxis())
-//     {
-//       da::warning("Velocity axis auto-scaling does not work when WCS\n"
-//                "     is suppressed.");
-//     }
+//?   if (FITSImageIO::GetSuppressWCS() and
+//?       FITSImageIO::GetAutoScaleVelocityAxis())
+//?     {
+//?       da::warning("Velocity axis auto-scaling does not work when WCS\n"
+//?                "     is suppressed.");
+//?     }
 }
   
 //-----------------------------------------------------------------------------
@@ -472,7 +482,7 @@ parseExtendedOption(const char* const option)
   } else if (optionStr == "binomialBlur") {
     _binomialBlurFlag = true;
   } else if (optionStr == "suppressMetaDataDictionary") {
-    // FITSImageIO::SetSuppressMetaDataDictionary(true);
+    //? FITSImageIO::SetSuppressMetaDataDictionary(true);
   } else if (optionStr == "identityFlip") {
     _identityFlipFlag = true;
   } else usage();
@@ -532,38 +542,49 @@ convertInputFileToItkFile(CommandLineParser& cl)
   typename ReaderType::Pointer reader = ReaderType::New();
   reader->SetFileName(cl.getInputFilepath());
   typename ImageType::Pointer image = reader->GetOutput();
-  reflectPixels<PixelType>(*image,
-                           cl.getFlipRaFlag(),
-                           cl.getFlipDecFlag(),
-                           cl.getFlipVFlag());
+  reflectPixels(*image,
+                cl.getFlipRaFlag(),
+                cl.getFlipDecFlag(),
+                cl.getFlipVFlag());
 
-  // The call to Update() here causes the image to be read in to ram.  This is
-  // not ideal as it may cause more ram to be used that would otherwise be
-  // required.  I think that the only thing requiring that Update() be called
-  // here is so that the MDD will exist when we get to the construction of
-  // `fitsImage` immediately following.  TODO: Figure out how how to avoid
-  // having to call Update() here:
+  // Note: scalePixelValues() uses a pixel iterator to scale all the pixels.
+  // I'm guessing that iterating the pixels can't be done in a streaming
+  // manner.  If we ever get to the point where we can do streaming i/o, then
+  // I'd probably want to implement the pixel value scaling using a unary
+  // functor filter instead:
+
+  scalePixelValues(*image, cl.getPixelScale());
+
+  // The call to Update() immediately below causes the image to be read in to
+  // ram.  This is not ideal as it may cause more ram to be used that would
+  // otherwise be required.  I think that the only thing requiring that
+  // Update() be called here is so that the MDD will exist when we get to the
+  // construction of `fitsImage` immediately following.  TODO: Figure out how
+  // how to avoid having to call Update() here:
+
   reader->Update();
 
   typename FITSImage<ImageType>::Params params;
   params.itkImage = image;
+  params.raScale = cl.getRaScale();
+  // params.angularUnitsInMicroDegegrees = ????  // TODO: Fill this in.
   FITSImage<ImageType> fitsImage (params);
 
-//   if (cl.getReorientNorth() or cl.getTransformToEquiangular()) {
-//     // TODO: Figure out how to do this without reading in the entire image.
-//     reader->Update();
-//     initializeChangeOfBasis(*image);
+//?   if (cl.getReorientNorth() or cl.getTransformToEquiangular()) {
+//?     // TODO: Figure out how to do this without reading in the entire image.
+//?     reader->Update();
+//?     initializeChangeOfBasis(*image);
 
-//     if (cl.getTransformToEquiangular()) {
-//       if (cl.getReorientNorth()) {
-//      transformToNorthOrientedEquiangular(*image);
-//       } else {
-//      transformToUnreorientedEquiangular(*image);
-//       }
-//     } else if (cl.getReorientNorth()) {
-//       reorientNorth(*image);
-//     }
-//   }
+//?     if (cl.getTransformToEquiangular()) {
+//?       if (cl.getReorientNorth()) {
+//?      transformToNorthOrientedEquiangular(*image);
+//?       } else {
+//?      transformToUnreorientedEquiangular(*image);
+//?       }
+//?     } else if (cl.getReorientNorth()) {
+//?       reorientNorth(*image);
+//?     }
+//?   }
 
   if (cl.getFlipImageFilterFlag()) {
     image = applyFlipImageFilter<PixelType>(image);
@@ -610,11 +631,11 @@ convertInputFileToItkFile(CommandLineParser& cl)
 
 
 //-----------------------------------------------------------------------------
-// convertInputFileToWcsMap(): local function
+// convertInputFileToWcsGridImage(): local function
 //-----------------------------------------------------------------------------
 
 local proc int
-convertInputFileToWcsMap(CommandLineParser& cl)
+convertInputFileToWcsGridImage(CommandLineParser& cl)
 {
   typedef itk::Image<short, c_dims> InputImage;
   typedef itk::ImageFileReader<InputImage> Reader;
@@ -825,7 +846,7 @@ main(const int argc, const char* const argv[])
   int status = -666;   // If the following code is correct, this value will
                        // always get overwritten.
   if (cl.getWcsImageStride() > 0) {
-    status = convertInputFileToWcsMap(cl);
+    status = convertInputFileToWcsGridImage(cl);
   } else if (cl.getCoerceToShorts()) {
     status = convertInputFileToItkFile<short>(cl);
   } else if (cl.getCoerceToUnsignedShorts()) {

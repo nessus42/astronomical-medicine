@@ -1,6 +1,315 @@
 # -*- Mode: Outline; fill-column: 70; outline-regexp: "[ \t]*-" -*-
 
-- Mockup of future help output
+- WHAT YOU ARE DOING RIGHT NOW
+
+  - Review the stuff below stating the previous future direction of
+    fits2itk.
+
+  - Search for all the TODO tags and resolve them.
+
+  - Make sure that you don't forget the IMPORTANT section immediately
+    below.
+
+
+- IMPORTANT
+
+  - I have marked code that I need to make work again with "//?"
+
+  - There are other important notes in ../README.txt
+
+    - A description of the changes that have been made in each clone
+      (e.g., *this* one!), but not yet pushed up to the the .mainline
+      repository.
+
+- Notes about refactoring work on fits2itk
+
+  - Jens says that he thinks the default behavior should be to not use
+    the WCS information, and to just leave it in pixel space.
+
+  - In the latest dev version --no-wcs doesn't work because the
+    communication channel (static class variables of the reader)
+    was severed when moving the reader into a DLL.  It also means
+    that there is no way to read in a FITS file that doesn't have
+    velocity headers, as the code that does this no longer checks
+    for a the no-wcs flag.
+
+- The options that are supported by fits2itk.fixes:
+
+  - The non-dev version
+
+    - Documented
+
+      -h: help message
+      -A: auto-scale velocity axis
+      -S: coerce pixel values to shorts
+      -U: coerce pixel values to unsigned shorts
+      -a: axes-scale
+      -D: debug-level
+      -N null-value
+      -r: RA-scale
+      -s: pixel-scale
+      -v: velocity-scale
+
+      --typical: shortcut for -A -a 1000 -r -1 -s 1000
+
+	   The above command auto-scales the velocity axis, and then
+	   scales all of the axes by 1000.  The right ascension axis
+	   is then flipped in order to present it in the orientation
+	   to which astronomers are accustomed.  The pixel values of
+	   the image are then all multiplied by 1000.
+
+      --help
+
+    - Undocumented
+
+      -f: Bug!
+      -n: Don't accept output file on command line (used for displaying info)
+      -o: Obsolete way of supporting long option names
+          These are the options supported:
+	     derivativeImageFilter
+             flipImageFilter
+	     binomialBlur
+	     suppressMetaDataDictionary
+	     identityFlip
+      -R: Bug!
+
+      --equiangular
+      --reorient-north
+
+        These two options do three different things depending on
+        whether they are used alone or together
+
+      --flip-dec
+      --flip-ra
+      --flip-v
+
+        These three options cause pixels to actually be shuffled about.
+
+      --no-wcs
+
+        This option suppresses WCS so that the physical coordinates
+        are merely the pixel coordinates.
+
+      --rotate-sky degrees
+
+        This option applies a rotation matrix to the image to rotate
+        it *counter* clockwise.  TODO: Determine what this means under
+        the influence of other options.
+
+      --RIP
+
+        This option forces the output to be in RIP orientation so that
+        you won't get a warning message about Analyze files being
+        malformatted.
+
+      --scale-dec
+
+        Just like -r, only for decliation, rather than RA.
+
+      --verbose: Provides informational info
+
+    - Options provided by the Slicer GUI plugin
+
+      --xml: Provides the GUI XML
+      --logo: Outputs a logo, but this doesn't work
+      --dont_autoscale_velocity:
+           Suppresses the -A option
+      --pixel_type
+           Sets either the -S or the -U flag, depending on how this is set
+      --cfitsio_extended_filename
+           Appends the extended part onto the input filename
+      --no_wcs
+           Adds the --no-wcs option
+
+    - Options used by the Slicer GUI plugin
+
+      -A
+      -S
+      -U
+      --no-wcs
+      Extended filename syntax
+
+- What I was working on "right now" a long time ago when I originally
+  wrote this note:
+
+  - Trying to figure out why reorient-north is deactivated in the dev
+    version of fits2itk.
+
+- Known bugs:
+
+  - CMakeLists.txt
+
+    - If you make a new build directory, you have to run make several
+      times, the first time, before it will compile.
+
+- New mockup of future help output (This also serves to document the output)
+
+  YOU ARE HERE: working on this right now
+
+  usage:
+
+    fits2itk [option ...] input-file output-file
+
+  The input file should be a FITS file (CFITSIO extended filename syntax
+  is supported).  The output file should be typically be a NRRD file,
+  but other file formats supported by ITK may work, albeit most likely
+  in a somewhat buggy manner.
+
+  By default the output coordinates are pixel coordinates, but RA/DEC
+  coordinates can be turned on by using the "--wcs" option, and
+  image-centered equiangular coordinates can be turned on using the
+  "--equiangular" option.
+
+  For informational purposes, fits2itk will output something like the
+  following to stdout:
+
+	Input file: foo.fits
+	Output file: foo.nrrd
+	Image center, in pixels: (86, 41.5, 314.5)
+	Image center, in RA/Dec/V: (56.5541, 32.9725, 0)
+	Pixel size in degrees: 0.0127778 x 0.0127778
+	Pixel size in arcseconds: #@$@#$ x #@#$#@#
+	Pixel size in km/s: 8.321
+
+	[ TODO: The above needs work.  It doesn't currently contain all
+	  the information that an astronomer might want. ]
+
+  Options:
+
+  -q
+
+	    Suppresses the above mentioned output.
+
+  -h
+
+	    Outputs the terse usage message.
+
+  --help
+
+	    Outputs the verbose usage message.
+
+  -n
+
+	    Tells fits2itk to not actually write an output file, but
+	    instead to just write to stdout whatever it would have
+	    written to stdout without this option.
+
+	    Note: When this option is selected, you should not include
+	    the ouput file on the command line.
+
+  --pixel-coordinates
+
+            NOTE: Actually, we are not going to do this.  Instead,
+            "--wcs" will turn on WCS.
+
+  --north-up
+
+	    Rotates the image so that north is up.  Disallowed in
+	    conjunction with "--wcs", as that always puts north up.
+
+  --east-left
+
+	    Rotates the image so that east is to the left.  Disallowed
+	    in conjunction with "--wcs", as in that case, east is
+	    always oriented left.
+
+  --x-scale NUM
+  --y-scale NUM
+  --z-scale NUM
+
+            NUM scales the image along the specified axis.  For
+            instance, if you are using pixel coordinates, and you set
+            the x-axis scale to 3, then every pixel will be assigned a
+            width of 3, rather than 1.  Consequently, in Slicer, the
+            coordinates read-outs for the x-axis will be three times
+            as large as the actual number of pixels in the image.
+
+	    If you have world coordinates activated, on the other
+	    hand, and you also specify an x-axis scale of 1000 here,
+	    then the coordinate readout for right ascension will be in
+	    millidegrees, rather than degrees.
+
+  --sky-scale NUM
+
+	     Equivalent to --x-scale NUM --y-scale NUM.
+
+             Not to be used in conjunction with either "--x-scale" or
+             "--y-scale".
+
+  --autoscale-z-axis
+
+            TODO: A better name for this might be called for?
+
+            Sets the z-axis scale so that its range fits into a cube
+            defined by the x- and y-axes.
+
+
+  --null-value NUM
+
+	    Remaps the FITS null value to NUM in the output file.  The
+	    default null value is typically NaN for floating point FITS
+	    files.  NaNs often cause trouble in medical imaging
+	    applications, however, so this option is provided in order
+	    to work around this issue.
+
+	    Unfortunately you can't set this to 0, due to a limitation
+	    in CFITSIO, but you can set it to, e.g., 0.0000001.
+
+  --debug-level INT
+
+	    Sets the debug level to INT.  The default value is 0.
+
+
+  --pixel-scale NUM
+
+	    Every pixel value will be multiplied by NUM before writing
+	    to the output file.
+
+  --flipx
+  --flipy
+  --flipv
+
+	    These options flip the image before writing to the output
+	    file.  They do this by moving pixels around, not by setting
+	    the coordinate transformation.  Consequently, these options
+	    are only allowed in conjunction with --use-index-space.
+
+
+  --rotate-sky NUM
+
+	    Rotates the image by NUM degrees clockwise via ITK's
+	    coordinate transformation parameters.
+
+            Cannot be used in conjuction with --wcs or --equiangular.
+
+
+  --verbose
+
+	    Causes fits2itk to output extra useless information.
+
+
+  --show-fits-header
+
+	    Tells fits2itk to output the FITS header to stdout.
+
+
+  --coerce-to-shorts
+  --coerce-to-unsigned-shorts
+
+	    The output file will be written using respectively shorts or
+	    unsigned shorts rather than the default of single precision
+	    floats.
+
+  --lps
+
+	    By default, fits2itk writes the output file with a kludge
+	    transformation that compensates for Slicer's conversion from
+	    LPS to RAS.  For use with other software that doesn't do
+	    such a conversion, this option is provided to turn off the
+	    kludge transformation.
+
+
+- Old mockup of future help output
 
   usage:
 
@@ -51,6 +360,10 @@
 
   --use-index-space
 
+            TODO: Perhaps we should instead have a on option "--wcs"
+            that turns on WCS, while this is the default.  Jens
+            indicated that he thinks this should be the case.
+
 	    Causes the output file to be written with an identity
 	    coordinate transformation, rather than the default
 	    transformation that converts between index space and world
@@ -100,6 +413,14 @@
 
 	    Suppresses autoscaling of the velocity axis.  The velocity
 	    axis will be left in index space instead.
+
+            TODO: We need another option, and probably need to rename
+            this one, because we also have an option to scale the
+            velocity axis in km/s.
+
+            Jens has said that he thinks the default should be to not
+            use WCS at all, so we may need to rethink a bunch of these
+            options.
 
   --v-axis-scale NUM
 
@@ -164,6 +485,12 @@
 
 
 - These are the options that should be supported in the next version
+
+  TODO: I think that "XXX" may mean options that have already been
+  added to the dev version, but I'm not sure.
+
+  TODO: Reconcile this information with the information that is in the
+  version above.
 
   XXX The DLL:
 
@@ -342,125 +669,125 @@
 
 - Design notes
 
-  TODO: 
 
+- Features that I added a while back:
 
-- New features requested by Mike:
+  - New features requested by Mike:
 
-  - Grid transform approximation output
+    - Grid transform approximation output
 
-    - Summary of Mike's request
+      - Summary of Mike's request
 
-      - Program to take a FITS file as input and write out a NRRD file
-        for which every voxel is the WCS coordinate of the voxel.
+	- Program to take a FITS file as input and write out a NRRD file
+	  for which every voxel is the WCS coordinate of the voxel.
 
-        - We will typically want to down-sample the data, as
-          interpolation can be used to determine the WCS coordinates
-          for pixels not explicitly represented.  We will only need to
-          or three layers for the velocity axis, as this is typically
-          linear.
+	  - We will typically want to down-sample the data, as
+	    interpolation can be used to determine the WCS coordinates
+	    for pixels not explicitly represented.  We will only need to
+	    or three layers for the velocity axis, as this is typically
+	    linear.
 
-        - Me: Maybe I can just use the CFITSIO extended filename
-          syntax 
+	  - Me: Maybe I can just use the CFITSIO extended filename
+	    syntax 
 
-    - Text of Mike's request
+      - Text of Mike's request
 
-      I propose we do a grid transform approximation to the true WCS
-      transform.  In a grid transform, we transform every nth voxel in the
-      volume from pixel space to WCS space, and write out the
-      result. Interpolation is later used to find transformed values for
-      other voxels.
+	I propose we do a grid transform approximation to the true WCS
+	transform.  In a grid transform, we transform every nth voxel in the
+	volume from pixel space to WCS space, and write out the
+	result. Interpolation is later used to find transformed values for
+	other voxels.
 
-      Since Slicer deals well with images, we'll use an image volume (in a
-      NRRD file) to store the result.  The NRRD images representing the
-      transform can get across the execution module bridge to Slicer.  The
-      level of approximation can be set in the user interface.
+	Since Slicer deals well with images, we'll use an image volume (in a
+	NRRD file) to store the result.  The NRRD images representing the
+	transform can get across the execution module bridge to Slicer.  The
+	level of approximation can be set in the user interface.
 
-      VTK has a Grid Transform object, which handles inverse transforms and
-      interpolation issues.  On the Slicer side, we'll use the
-      vtkGridTransform and the mechanism I've talked about before for
-      handling multiple coordinate systems in the scene. I think I can talk
-      Steve into adding this functionality, since it has much more utility
-      than just our application.
+	VTK has a Grid Transform object, which handles inverse transforms and
+	interpolation issues.  On the Slicer side, we'll use the
+	vtkGridTransform and the mechanism I've talked about before for
+	handling multiple coordinate systems in the scene. I think I can talk
+	Steve into adding this functionality, since it has much more utility
+	than just our application.
 
-      So, your action item would be populating and writing out this new NRRD
-      file as an extra parameter of the filter.
+	So, your action item would be populating and writing out this new NRRD
+	file as an extra parameter of the filter.
 
-      If we have that, I think we have a pretty complete package --
-      everything else needs to happen inside Slicer (with the possible
-      exception of NaNs).
+	If we have that, I think we have a pretty complete package --
+	everything else needs to happen inside Slicer (with the possible
+	exception of NaNs).
 
-  - 2D to 3D image extrusion
+    - 2D to 3D image extrusion
 
-    - Summary of Mike's request
+      - Summary of Mike's request
 
-      - Program to take as input
+	- Program to take as input
 
-	   (1) a 2D image
-	   (2) a FITS file (or header)
-	   (3) a velocity range
-	   (4) a channel select
+	     (1) a 2D image
+	     (2) a FITS file (or header)
+	     (3) a velocity range
+	     (4) a channel select
 
-	and ouput a NRRD file (in the same format as that output by
-	fits2itk) from #1 that contains two copies of the image, the
-	FITS header, and a transformation matrix that causes the image
-	to be extruded throughout the velocity range specified by #3.
-	The channel select lets you chose which channels of image you
-	wish to put into the NRRD file.
+	  and ouput a NRRD file (in the same format as that output by
+	  fits2itk) from #1 that contains two copies of the image, the
+	  FITS header, and a transformation matrix that causes the image
+	  to be extruded throughout the velocity range specified by #3.
+	  The channel select lets you chose which channels of image you
+	  wish to put into the NRRD file.
 
-    - Text of Mike's request
+      - Text of Mike's request
 
-      I was thinking that it might be time to write a new command-line
-      filter for Slicer3, one that can be used standalone much like the
-      existing fits2itk.
+	I was thinking that it might be time to write a new command-line
+	filter for Slicer3, one that can be used standalone much like the
+	existing fits2itk.
 
-      This is one that will make a nrrd volume from a single image, much
-      like Alyssa's wanted to do forever.
+	This is one that will make a nrrd volume from a single image, much
+	like Alyssa's wanted to do forever.
 
-      Inputs:
+	Inputs:
 
-      image) a PNG/JPEG/TIFF file
-      fits_header_or_image) a FITS file
-      z_min, z_max) a numeric range for the third dimension
-      channel_select) which image channel to use
+	image) a PNG/JPEG/TIFF file
+	fits_header_or_image) a FITS file
+	z_min, z_max) a numeric range for the third dimension
+	channel_select) which image channel to use
 
-      Output:
+	Output:
 
-      output) a NRRD file with the encoded FITS information, like fits2itk
-      outputs.
+	output) a NRRD file with the encoded FITS information, like fits2itk
+	outputs.
 
-      Operation:
+	Operation:
 
-      This filter takes the contents of a 2D raster image and turns it into
-      a synthetic volume with the given extent for Slicer3.
+	This filter takes the contents of a 2D raster image and turns it into
+	a synthetic volume with the given extent for Slicer3.
 
-      The image data is extracted from the "image" input, with the option of
-      using the RGB information (if it exists) or a single color channel as
-      specified by the "channel_select" input.
+	The image data is extracted from the "image" input, with the option of
+	using the RGB information (if it exists) or a single color channel as
+	specified by the "channel_select" input.
 
-      This information is combined with the FITS header found in the
-      "fits_header_or_image" input.  This FITS file is produced by an
-      outside provider such as astrometry.net, or a custom IDL file.
+	This information is combined with the FITS header found in the
+	"fits_header_or_image" input.  This FITS file is produced by an
+	outside provider such as astrometry.net, or a custom IDL file.
 
-      If "image" is provided, the FITS file is used only as a header
-      describing the spatial orientation of the image.  If "image" isn't
-      specified, the 2D image data in "fits_header_or_image" is used.  In
-      this case, channel_select is honored as well if the FITS file contains
-      multiple channels.
+	If "image" is provided, the FITS file is used only as a header
+	describing the spatial orientation of the image.  If "image" isn't
+	specified, the 2D image data in "fits_header_or_image" is used.  In
+	this case, channel_select is honored as well if the FITS file contains
+	multiple channels.
 
-      The "z_min" and "z_max" values provide the extent of the volume in the
-      dimension orthogonal to the image itself.  For now, we'll assume the
-      image lies in the two spatial dimensions, so "z" will be our velocity
-      dimension.
+	The "z_min" and "z_max" values provide the extent of the volume in the
+	dimension orthogonal to the image itself.  For now, we'll assume the
+	image lies in the two spatial dimensions, so "z" will be our velocity
+	dimension.
 
-      The output image is a NRRD file that uses the same coordinate
-      conventions as fits2itk.  It would be a volume with two copies of the
-      data, effectively the front and back planes.  (This isn't the most
-      elegant way I can think of to do this implementation, but we know it
-      will work without any internal itk or Slicer hacking.)
+	The output image is a NRRD file that uses the same coordinate
+	conventions as fits2itk.  It would be a volume with two copies of the
+	data, effectively the front and back planes.  (This isn't the most
+	elegant way I can think of to do this implementation, but we know it
+	will work without any internal itk or Slicer hacking.)
 
-      The filter should be able to run on either command line or as a slicer
-      execution module.
+	The filter should be able to run on either command line or as a slicer
+	execution module.
 
-      This would be a big win for everyone, saving Michelle and Jens the
-      trouble of doing this stuff by hand.
+	This would be a big win for everyone, saving Michelle and Jens the
+	trouble of doing this stuff by hand.
