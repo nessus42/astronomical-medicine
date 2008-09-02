@@ -163,30 +163,39 @@ namespace {
     const char*    _inputFilepath;
     const char*    _outputFilepath;
 
-    double	   _pixelScale;
-    double	   _raScale;
+    bool	   _quietModeP;          // Set with -q
+    bool           _dontWriteP;          // Set with -n
+    bool	   _wcsP;                // Set with --wcs
+    bool	   _equiangularP;        // Set with --equiangular
+    bool	   _northUpP;            // Set with --north-up
+    bool	   _eastLeftP;           // Set with --east-left
+    bool	   _autoscaleZAxisP;	 // Set with --autoscale-z-axis
+    bool	   _flipxP;		 // Set with --flipx
+    bool	   _flipyP;		 // Set with --flipy
+    bool	   _flipzP;		 // Set with --flipz
+    bool	   _verboseP;		 // Set with --verbose
+    bool	   _showFitsHeaderP;     // Set with --show-fits-header
+    bool	   _coerceToShortsP;	 // Set with --coerce-to-shorts
+    bool	   _coerceToUnsignedShortsP;
+    bool	   _lpsP;		 // Set with --lps
+    
+//     bool           _binomialBlurFlag;
+//     bool           _derivativeImageFilterFlag;
+//     bool           _flipImageFilterFlag;
+//     bool           _identityFlipFlag;
 
-    bool           _coerceToShorts;
-    bool           _coerceToUnsignedShorts;
-    int            _debugLevel;
-    bool           _dontWrite;
-    bool           _flipDecFlag;
-    bool           _flipRaFlag;
-    bool           _flipVFlag;
-    bool           _logoFlag;
-    double         _nullValue;
-    bool           _reorientNorth;
-    bool           _slicerXmlModuleDescriptionFlag;
-    // bool        _transformToEquiangular;
-    double         _wcsImageStride;
+    double	   _pixelScale;	         // Set with --pixel-scale
+    double         _xAxisScale;		 // Set with --x-scale
+    double 	   _yAxisScale;		 // Set with --y-scale
+    double	   _zAxisScale; 	 // Set with --z-scale
+    double	   _nullValue;		 // Set with --null-value
+    double	   _debugLevel;		 // Set with --debug-level
+    double	   _rotateSky;		 // Set with --rotate-sky
 
-    bool           _binomialBlurFlag;
-    bool           _derivativeImageFilterFlag;
-    bool           _flipImageFilterFlag;
-    bool           _identityFlipFlag;
+    unsigned      _wcsGridStride;	 // Set with --wcs-grid-stride
 
-    // Private non-virtual methods:
-    void        parseExtendedOption(const char* const option);
+//     // Private non-virtual methods:
+//     void        parseExtendedOption(const char* const option);
 
   public:
     
@@ -197,62 +206,60 @@ namespace {
     const char* getInputFilepath() const { return _inputFilepath;}
     const char* getOutputFilepath() const { return _outputFilepath; }
 
-    double	getPixelScale() const { return _pixelScale; }
-    double	getRaScale() const { return _raScale; }
+    bool quietModeP() const { return _quietModeP; }
+    bool dontWriteP() const { return _dontWriteP; }
+    bool wcsP() const { return _wcsP; }
+    bool equiangularP() const { return _equiangularP; }
+    bool northUpP() const { return _northUpP; }
+    bool eastLeftP() const { return _eastLeftP; }
+    bool autoscaleZAxisP() const { return _autoscaleZAxisP; }
+    bool flipxP() const { return _flipxP; }
+    bool flipyP() const { return _flipyP; }
+    bool flipzP() const { return _flipzP; }
+    bool verboseP() const { return _verboseP; }
+    bool showFitsHeaderP() const { return _showFitsHeaderP; }
+    bool coerceToShortsP() const { return _coerceToShortsP; }
+    bool coerceToUnsignedShortsP() const { return _coerceToUnsignedShortsP; }
+    bool lpsP() const { return _lpsP	 }
 
-    bool        getCoerceToShorts() const { return _coerceToShorts; }
-    bool        getCoerceToUnsignedShorts() const
-                          { return _coerceToUnsignedShorts; }
-    int         getDebugLevel() const { return _debugLevel; }
-    bool        getDontWrite() const { return _dontWrite; }
-    bool        getFlipDecFlag() const { return _flipDecFlag; }
-    bool        getFlipRaFlag() const { return _flipRaFlag; }
-    bool        getFlipVFlag() const { return _flipVFlag; }
-    bool        getLogoFlag() const { return _logoFlag; }
-    double      getNullValue() const { return _nullValue; }
-    bool        getReorientNorth() const { return _reorientNorth; }
-//?     bool     getTransformToEquiangular() const
-//?                           { return _transformToEquiangular; }
-    double      getWcsImageStride() const
-                   { return _wcsImageStride; }
-    bool        getSlicerXmlModuleDescriptionFlag() const
-                   { return _slicerXmlModuleDescriptionFlag; }
+    double pixelScale() const { return _pixelScale; }
+    double xAxisScale() const { return _xAxisScale; }
+    double yAxisScale() const { return _yAxisScale; }
+    double zAxisScale() const { return _zAxisScale; }
+    double nullValue() const { return _nullValue; }
+    double debugLevel() const { return _debugLevel; }
+    double rotateSky() const { return _rotateSky; }
 
-
-    bool        getBinomialBlurFlag() const
-                   { return _binomialBlurFlag; }
-    bool        getDerivativeImageFilterFlag() const
-                   { return _derivativeImageFilterFlag; }
-    bool        getFlipImageFilterFlag() const
-                   { return _flipImageFilterFlag; }
-    bool        getIdentityFlipFlag() const
-                   { return _identityFlipFlag; }
+    unsigned wcsGridStride() const { return _wcsGridStride; }
   };
-
 
 ctor
 CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
   : _inputFilepath(0),
     _outputFilepath(0),
+    _quietModeP(false),
+    _dontWriteP(false),
+    _wcsP(false),
+    _equiangularP(false),
+    _northUpP(false),
+    _eastLeftP(false),
+    _autoscaleZAxisP(false),
+    _flipxP(false),
+    _flipyP(false),
+    _flipzP(false),
+    _verboseP(false),
+    _showFitsHeaderP(false),
+    _coerceToShortsP(false),
+    _coerceToUnsignedShortsP(false),
+    _lpsP(false),
     _pixelScale(1),
-    _raScale(1),
-    _coerceToShorts(false),
-    _coerceToUnsignedShorts(false),
+    _xAxisScale(1),
+    _yAxisScale(1),
+    _zAxisScale(1),
+    _nullValue(0),  // 0 means "leave alone", not set to 0
     _debugLevel(0),
-    _dontWrite(false),
-    _flipDecFlag(false),
-    _flipRaFlag(false),
-    _flipVFlag(false),
-    _logoFlag(false),
-    _nullValue(0.0),
-    _reorientNorth(false),
-    _slicerXmlModuleDescriptionFlag(false),
-    // _transformToEquiangular(false),
-    _wcsImageStride(0),
-    _binomialBlurFlag(false),
-    _derivativeImageFilterFlag(false),
-    _flipImageFilterFlag(false),
-    _identityFlipFlag(false)
+    _rotateSky(0),
+    _wcsGridStride(0)
 {
   opterr = true;
   char* endptr;
@@ -335,9 +342,9 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
         _dontWrite = true;
         break;
 
-      case 'o':
-        this->parseExtendedOption(optarg);
-        break;
+//       case 'o':
+//         this->parseExtendedOption(optarg);
+//         break;
 
       case 'r':
         _raScale = strtod(optarg, &endptr);
@@ -463,30 +470,30 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
 //?     }
 }
   
-//-----------------------------------------------------------------------------
-// parseExtendedOption(): private non-virtual method
-//-----------------------------------------------------------------------------
+// //-----------------------------------------------------------------------------
+// // parseExtendedOption(): private non-virtual method
+// //-----------------------------------------------------------------------------
 
-// TODO: Replace this stuff with long options, which I have started using since
-// originally implementing this.
+// // TODO: Replace this stuff with long options, which I have started using since
+// // originally implementing this.
 
-method void CommandLineParser::
-parseExtendedOption(const char* const option)
-{
-  debugPrint("extendedOption=" << option);
-  string optionStr = option;
-  if (optionStr == "derivativeImageFilter") {
-    _derivativeImageFilterFlag = true;
-  } else if (optionStr == "flipImageFilter") {
-    _flipImageFilterFlag = true;
-  } else if (optionStr == "binomialBlur") {
-    _binomialBlurFlag = true;
-  } else if (optionStr == "suppressMetaDataDictionary") {
-    //? FITSImageIO::SetSuppressMetaDataDictionary(true);
-  } else if (optionStr == "identityFlip") {
-    _identityFlipFlag = true;
-  } else usage();
-}
+// method void CommandLineParser::
+// parseExtendedOption(const char* const option)
+// {
+//   debugPrint("extendedOption=" << option);
+//   string optionStr = option;
+//   if (optionStr == "derivativeImageFilter") {
+//     _derivativeImageFilterFlag = true;
+//   } else if (optionStr == "flipImageFilter") {
+//     _flipImageFilterFlag = true;
+//   } else if (optionStr == "binomialBlur") {
+//     _binomialBlurFlag = true;
+//   } else if (optionStr == "suppressMetaDataDictionary") {
+//     //? FITSImageIO::SetSuppressMetaDataDictionary(true);
+//   } else if (optionStr == "identityFlip") {
+//     _identityFlipFlag = true;
+//   } else usage();
+// }
 
 
 } // END local namespace
@@ -586,20 +593,20 @@ convertInputFileToItkFile(CommandLineParser& cl)
 //?     }
 //?   }
 
-  if (cl.getFlipImageFilterFlag()) {
-    image = applyFlipImageFilter<PixelType>(image);
-  }
-  if (cl.getBinomialBlurFlag()) {
-    image = applyBinomialBlurFilter<PixelType>(image);
-  }
-  if (cl.getIdentityFlipFlag()) {
-    // Note: This option isn't going to work anymore because we've added the
-    // very same filter twice into the same filtering chain, and ITK isn't
-    // going to deal with that well.  No biggie, though, as this was only here
-    // for testing anyway.
-    image = applyFlipImageFilter<PixelType>(image);
-    image = applyFlipImageFilter<PixelType>(image);
-  }
+//   if (cl.getFlipImageFilterFlag()) {
+//     image = applyFlipImageFilter<PixelType>(image);
+//   }
+//   if (cl.getBinomialBlurFlag()) {
+//     image = applyBinomialBlurFilter<PixelType>(image);
+//   }
+//   if (cl.getIdentityFlipFlag()) {
+//     // Note: This option isn't going to work anymore because we've added the
+//     // very same filter twice into the same filtering chain, and ITK isn't
+//     // going to deal with that well.  No biggie, though, as this was only here
+//     // for testing anyway.
+//     image = applyFlipImageFilter<PixelType>(image);
+//     image = applyFlipImageFilter<PixelType>(image);
+//   }
 
   if (cl.getOutputFilepath()) {
     typedef itk::ImageFileWriter<ImageType> WriterType;
