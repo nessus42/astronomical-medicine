@@ -13,9 +13,9 @@ TAGS
 tags
 semantic.cache
 *.proj
-.#*
 .cproject
 .project
 
 syntax: regexp
-.*\#.*\#$
+^\#
+^\.\#

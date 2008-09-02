@@ -144,7 +144,7 @@
 
 - New mockup of future help output (This also serves to document the output)
 
-  YOU ARE HERE: working on this right now
+  Note: "XXX" means that the feature has been implemented
 
   usage:
 
@@ -204,20 +204,34 @@
 
   --north-up
 
-	    Rotates the image so that north is up.  Disallowed in
-	    conjunction with "--wcs", as that always puts north up.
+	    Rotates the image so that north is up.
+
+            Disallowed in conjunction with "--wcs" or "--equiangular",
+	    as those options always puts north up.
 
   --east-left
 
-	    Rotates the image so that east is to the left.  Disallowed
-	    in conjunction with "--wcs", as in that case, east is
-	    always oriented left.
+	    Rotates the image so that east is to the left.
 
-  --x-scale NUM
-  --y-scale NUM
-  --z-scale NUM
+            Disallowed in conjunction with "--wcs" or "--equiangular",
+	    as those options always put east to the left.
 
-            NUM scales the image along the specified axis.  For
+  --wcs
+  --equiangular
+
+            See the description of these options at the beginning of
+            this help text.
+
+  --pixel-scale FLOAT
+
+	    Every pixel value will be multiplied by FLOAT before writing
+	    to the output file.
+
+  --x-scale FLOAT
+  --y-scale FLOAT
+  --z-scale FLOAT
+
+            FLOAT scales the image along the specified axis.  For
             instance, if you are using pixel coordinates, and you set
             the x-axis scale to 3, then every pixel will be assigned a
             width of 3, rather than 1.  Consequently, in Slicer, the
@@ -229,9 +243,9 @@
 	    then the coordinate readout for right ascension will be in
 	    millidegrees, rather than degrees.
 
-  --sky-scale NUM
+  --sky-scale FLOAT
 
-	     Equivalent to --x-scale NUM --y-scale NUM.
+	     Equivalent to --x-scale FLOAT --y-scale FLOAT
 
              Not to be used in conjunction with either "--x-scale" or
              "--y-scale".
@@ -244,9 +258,9 @@
             defined by the x- and y-axes.
 
 
-  --null-value NUM
+  --null-value FLOAT
 
-	    Remaps the FITS null value to NUM in the output file.  The
+	    Remaps the FITS null value to FLOAT in the output file.  The
 	    default null value is typically NaN for floating point FITS
 	    files.  NaNs often cause trouble in medical imaging
 	    applications, however, so this option is provided in order
@@ -260,11 +274,6 @@
 	    Sets the debug level to INT.  The default value is 0.
 
 
-  --pixel-scale NUM
-
-	    Every pixel value will be multiplied by NUM before writing
-	    to the output file.
-
   --flipx
   --flipy
   --flipv
@@ -275,9 +284,9 @@
 	    are only allowed in conjunction with --use-index-space.
 
 
-  --rotate-sky NUM
+  --rotate-sky FLOAT
 
-	    Rotates the image by NUM degrees clockwise via ITK's
+	    Rotates the image by FLOAT degrees clockwise via ITK's
 	    coordinate transformation parameters.
 
             Cannot be used in conjuction with --wcs or --equiangular.
@@ -300,180 +309,7 @@
 	    unsigned shorts rather than the default of single precision
 	    floats.
 
-  --lps
-
-	    By default, fits2itk writes the output file with a kludge
-	    transformation that compensates for Slicer's conversion from
-	    LPS to RAS.  For use with other software that doesn't do
-	    such a conversion, this option is provided to turn off the
-	    kludge transformation.
-
-
-- Old mockup of future help output
-
-  usage:
-
-    fits2itk [option ...] input-file output-file
-
-  The input file should be a FITS file (CFITSIO extended filename syntax
-  is supported).  The output file should be typically be a NRRD file,
-  but other file formats supported by ITK may work, albeit most likely
-  in a somewhat buggy manner.  The default physical units for the output
-  file will be microdegrees.
-
-  For informational purposes, fits2itk will output something like the
-  following to stdout:
-
-	Input file: foo.fits
-	Output file: foo.nrrd
-	Image center, in pixels: (86, 41.5, 314.5)
-	Image center, in RA/Dec/V: (56.5541, 32.9725, 0)
-	Pixel size in degrees: 0.0127778 x 0.0127778
-	Pixel size in arcseconds: #@$@#$ x #@#$#@#
-	Pixel size in km/s: 8.321
-
-	[ TODO: The above needs work.  It doesn't currently contain all
-	  the information that an astronomer might want. ]
-
-  Options:
-
-  --quiet
-
-	    Suppresses the above mentioned output.
-
-  -h
-
-	    Outputs the terse usage message.
-
-  --help
-
-	    Outputs the verbose usage message.
-
-  -n
-
-	    Tells fits2itk to not actually write an output file, but
-	    instead to just write to stdout whatever it would have
-	    written to stdout without this option.
-
-	    Note: When this option is selected, you should not include
-	    the ouput file on the command line.
-
-  --use-index-space
-
-            TODO: Perhaps we should instead have a on option "--wcs"
-            that turns on WCS, while this is the default.  Jens
-            indicated that he thinks this should be the case.
-
-	    Causes the output file to be written with an identity
-	    coordinate transformation, rather than the default
-	    transformation that converts between index space and world
-	    space.
-
-	    This option is is turned on automatically when the output
-	    file is an Analyze file.
-
-  --north-up
-
-	    Rotates the image so that north is up.  Only allowed in conjunction
-	    with --use-index-space.
-
-  --west-right
-
-	    Rotates the image so that west is to the right.  Only works in
-	    conjunction with --use-index-space
-
-  --ra
-
-	    Scales the east/west axis to represent right ascension,
-	    rather than angular degrees.  (This used to be the default
-	    behavior of fits2itk.)
-
-  --west-axis-scale NUM
-
-	    Sets the west-axis scale to be NUM microdegrees.  The default
-	    value is 1.
-
-	    If --ra or --use-index-space is selected, then this option
-	    scales respectively the RA values or the index values,
-	    rather than the angular degree values.
-
-  --north-axis-scale NUM
-
-	    Sets the y-axis scale to be NUM microdegrees.  The default
-	    value is 1.
-
-	    If --use-index-space is selected, then this option scales
-	    the index values, rather than the angular degree values.
-
-  --sky-scale NUM
-
-	     Equivalent to --west-axis-scale NUM --north-axis-scale NUM.
-
-  --no-v-axis-autoscale
-
-	    Suppresses autoscaling of the velocity axis.  The velocity
-	    axis will be left in index space instead.
-
-            TODO: We need another option, and probably need to rename
-            this one, because we also have an option to scale the
-            velocity axis in km/s.
-
-            Jens has said that he thinks the default should be to not
-            use WCS at all, so we may need to rethink a bunch of these
-            options.
-
-  --v-axis-scale NUM
-
-	    Multiplies the units on the velocity axis by NUM.
-
-  --null-value NUM
-
-	    Remaps the FITS null value to NUM in the output file.  The
-	    default null value is typically NaN for floating point FITS
-	    files.  NaNs often cause trouble in medical imaging
-	    applications, however, so this option is provided in order
-	    to work around this issue.
-
-	    Unfortunately you can't set this to 0, due to a limitation
-	    in CFITSIO, but you can set it to, e.g., 0.0000001.
-
-  --debug-level INT
-
-	    Sets the debug level to INT.  The default value is 0.
-
-  --pixel-scale NUM
-
-	    Every pixel value will be multiplied by NUM before writing
-	    to the output file.
-
-  --flip-west
-  --flip-north
-  --flip-v
-
-	    These options flip the image before writing to the output
-	    file.  They do this by moving pixels around, not by setting
-	    the coordinate transformation.  Consequently, these options
-	    are only allowed in conjunction with --use-index-space.
-
-  --rotate-sky NUM
-
-	    Rotates the image by NUM degrees clockwise (via ITK's
-	    coordinate transformation).
-
-  --verbose
-
-	    Causes fits2itk to output extra useless information.
-
-  --show-fits-header
-
-	    Tells fits2itk to output the FITS header to stdout.
-
-  --coerce-to-shorts
-  --coerce-to-unsigned-shorts
-
-	    The output file will be written using respectively shorts or
-	    unsigned shorts rather than the default of single precision
-	    floats.
+	    Use of these two options is mutually exclusive.
 
   --lps
 
@@ -483,8 +319,16 @@
 	    such a conversion, this option is provided to turn off the
 	    kludge transformation.
 
+  --wcsGridStride UNSIGNED
 
-- These are the options that should be supported in the next version
+            Using this option causes fits2itk to output a WCS grid
+	    rather, rather than an image of data values.
+
+
+- Old notes (but read them over at some point to make sure that they
+  have all been accounted for)
+
+  These are the options that should be supported in the next version:
 
   TODO: I think that "XXX" may mean options that have already been
   added to the dev version, but I'm not sure.
@@ -633,17 +477,6 @@
 
     Replace this with noticing that the output file format is ".hdr" or
     ".dat" and set the option automatically.
-
-  -A
-
-    This does velocity autoscaling, but should be set by default.
-
-  --auto-scale-v-axis, --asva, -A
-    Auto-scales the velocity axis.  It does this by making it the same size as
-    the larger of the west and north axes.
-
-    TODO: I think this is going to be the default, and there should be
-    another option to not do this.
 
 
 - Other things to consider
