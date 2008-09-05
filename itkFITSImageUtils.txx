@@ -24,14 +24,6 @@
 
 #include <itkImage.h>
 #include <itkMetaDataObject.h>
-
-#include <itkFlipImageFilter.h>
-#include <itkBinomialBlurImageFilter.h>
-// #include <itkDerivativeImageFilter.h>
-// #include <itkMeanImageFilter.h>
-// #include <itkBinaryMedianImageFilter.h>
-// #include <itkGradientAnisotropicDiffusionImageFilter.h>
-
 #include <itkFITSImageIO.h>
 #include <itkFITSImageUtils.h>
 
@@ -63,31 +55,68 @@ using std::string;
 /*ctor*/
 template <class ImageT>
 FITSImage<ImageT>::FITSImage(const typename Self::Params& params)
-  : _params(params), _itkImage(*params.itkImage)
+  : _params(params),
+    _itkImage(*params.itkImage),
+    _wcsTransform(0)
 {
   assert(&_itkImage);
-  initializeInstanceVars();
+  initializeInstanceVars();  //? TODO: Evaluate this.  I think that this may
+                             // no longer be good.
+
+  assert(!(params.northUp and (params.wcsP or params.equiangularP)) and
+         (params.wcsP or !params.autoscaleZAxisP));
 
   // Set the ITK Image's coordinate transformation parameters:
   {
-    const double angularUnitsScaling = 
-      1e6 / _params.angularUnitsInMicroDegrees;
-    setCoordinateFrameTransformation(
-       _itkImage,
-       this->raDecVToLpsMatrix()
-       * scalingMatrix(angularUnitsScaling * params.raScale,
-                       angularUnitsScaling,
-                       1e4)
-       * this->ijkToNorthOrientedEquiangularMatrix());
+    HMatrix cft =
+      xyzToLpsMatrix()
+      * scalingMatrix(params.xAxisScale,
+                      params.yAxisScale,
+                      params.zAxisScale)
+      * rotationMatrix(params.rotateSky);
+    if (params.autoscaleZAxisP) cft *= this->autoscaleZMatrix();
+    if (params.equiangularP) cft *= this->ijkToEquiangularMatrix();
+    else if (params.wcsP) cft *= this->ijkToWcsMatrix();
+    else if (params.northUpP) cft *= this->ijkToNorthUpMatrix();
+    setCoordinateFrameTransformation(_itkImage, cft);
   }
 
-  // YOU ARE HERE: You want to make the ijkToNorthOrientedEquiangularMatrix be
-  // null if the suppress WCS flag is set to be true.  Also, you probably want to
-  // suppress reading the WCS information to begin with if this is the case, as
-  // Jens has some FITS images that have no WCS data.
+  // YOU ARE HERE: Figuring out if what you just wrote above is correct, and
+  // also you need to implement the functions that it calls.
 
-  // YOU ARE HERE: You need to add back in autoscaling for Vel, rather than
-  // just multiplying it by 1e4.
+  // YOU ARE HERE: xyzToLps() does not invert the x-axis when permuting on the
+  // L-axis.  I'm not sure if this is the right thing or not.  I'll have to
+  // come back to this.
+
+  //? Note to self: These are the transformations that we need to worry about
+  // here:
+
+  //    - North-up rotation
+  //    - WCS rotation and scaling
+  //    -    V axis WCS
+  //    - Equiangular adjustment to WCS
+  //    - Autoscaling of Z axis
+  //    - Specified rotation
+  //    - Scaling of X, Y, and Z axis
+  //    - Conversion to LPS
+  //    - RAS adjustment to LPS  // TODO: Do I really need this?
+
+  // The matrix above is a conversion of the coordinates, not the frame, and
+  // therefore, will affect the original coordinates starting from the last
+  // matrix in the product chain first.  Also keep in mind that they are the
+  // inverses of the frame transformations.
+
+  // So this should be the order of the transformations (and I'll have to
+  // reverse them via right concatentation):
+
+  // (north-up-rotation or WCS-with-autoscaling-of-Z)
+  // -> Equiangular scaling adjustment
+  // -> X, Y, Z scaling
+  // -> LPS
+
+  //? You probably want to suppress reading the WCS information to begin with
+  // if this is the case, as Jens has some FITS images that have no WCS data.
+
 }
 
 
@@ -113,77 +142,80 @@ FITSImage<ImageT>::initializeInstanceVars()
   _ijkCenter[c_k] = imageOrigin[c_k] + imageSize[c_k]/2.0 - 0.5;
 
   WcsTransformConstPtr wcs = makeWcsTransform(); 
-  _wcsTransform = wcs;
-  _wcsCenter = wcs->TransformPoint(_ijkCenter);
-  
-  // TODO: It's confusing that in some situations V is 1 and dec is 2, and
-  // in others, dec is 1 and V is 2.  We need a better way to denote this.
+  if (wcs) {
+    _wcsTransform = wcs;
+    _wcsCenter = wcs->TransformPoint(_ijkCenter);
 
-  enum {ra, dec, v};
+    // TODO: It's confusing that in some situations V is 1 and dec is 2, and
+    // in others, dec is 1 and V is 2.  We need a better way to denote this.
 
-  // Calculate lengths of i and j vectors in RA/Dec space:
-  { 
-    IjkPoint ijkLeftHalfAPixel  = _ijkCenter;
-    IjkPoint ijkRightHalfAPixel = _ijkCenter;
-    IjkPoint ijkDownHalfAPixel  = _ijkCenter;
-    IjkPoint ijkUpHalfAPixel    = _ijkCenter;
-    ijkLeftHalfAPixel[c_i]  -= .5;
-    ijkRightHalfAPixel[c_i] += .5;
-    ijkDownHalfAPixel[c_j]  -= .5;
-    ijkUpHalfAPixel[c_j]    += .5;
-      
-    WcsPoint wcsLeftHalfAPixel  = wcs->TransformPoint(ijkLeftHalfAPixel);
-    WcsPoint wcsRightHalfAPixel = wcs->TransformPoint(ijkRightHalfAPixel);
-    WcsPoint wcsDownHalfAPixel  = wcs->TransformPoint(ijkDownHalfAPixel);
-    WcsPoint wcsUpHalfAPixel    = wcs->TransformPoint(ijkUpHalfAPixel);
-      
-    _unitIInWcs = wcsRightHalfAPixel - wcsLeftHalfAPixel;
-    _unitJInWcs = wcsUpHalfAPixel - wcsDownHalfAPixel;
-  }
+    enum {ra, dec, v};
 
-  _raAngularScalingFactor = cos(degreesToRadians(_wcsCenter[dec]));
-  _unitIInApproximateAngularSpace = _unitIInWcs;
-  _unitJInApproximateAngularSpace = _unitJInWcs;
-  _unitIInApproximateAngularSpace[ra] *= _raAngularScalingFactor;
-  _unitJInApproximateAngularSpace[ra] *= _raAngularScalingFactor;
+    // Calculate lengths of i and j vectors in RA/Dec space:
+    { 
+      IjkPoint ijkLeftHalfAPixel  = _ijkCenter;
+      IjkPoint ijkRightHalfAPixel = _ijkCenter;
+      IjkPoint ijkDownHalfAPixel  = _ijkCenter;
+      IjkPoint ijkUpHalfAPixel    = _ijkCenter;
+      ijkLeftHalfAPixel[c_i]  -= .5;
+      ijkRightHalfAPixel[c_i] += .5;
+      ijkDownHalfAPixel[c_j]  -= .5;
+      ijkUpHalfAPixel[c_j]    += .5;
 
-  // Calculate the image's rotation by finding a northward-oriented vector in
-  // WCS space, and then transforming it into IJK space.  We can then use trig
-  // to determine the amount of rotation of the image from north in IJK space:
-  {
-    WcsTransformPtr inverseWcs = WCS::New();
-    wcs->GetInverse(inverseWcs);
+      WcsPoint wcsLeftHalfAPixel  = wcs->TransformPoint(ijkLeftHalfAPixel);
+      WcsPoint wcsRightHalfAPixel = wcs->TransformPoint(ijkRightHalfAPixel);
+      WcsPoint wcsDownHalfAPixel  = wcs->TransformPoint(ijkDownHalfAPixel);
+      WcsPoint wcsUpHalfAPixel    = wcs->TransformPoint(ijkUpHalfAPixel);
 
-    // We calculate wcsNorthVector, just for the purpose of getting a Dec
-    // increment that is about the size of a pixel or so.  We could, of course,
-    // accomplish much the same thing just by selecting an arbitrary small
-    // increment northward, but then it might be too small or it might be too
-    // big for the image:
-    WcsVector wcsNorthVector =
-      fabs(_unitJInWcs[dec]) > fabs(_unitIInWcs[dec])
-      ? _unitJInWcs
-      : _unitIInWcs;
-    wcsNorthVector[ra] = 0;
-    wcsNorthVector[dec] = fabs(wcsNorthVector[dec]);
+      _unitIInWcs = wcsRightHalfAPixel - wcsLeftHalfAPixel;
+      _unitJInWcs = wcsUpHalfAPixel - wcsDownHalfAPixel;
+    }
 
-    // We now add the northward increment vector to our center point expressed
-    // in RA/Dec coordinates.  This gives us a slightly northward point in WCS
-    // coordinates, and we then use an inverse WCS transform to get the IJK
-    // pixel position (with floating point IJK index values) of this
-    // fastidiously calculated northward point:
-    WcsPoint wcsPointNorthOfCenter = _wcsCenter + wcsNorthVector;
-    IjkPoint ijkPointNorthOfCenter =
-      inverseWcs->TransformPoint(wcsPointNorthOfCenter);
+    _raAngularScalingFactor = cos(degreesToRadians(_wcsCenter[dec]));
+    _unitIInApproximateAngularSpace = _unitIInWcs;
+    _unitJInApproximateAngularSpace = _unitJInWcs;
+    _unitIInApproximateAngularSpace[ra] *= _raAngularScalingFactor;
+    _unitJInApproximateAngularSpace[ra] *= _raAngularScalingFactor;
 
-    // We then subtract the center point in IJK coordinates from the northward
-    // point to get a northward pointing vector in IJK coordinates:
-    _ijkNorthVector = ijkPointNorthOfCenter - _ijkCenter;
-    _ijkNorthVector[v] = 0;
+    // Calculate the image's rotation by finding a northward-oriented vector in
+    // WCS space, and then transforming it into IJK space.  We can then use trig
+    // to determine the amount of rotation of the image from north in IJK space:
+    {
+      WcsTransformPtr inverseWcs = WCS::New();
+      wcs->GetInverse(inverseWcs);
 
-    // And finally, with the northward pointing vector in IJK coordinates, we
-    // can determine how much the image is rotated from north:
-    _rotationOfJFromIjkNorthVectorInDegrees =
-      radiansToDegrees(atan2(-1 * _ijkNorthVector[c_i], _ijkNorthVector[c_j]));
+      // We calculate wcsNorthVector, just for the purpose of getting a Dec
+      // increment that is about the size of a pixel or so.  We could, of
+      // course, accomplish much the same thing just by selecting an arbitrary
+      // small increment northward, but then it might be too small or it might
+      // be too big for the image:
+      WcsVector wcsNorthVector =
+        fabs(_unitJInWcs[dec]) > fabs(_unitIInWcs[dec])
+        ? _unitJInWcs
+        : _unitIInWcs;
+      wcsNorthVector[ra] = 0;
+      wcsNorthVector[dec] = fabs(wcsNorthVector[dec]);
+
+      // We now add the northward increment vector to our center point
+      // expressed in RA/Dec coordinates.  This gives us a slightly northward
+      // point in WCS coordinates, and we then use an inverse WCS transform to
+      // get the IJK pixel position (with floating point IJK index values) of
+      // this fastidiously calculated northward point:
+      WcsPoint wcsPointNorthOfCenter = _wcsCenter + wcsNorthVector;
+      IjkPoint ijkPointNorthOfCenter =
+        inverseWcs->TransformPoint(wcsPointNorthOfCenter);
+
+      // We then subtract the center point in IJK coordinates from the
+      // northward point to get a northward pointing vector in IJK coordinates:
+      _ijkNorthVector = ijkPointNorthOfCenter - _ijkCenter;
+      _ijkNorthVector[v] = 0;
+
+      // And finally, with the northward pointing vector in IJK coordinates, we
+      // can determine how much the image is rotated from north:
+      _rotationOfJFromIjkNorthVectorInDegrees =
+        radiansToDegrees(atan2(-1 * _ijkNorthVector[c_i],
+                               _ijkNorthVector[c_j]));
+    }
   }
 }
 
@@ -201,8 +233,8 @@ FITSImage<ImageT>::makeWcsTransform()
   using itk::MetaDataObject;
   const MetaDataDictionary& mdd = _itkImage.GetMetaDataDictionary();
 
-  // We cast away const here conly because ExposeMetaData() is unfortunately
-  // not const correct:
+  // Fetch the FITS header out of the metadata dictionary.  We cast away const
+  // here conly because ExposeMetaData() is unfortunately not const correct:
   string fitsHeader;
   ExposeMetaData(const_cast<MetaDataDictionary&>(mdd),
 		 "FITS Header",
@@ -212,10 +244,14 @@ FITSImage<ImageT>::makeWcsTransform()
   // TODO: Add more error checking here in case 'wcs' ends up in some sort of
   // erroneous state.
   const ConstRcMallocPointer<WorldCoor> wcs = wcsinit(fitsHeader.c_str());
-  WcsTransformPtr retval = WCS::New();
-  retval->SetWCS(wcs);
-  WcsTransformConstPtr constRetval (retval);
-  return constRetval;
+  if (wcs) {
+    WcsTransformPtr retval = WCS::New();
+    retval->SetWCS(wcs);
+    WcsTransformConstPtr constRetval (retval);
+    return constRetval;
+  } else {
+    return 0;
+  }
 }
 
 
@@ -256,68 +292,6 @@ writeImageInfo(const FITSImage<ImageT>& image, ostream& out)
 
 
 //-----------------------------------------------------------------------------
-// applyFlipImageFilter(): template function
-//-----------------------------------------------------------------------------
-
-/*proc*/
-template <class PixelT>
-typename Image<PixelT, c_dims>::Pointer
-applyFlipImageFilter(const typename Image<PixelT, c_dims>::Pointer& image)
-{
-  typedef Image<PixelT, c_dims> ImageT;
-  typedef itk::FlipImageFilter<ImageT> FilterType;
-  typedef typename FilterType::FlipAxesArrayType FlipAxesArrayType;
-  static typename FilterType::Pointer filter = FilterType::New();
-  FlipAxesArrayType flipArray;
-  flipArray[0] = 0;
-  flipArray[1] = 1;
-  flipArray[2] = 0;
-  filter->SetFlipAxes(flipArray);
-  filter->SetInput(image);
-  // filter->Update();
-  return filter->GetOutput();
-}
-
-
-//-----------------------------------------------------------------------------
-// applyBinomialBlur(): template function
-//-----------------------------------------------------------------------------
-
-/*proc*/ 
-template <class PixelT>
-typename Image<PixelT, c_dims>::Pointer
-applyBinomialBlurFilter(
-      const typename Image<PixelT, c_dims>::Pointer& image)
-{
-  typedef Image<PixelT, c_dims> ImageT;
-  typedef itk::BinomialBlurImageFilter<ImageT, ImageT> FilterType;
-  static typename FilterType::Pointer filter = FilterType::New();
-  filter->SetInput(image);
-  filter->SetRepetitions(1);
-  // filter->Update();
-  return filter->GetOutput();
-}
-
-
-//-----------------------------------------------------------------------------
-// applyMeanFilter(): template function
-//-----------------------------------------------------------------------------
-
-// template <class PixelT>
-// local proc void
-// doMeanFilter(Image<PixelT, c_dims>& image)
-// {
-// //     typedef itk::MeanImageFilter<ImageT, ImageT> FilterType;
-// //     typename FilterType::Pointer filter = FilterType::New();
-// //     typename ImageT::SizeType indexRadius;
-// //     indexRadius[0] = 5;
-// //     indexRadius[1] = 5;
-// //     indexRadius[2] = 5;
-// //     filter->SetRadius(indexRadius);
-
-
-
-//-----------------------------------------------------------------------------
 // scalePixelValues(): template function
 //-----------------------------------------------------------------------------
 
@@ -350,7 +324,7 @@ scalePixelValues(Image<PixelT, c_dims>& image,
 
 
 //-----------------------------------------------------------------------------
-// reflectPixels(): template functiona
+// reflectPixels(): template function
 //-----------------------------------------------------------------------------
 
 // This functions flips the image around the specified axes.  It does this by
@@ -461,65 +435,6 @@ reflectPixels(Image<PixelT, c_dims>& image,
 	    }
 	}
     }
-}
-
-
-//-----------------------------------------------------------------------------
-// initializeChangeOfBasis(): private method of FITSImage template class
-//-----------------------------------------------------------------------------
-
-// /*private method*/
-// template <typename ImageT>
-// void
-// FITSImage<ImageT>::initializeChangeOfBasis()
-// {
-//   const size_t dims = ImageT::ImageDimension;
-
-//   // Set the origin to (0, 0, 0):
-//   typename ImageT::PointType origin;
-//   for (size_t d = 0; d < dims; ++d) origin[d] = 0;
-//   _itkImage.SetOrigin(origin);
-
-//   // Set the spacing vector to (1, 1, 1):
-//   typename ImageT::SpacingType spacing;
-//   for (size_t d = 0; d < dims; ++d) spacing[d] = 1;
-//   _itkImage.SetSpacing(spacing);
-
-//   // TODO: Replace these constants with something somewhere that is more
-//   // globally accessible.
-//   enum {ra, dec, v};
-//   enum {l, p, s};
-
-//   // Set the direction cosine matrix to properly orient RA, Dec, and V into LPS
-//   // space:
-//   typename ImageT::DirectionType direction;
-//   direction(l, ra) = -1;
-//   direction(p, v) = 1;
-//   direction(s, dec) = 1;
-//   _itkImage.SetDirection(direction);
-// }
-
-
-//-----------------------------------------------------------------------------
-// raDecVToLpsMatrix(): private method of FITSImage template class
-//-----------------------------------------------------------------------------
-
-/*private method*/
-template <typename ImageT>
-HMatrix
-FITSImage<ImageT>::raDecVToLpsMatrix()
-{
-  // TODO: Replace these constants with something somewhere that is more
-  // globally accessible.
-  enum {ra, dec, v};
-  enum {l, p, s};
-
-  HMatrix retval;
-  retval(l, ra) = -1;
-  retval(p, v) = 1;
-  retval(s, dec) = 1;
-  retval(3, 3) = 1;
-  return retval;
 }
 
 
@@ -648,99 +563,36 @@ getCoordinateFrameTransformation(const ImageT& image)
 
 
 //-----------------------------------------------------------------------------
-// transformToNorthOrientedEquiangular():
-//    private method of FITSImage template class
-//-----------------------------------------------------------------------------
-
-// /*method*/
-// template <class ImageT>
-// void
-// FITSImage<ImageT>::transformToNorthOrientedEquiangular()
-// {
-//   enum {ra, dec};
-//   Matrix m;
-
-//   m(0, 0) = this->unitIInApproximateAngularSpace()[ra] * 1000 * 1000;
-//   m(0, 1) = this->unitIInApproximateAngularSpace()[dec] * 1000 * 1000;
-//   m(0, 2) = 0;
-
-//   m(1, 0) = this->unitJInApproximateAngularSpace()[ra] * 1000 * 1000;
-//   m(1, 1) = this->unitJInApproximateAngularSpace()[dec] * 1000 * 1000;
-//   m(1, 2) = 0;
-
-//   m(2, 0) = 0;
-//   m(2, 1) = 0;
-//   m(2, 2) = 1;
-
-//   rightConcatinateTransformation(*this->getITKImage(), m);
-// }
-
-
-//-----------------------------------------------------------------------------
-// ijkToNorthOrientedEquiangularMatrix():
+// ijkToNorthUpEquiangularMatrix():
 //    private method of FITSImage template class
 //-----------------------------------------------------------------------------
 
 /*method*/
 template <class ImageT>
 HMatrix
-FITSImage<ImageT>::ijkToNorthOrientedEquiangularMatrix()
+FITSImage<ImageT>::ijkToEquiangularMatrix()
 {
+  //?
   // YOU ARE HERE: I don't think that this is right at all.  Make it right.
 
   enum {ra, dec};
   HMatrix retval;
-
-  retval(0, 0) = this->unitIInApproximateAngularSpace()[ra];
-  retval(0, 1) = this->unitIInApproximateAngularSpace()[dec];
-  retval(0, 2) = 0;
-  retval(0, 3) = 0;
-
-  retval(1, 0) = this->unitJInApproximateAngularSpace()[ra];
-  retval(1, 1) = this->unitJInApproximateAngularSpace()[dec];
-  retval(1, 2) = 0;
-  retval(1, 3) = 0;
-
-  retval(2, 0) = 0;
-  retval(2, 1) = 0;
-  retval(2, 2) = 1;
-  retval(2, 3) = 0;
-
-  retval(3, 0) = 0;
-  retval(3, 1) = 0;
-  retval(3, 2) = 0;
-  retval(3, 3) = 1;
-    
+  retval.setIdentity();
+  retval(0, 0) = _unitIInApproximateAngularSpace()[ra];
+  retval(1, 0) = _unitIInApproximateAngularSpace()[dec];
+  retval(0, 1) = _unitJInApproximateAngularSpace()[ra];
+  retval(1, 1) = _unitJInApproximateAngularSpace()[dec];
   return retval;
 }
 
 
 // //-----------------------------------------------------------------------------
-// // transformToUnreorientedEquiangular(): template function
-// //-----------------------------------------------------------------------------
-
-// /*proc*/
-// template <class ImageT>
-// void
-// transformToUnreorientedEquiangular(ImageT& image)
-// {
-  
-//   const FITSImage<ImageT> info(image);
-//   const double iAngleLen = info.unitIInApproximateAngularSpace().GetNorm();
-//   const double jAngleLen = info.unitJInApproximateAngularSpace().GetNorm();
-
-//   typename ImageT::SpacingType spacing;
-//   spacing[0] = iAngleLen * 1000 * 1000;
-//   spacing[1] = jAngleLen * 1000 * 1000;
-//   spacing[2] = (iAngleLen + jAngleLen) / 2 * 1000 * 1000;
-
-//   image.SetSpacing(spacing);
-// }
-
-
-// //-----------------------------------------------------------------------------
 // // reorientNorth(): template function
 // //-----------------------------------------------------------------------------
+
+//? This needs to be reimplmented as the northUpMatrix() method.
+
+
 
 // /*proc*/
 // template <class ImageT>

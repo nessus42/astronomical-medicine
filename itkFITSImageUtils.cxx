@@ -24,11 +24,10 @@
 
 namespace itk {
 namespace fits {
-namespace _internal {
 
 
 //-----------------------------------------------------------------------------
-// loadFITSImageIO(): internal function
+// loadFITSImageIO(): local function
 //-----------------------------------------------------------------------------
 
 local proc void*
@@ -48,11 +47,10 @@ loadFITSImageIO()
 
 
 //-----------------------------------------------------------------------------
-// fillMatrix(): internal function
+// fillMatrix(): function
 //-----------------------------------------------------------------------------
 
-/*internal proc*/
-void
+proc void
 fillMatrix(HMatrix& m, const double vals[4][4])
 {
   for (int row = 0; row < 4; ++row) {
@@ -62,12 +60,12 @@ fillMatrix(HMatrix& m, const double vals[4][4])
   }
 }
 
+
 //-----------------------------------------------------------------------------
-// rotationMatrix(): internal function
+// rotationMatrix(): function
 //-----------------------------------------------------------------------------
 
-/*internal proc*/
-HMatrix
+proc HMatrix
 rotationMatrix(double degrees)
 {
   const double radians = degreesToRadians(degrees);
@@ -87,11 +85,10 @@ rotationMatrix(double degrees)
 
 
 //-----------------------------------------------------------------------------
-// scalingMatrix(): internal function
+// scalingMatrix(): function
 //-----------------------------------------------------------------------------
 
-/*internal proc*/
-HMatrix
+proc HMatrix
 scalingMatrix(double xScale, double yScale, double zScale)
 {
   const double matrixVals[4][4] =
@@ -108,9 +105,35 @@ scalingMatrix(double xScale, double yScale, double zScale)
 
 
 //-----------------------------------------------------------------------------
+// xyzToLpsMatrix(): function
+//-----------------------------------------------------------------------------
+
+proc HMatrix
+xyzToLpsMatrix()
+{
+  // TODO: Replace these constants with something somewhere that is more
+  // globally accessible.
+  enum {x, y, z};
+  enum {l, p, s};
+
+  static HMatrix retval;
+  static firstTime = true;
+  if (firstTime) {
+    firstTime = false;
+    retval(l, x) = 1;
+    retval(p, z) = 1;
+    retval(s, y) = 1;
+    retval(3, 3) = 1;
+  }
+  return retval;
+}
+
+
+//-----------------------------------------------------------------------------
 // setNullValue(): function
 //-----------------------------------------------------------------------------
 
+/*internal proc*/
 proc void
 setNullValue(double nullValue)
 {
@@ -125,4 +148,4 @@ setNullValue(double nullValue)
 }
 
 
-} } } // END namespaces
+} } // END namespaces

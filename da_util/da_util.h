@@ -29,29 +29,46 @@
 
 namespace douglasAlan {
 
+using std::istream;
+using std::ostream;
+using std::ifstream;
+using std::ofstream;
+using std::ios;
+using std::auto_ptr;
+using std::string;
+  
 //-----------------------------------------------------------------------------
-// Global functions
+// Functions
 //-----------------------------------------------------------------------------
 
 enum ErrorAction { dieOnError, raiseExceptionOnError, returnCodeOnError};
 
-douglasAlan::SuccessFlag
-copyStream(std::istream& srcStream, std::ostream& destStream,
-	   ErrorAction errorAction=raiseExceptionOnError,
-	   size_t bufferSize=8192)
-  throw(std::ios::failure);
+SuccessFlag
+copyStream(istream& srcStream, ostream& destStream,
+           ErrorAction errorAction=raiseExceptionOnError,
+           size_t bufferSize=8192)
+  throw(ios::failure);
 
 
-std::auto_ptr<std::ifstream>
+auto_ptr<ifstream>
 openFileForReading(const char* filepath,
 		   ErrorAction errorAction=raiseExceptionOnError)
-  throw(std::ios::failure);
+  throw(ios::failure);
 
 
-std::auto_ptr<std::ofstream>
+auto_ptr<ofstream>
 openFileForWriting(const char* filepath,
 		   ErrorAction errorAction=raiseExceptionOnError)
-  throw(std::ios::failure);
+  throw(ios::failure);
+
+void toLower(string& s);
+bool endMatchesP(const string& filepath, const string& extension);
+
+
+inline double square(double x)
+{
+  return x * x;
+}
 
 
 //-----------------------------------------------------------------------------
@@ -67,12 +84,12 @@ openFileForWriting(const char* filepath,
 class IstreamExceptionActivator
 {
   // Instance variables:
-  std::istream&         _stream;
-  std::ios::iostate     _originalState;
+  istream&         _stream;
+  ios::iostate     _originalState;
 
 public:
 
-  IstreamExceptionActivator(std::istream&);
+  IstreamExceptionActivator(istream&);
   ~IstreamExceptionActivator();
 
 private:
@@ -86,12 +103,12 @@ private:
 class OstreamExceptionActivator
 {
   // Instance variables:
-  std::ostream&         _stream;
-  std::ios::iostate     _originalState;
+  ostream&         _stream;
+  ios::iostate     _originalState;
 
 public:
 
-  OstreamExceptionActivator(std::ostream&);
+  OstreamExceptionActivator(ostream&);
   ~OstreamExceptionActivator();
 
 private:
@@ -102,6 +119,6 @@ private:
 };
 
 
-} // end namespace da
+} // end namespace douglasAlan
 
 #endif // __da_util_h

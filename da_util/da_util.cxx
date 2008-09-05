@@ -166,4 +166,30 @@ openFileForWriting(const char* const filepath,
 }
 
 
+// Converts \a s to lowercase.
+
+proc void
+toLower(string& s)
+{
+  for (string::iterator p = s.begin(); p != s.end( ); ++p) {
+    *p = tolower(*p);
+  }
+}
+
+
+// Returns true iff \a extension is on the end of \a filepath.
+
+proc bool
+endMatchesP(const string& filepath, const string& extension)
+{
+  typedef string::size_type StrLen;
+  const StrLen extensionLength = extension.length();
+  const StrLen filepathLength = filepath.length();
+  if (extensionLength >= filepathLength) return false;
+  string filepathEnd = filepath.substr(filepathLength - extensionLength);
+  if (filepathEnd == extension) return true;
+  else return false;
+}
+
+
 } // END namespace douglasAlan
