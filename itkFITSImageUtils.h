@@ -25,14 +25,18 @@
 // BEGIN
 namespace itk {
 namespace fits {
-namespace _internal {
 
-// Internal typedefs:
+// Typedefs:
 typedef Matrix<double, 4, 4> HMatrix;
 
+// Constants:
+enum { e_i = FITSImageIO::c_i,
+       e_j = FITSImageIO::c_j,
+       e_k = FITSImageIO::c_k };
 
-// Global functions:
-void setNullValue(double nullValue);
+enum 
+
+
 
 
 //*****************************************************************************
@@ -59,12 +63,19 @@ public:
 
   struct Params {
     typename ImageType::Pointer           itkImage;
-    double                                angularUnitsInMicroDegrees;
-    double				  raScale;
+    bool				  wcsP;  //?
+    bool				  equiangularP; //?
+    bool				  northUpP; //?
+    bool				  eastLeftP; //?
+    bool				  autoscaleZAxisP; //?
+    bool				  lpsP; //?
+    double 				  xAxisScale; //?
+    double			          yAxisScale; //?
+    double				  zAxisScale; //?
+    double				  rotateSky; //?
 
     Params()
-      : itkImage(0),
-	angularUnitsInMicroDegrees(1)
+      : itkImage(0)
     {}
   };
     
@@ -90,8 +101,8 @@ private:
 
   // Private methods:
   void	 initializeInstanceVars();
-  HMatrix ijkToNorthOrientedEquiangularMatrix();
-  HMatrix raDecVToLpsMatrix();
+  HMatrix ijkToEquiangularMatrix();
+  HMatrix xyzToLpsMatrix();
 
   // Deactivate copy ctor and and assignment:
   FITSImage(const FITSImage&);
@@ -128,11 +139,6 @@ public:
                    { return _raAngularScalingFactor; }
 };
 
-// Internal functions:
-void     fillMatrix(HMatrix& m, const double vals[4][4]);
-HMatrix  rotationMatrix(double degrees);
-HMatrix	 scalingMatrix(double xScale, double yScale, double zScale);
-
 // Inline internal functions:
 
 inline double
@@ -165,14 +171,36 @@ isOdd(size_t num)
   return num & 1;
 }
 
-} // END namespace _internal
 
 //-----------------------------------------------------------------------------
-// Export symbols from _internal into itk::fits
+// Functions defined in itk::fits
 //-----------------------------------------------------------------------------
 
-using _internal::setNullValue;
-using _internal::FITSImage;
+
+void     setNullValue(double nullValue);
+void     fillMatrix(HMatrix& m, const double vals[4][4]);
+HMatrix  rotationMatrix(double degrees);
+HMatrix	 scalingMatrix(double xScale, double yScale, double zScale);
+
+template <class ImageT> void
+   writeImageInfo(const FITSImage<ImageT>& image, ostream& out);
+
+template <class PixelT> void
+   scalePixelValues(Image<PixelT, c_dims>& image, double multiplier);
+
+template <class PixelT> void
+   reflectPixels(Image<PixelT, c_dims>& image,
+                 bool flipRAFlag, bool flipDecFlag, bool flipVFlag);
+
+template <class ImageT> void
+   rightConcatenateTransformation(ImageT& image, const HMatrix& m);
+
+template <class ImageT> void
+   leftConcatenateTransformation(ImageT& image, const HMatrix& m);
+
+template <class ImageT> void
+   setCoordinateFrameTransformation(ImageT& image, const HMatrix& m);
+
 
 } } // END namespaces
 

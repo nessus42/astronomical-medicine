@@ -176,7 +176,7 @@
 
   Options:
 
-  -q
+  -q, --quiet
 
 	    Suppresses the above mentioned output.
 
@@ -188,7 +188,7 @@
 
 	    Outputs the verbose usage message.
 
-  -n
+  -n, --no-write
 
 	    Tells fits2itk to not actually write an output file, but
 	    instead to just write to stdout whatever it would have
@@ -245,10 +245,10 @@
 
   --sky-scale FLOAT
 
-	     Equivalent to --x-scale FLOAT --y-scale FLOAT
-
-             Not to be used in conjunction with either "--x-scale" or
-             "--y-scale".
+	     Equivalent to --x-scale FLOAT --y-scale FLOAT.  If used
+	     in conjuction with these options, the result will be
+	     multiplicative.
+	     
 
   --autoscale-z-axis
 
