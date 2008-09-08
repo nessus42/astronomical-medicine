@@ -71,15 +71,12 @@ rotationMatrix(double degrees)
   const double radians = degreesToRadians(degrees);
   const double s = sin(radians);
   const double c = cos(radians);
-  const double matrixVals[4][4] =
-    { 
-      c, 0, s, 0,
-      0, 1, 0, 0,
-      s, 0, c, 0,
-      0, 0, 0, 1,
-    };
   HMatrix retval;
-  fillMatrix(retval, matrixVals);
+  retval.SetIdentity();
+  retval[c_i][c_i] = c;
+  retval[c_i][c_j] = -s;
+  retval[c_j][c_i] = s;
+  retval[c_j][c_j] = c;
   return retval;
 }
 
@@ -108,21 +105,16 @@ scalingMatrix(double xScale, double yScale, double zScale)
 // xyzToLpsMatrix(): function
 //-----------------------------------------------------------------------------
 
-proc HMatrix
+proc const HMatrix&
 xyzToLpsMatrix()
 {
-  // TODO: Replace these constants with something somewhere that is more
-  // globally accessible.
-  enum {x, y, z};
-  enum {l, p, s};
-
   static HMatrix retval;
   static firstTime = true;
   if (firstTime) {
     firstTime = false;
-    retval(l, x) = 1;
-    retval(p, z) = 1;
-    retval(s, y) = 1;
+    retval(e_left,       e_x) = 1;
+    retval(e_posterior,  e_z) = 1;
+    retval(e_superior,   e_y) = 1;
     retval(3, 3) = 1;
   }
   return retval;
@@ -133,7 +125,6 @@ xyzToLpsMatrix()
 // setNullValue(): function
 //-----------------------------------------------------------------------------
 
-/*internal proc*/
 proc void
 setNullValue(double nullValue)
 {

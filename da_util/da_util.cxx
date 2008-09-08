@@ -42,6 +42,11 @@ using std::string;
 // BEGIN
 namespace douglasAlan {
 
+
+//-----------------------------------------------------------------------------
+// Constructor of IstreamExceptionActivator
+//-----------------------------------------------------------------------------
+
 ctor
 IstreamExceptionActivator::
 IstreamExceptionActivator(istream& stream)
@@ -49,6 +54,11 @@ IstreamExceptionActivator(istream& stream)
 {
   _stream.exceptions(ios::badbit);
 }
+
+
+//-----------------------------------------------------------------------------
+// Destructor of IstreamExceptionActivator
+//-----------------------------------------------------------------------------
 
 dtor
 IstreamExceptionActivator::
@@ -58,6 +68,10 @@ IstreamExceptionActivator::
 }
 
 
+//-----------------------------------------------------------------------------
+// Constructor of OstreamExceptionActivator
+//-----------------------------------------------------------------------------
+
 ctor
 OstreamExceptionActivator::
 OstreamExceptionActivator(ostream& stream)
@@ -66,6 +80,11 @@ OstreamExceptionActivator(ostream& stream)
   _stream.exceptions(ios::badbit | ios::eofbit);
 }
 
+
+//-----------------------------------------------------------------------------
+// Destructor of OstreamExceptionActivator
+//-----------------------------------------------------------------------------
+
 dtor
 OstreamExceptionActivator::
 ~OstreamExceptionActivator()
@@ -73,6 +92,10 @@ OstreamExceptionActivator::
   _stream.exceptions(_originalState);
 }
 
+
+//-----------------------------------------------------------------------------
+// copyStream(): function
+//-----------------------------------------------------------------------------
 
 proc SuccessFlag
 copyStream(istream& srcStream, ostream& destStream,
@@ -107,6 +130,9 @@ copyStream(istream& srcStream, ostream& destStream,
 }
 
 
+//-----------------------------------------------------------------------------
+// openFileForReading(): function
+//-----------------------------------------------------------------------------
 
 proc auto_ptr<ifstream>
 openFileForReading(const char* const filepath,
@@ -137,6 +163,10 @@ openFileForReading(const char* const filepath,
 }
 
 
+//-----------------------------------------------------------------------------
+// openFileForWriting(): function
+//-----------------------------------------------------------------------------
+
 proc auto_ptr<ofstream>
 openFileForWriting(const char* const filepath,
 		   const ErrorAction errorAction)
@@ -166,6 +196,10 @@ openFileForWriting(const char* const filepath,
 }
 
 
+//-----------------------------------------------------------------------------
+// toLower(): function
+//-----------------------------------------------------------------------------
+
 // Converts \a s to lowercase.
 
 proc void
@@ -176,6 +210,10 @@ toLower(string& s)
   }
 }
 
+
+//-----------------------------------------------------------------------------
+// endMatchesP(): function
+//-----------------------------------------------------------------------------
 
 // Returns true iff \a extension is on the end of \a filepath.
 

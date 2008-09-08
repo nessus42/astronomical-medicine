@@ -37,19 +37,6 @@ using std::vector;
 
 
 //*****************************************************************************
-//*****				Local constants                           *****
-//*****************************************************************************
-
-const size_t c_dims = itk::FITSImageIO::c_dims;
-const size_t c_ra   = itk::FITSImageIO::c_ra;
-const size_t c_vel  = itk::FITSImageIO::c_vel;
-const size_t c_dec  = itk::FITSImageIO::c_dec;
-const size_t c_i    = itk::FITSImageIO::c_i;
-const size_t c_j    = itk::FITSImageIO::c_j;
-const size_t c_k    = itk::FITSImageIO::c_k;
-
-
-//*****************************************************************************
 //*****              Local procedures and classes                         *****
 //*****************************************************************************
 
@@ -291,22 +278,8 @@ FITSImageIO::ReadImageInformation()
     this->SetPixelType(SCALAR);
     this->SetComponentType(FLOAT);
     this->SetNumberOfDimensions(numOfAxes);
-
     for (int indexAxis = 0; indexAxis < numOfAxes; ++indexAxis) {
       this->SetDimensions(indexAxis, lengthsOfAxesInPixels[indexAxis]);
-//       this->SetOrigin(indexAxis, origin[indexAxis]);
-//       this->SetSpacing(indexAxis, spacing[indexAxis]);
-//       this->SetDirection(indexAxis, directionCosines[indexAxis]);
-
-//       // Write debugging output if debug output option is set:
-//       if (_cv_deprecated_debugLevel) {
-// 	   cerr << "spacing=" << indexAxis << "," << spacing[indexAxis] << " ";
-// 	   cerr << "directions=";
-// 	   for (int physicalAxis = 0; physicalAxis < c_dims; ++physicalAxis) {
-// 	     cerr << directionCosines[indexAxis][physicalAxis] << " ";
-// 	   }
-// 	   cerr << endl;
-//      }
     }
   }
 
@@ -352,57 +325,6 @@ FITSImageIO::ReadImageInformation()
 
     // TODO: Check status and raise exception.
   }
-
-  // TODO: Above we put the uninterpreted FITS Primary Array header into the
-  // ITK image as single huge value.  But, in addition to doing that, we should
-  // also parse all the entries and make a separate ITK MetaDataDictionary
-  // entry for each FITS header entry.  To do so, wade through the comments and
-  // commented-out code below, and turn it into working code:
-
-  // Documentation regarding CFITSIO to parse the FITS headers:
-  //
-  //
-  //    CFITSIO Quick Start Guide, p. 4: How to get the list of tags in the
-  //    header.
-  //
-  //    CFITSIO User's Guide, p. 34 
-   
-// typedef string defaultValueType;  
-
-//    // Get the header
-//    int numberOfHeaderEntries = 0;
-//    ::fits_get_hdrspace(fptr, &numberOfHeaderEntries, NULL, &status);
-
-//    // TODO: check this number by looking at cfits code...
-//    const unsigned int maxRecordLength = 1024;
-
-//    char charKey[ maxRecordLength ];
-//    char charValue[ maxRecordLength ];
-//    char* dontNeedTheComment = NULL;
-
-//    // Get the records and populate the MetaDataDictionary 
-//    MetaDataDictionary& thisDic = this->GetMetaDataDictionary();
-
-//    for(unsigned int keyentry=0; keyentry < numberOfHeaderEntries; keyentry++)
-//      { 
-//        unsigned int keyentryFortran = keyentry + 1;
-
-//        // Get the record from cfits
-//        ::fits_read_keyn(fptr, keyentry, charKey, charValue,
-//                      dontNeedTheComment, &status);
-                        
-
-//        if (status != 0) {
-//         break;  // TODO: report an error
-//        }
- 
-//       string stringKey   = charKey;
-//       string stringValue = charValue;
-
-//       // Put the record in the MetaDataDictionary
-//       itk::EncapsulateMetaData<defaultValueType>(thisDic, stringKey,
-//                                               stringValue);
-//     }
 
 } // end namespace fitsio
 
