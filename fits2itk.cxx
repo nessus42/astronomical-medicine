@@ -123,22 +123,6 @@ verboseUsage()
 }
 
 
-//-----------------------------------------------------------------------------
-// writeSlicerXmlModuleDescription()
-//-----------------------------------------------------------------------------
-
-local proc void
-writeSlicerXmlModuleDescription(ostream& out)
-{
-  const char* moduleDescriptionFilepath =
-    pteJoinPath(pathToExecutableDir(),
-                "slicerModuleDescription.xml");
-  auto_ptr<ifstream> moduleDescription =
-    da::openFileForReading(moduleDescriptionFilepath, da::dieOnError);
-  da::copyStream(*moduleDescription, out, da::dieOnError);
-}
-
-
 //=============================================================================
 // CommandLineParser: local class
 //=============================================================================
@@ -168,27 +152,27 @@ namespace {
 
     bool	   _quietModeP;          // Set with -q, --quiet //?
     bool           _dontWriteP;          // Set with -n, --no-write //?
-    bool	   _wcsP;                // Set with --wcs //?           
-    bool	   _equiangularP;        // Set with --equiangular //?
-    bool	   _northUpP;            // Set with --north-up //?
-    bool	   _eastLeftP;           // Set with --east-left //?
-    bool	   _autoscaleZAxisP;	 // Set with --autoscale-z-axis //?
-    bool	   _flipxP;		 // Set with --flipx //?
-    bool	   _flipyP;		 // Set with --flipy //?
-    bool	   _flipzP;		 // Set with --flipz //?
+    bool	   _wcsP;                // Set with --wcs
+    bool	   _equiangularP;        // Set with --equiangular
+    bool	   _northUpP;            // Set with --north-up
+//     bool	   _eastLeftP;           // Set with --east-left
+    bool	   _autoscaleZAxisP;	 // Set with --autoscale-z-axis
+    bool	   _flipxP;		 // Set with --flipx
+    bool	   _flipyP;		 // Set with --flipy
+    bool	   _flipzP;		 // Set with --flipz
     bool	   _verboseP;		 // Set with --verbose //?
     bool	   _showFitsHeaderP;     // Set with --show-fits-header //?
-    bool	   _coerceToShortsP;	 // Set with --coerce-to-shorts //?
-    bool	   _coerceToUnsignedShortsP; //?
-    bool	   _lpsP;		 // Set with --lps //?
+    bool	   _coerceToShortsP;	 // Set with --coerce-to-shorts
+    bool	   _coerceToUnsignedShortsP;
+//     bool	   _lpsP;		 // Set with --lps //?
     
-    double	   _pixelScale;	         // Set with --pixel-scale //?
-    double         _xAxisScale;		 // Set with --x-scale //?
-    double 	   _yAxisScale;		 // Set with --y-scale //?
-    double	   _zAxisScale; 	 // Set with --z-scale //?
+    double	   _pixelScale;	         // Set with --pixel-scale
+    double         _xAxisScale;		 // Set with --x-scale
+    double 	   _yAxisScale;		 // Set with --y-scale
+    double	   _zAxisScale; 	 // Set with --z-scale
     double	   _nullValue;		 // Set with --null-value //?
-    double	   _debugLevel;		 // Set with --debug-level //?
-    double	   _rotateSky;		 // Set with --rotate-sky //?
+    double	   _debugLevel;		 // Set with --debug-level
+    double	   _rotateSky;		 // Set with --rotate-sky
 
 //     unsigned       _wcsGridStride;	 // Set with --wcs-grid-stride //?
 
@@ -206,7 +190,7 @@ namespace {
     bool wcsP() const { return _wcsP; }
     bool equiangularP() const { return _equiangularP; }
     bool northUpP() const { return _northUpP; }
-    bool eastLeftP() const { return _eastLeftP; }
+//     bool eastLeftP() const { return _eastLeftP; }
     bool autoscaleZAxisP() const { return _autoscaleZAxisP; }
     bool flipxP() const { return _flipxP; }
     bool flipyP() const { return _flipyP; }
@@ -215,7 +199,7 @@ namespace {
     bool showFitsHeaderP() const { return _showFitsHeaderP; }
     bool coerceToShortsP() const { return _coerceToShortsP; }
     bool coerceToUnsignedShortsP() const { return _coerceToUnsignedShortsP; }
-    bool lpsP() const { return _lpsP	 }
+//     bool lpsP() const { return _lpsP	 }
 
     double pixelScale() const { return _pixelScale; }
     double xAxisScale() const { return _xAxisScale; }
@@ -237,7 +221,7 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
     _wcsP(false),
     _equiangularP(false),
     _northUpP(false),
-    _eastLeftP(false),
+//     _eastLeftP(false),
     _autoscaleZAxisP(false),
     _flipxP(false),
     _flipyP(false),
@@ -246,7 +230,7 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
     _showFitsHeaderP(false),
     _coerceToShortsP(false),
     _coerceToUnsignedShortsP(false),
-    _lpsP(false),
+//     _lpsP(false),
     _pixelScale(1),
     _xAxisScale(1),
     _yAxisScale(1),
@@ -268,7 +252,7 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
   int wcsParsingFlag;
   int equiangularParsingFlag;
   int northUpParsingFlag;
-  int eastLeftParsingFlag;
+//   int eastLeftParsingFlag;
   int autoscaleZAxisParsingFlag;
   int flipxParsingFlag;
   int flipyParsingFlag;
@@ -277,7 +261,7 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
   int showFitsHeaderParsingFlag;
   int coerceToShortsParsingFlag;
   int coerceToUnsignedShortsParsingFlag;
-  int lpsParsingFlag;
+//   int lpsParsingFlag;
   int pixelScaleParsingFlag;
   int xAxisScaleParsingFlag;
   int yAxisScaleParsingFlag;
@@ -299,7 +283,7 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
     { "wcs",              no_argument,       &wcsParsingFlag,            true },
     { "equiangular",      no_argument,       &equiangularParsingFlag,    true },
     { "north-up",         no_argument,       &northUpParsingFlag,        true },
-    { "east-left",        no_argument,       &eastLeftParsingFlag,       true },
+//     { "east-left",        no_argument,       &eastLeftParsingFlag,       true },
     { "autoscale-z-axis", no_argument,       &zAxisScaleParsingFlag,     true },
     { "flipx",            no_argument,       &flipxParsingFlag,          true },
     { "flipy",            no_argument,       &flipyParsingFlag,          true },
@@ -365,9 +349,9 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
         } else if (northUpParsingFlag) {
           northUpParsingFlag = false;
           _northUpP = true;
-        } else if (eastLeftParsingFlag) {
-          eastLeftParsingFlag = false;
-          _eastLeftP = true;
+//         } else if (eastLeftParsingFlag) {
+//           eastLeftParsingFlag = false;
+//           _eastLeftP = true;
         } else if (autoscaleZAxisParsingFlag) {
           autoscaleZAxisParsingFlag = false;
           _zAxisScale = true;
@@ -392,9 +376,9 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
         } else if (coerceToUnsignedShortsParsingFlag) {
           coerceToUnsignedShortsParsingFlag = false;
           _coerceToUnsignedShortsP = true;
-        } else if (lpsParsingFlag) {
-          lpsParsingFlag = false;
-          _lpsP = true;
+//         } else if (lpsParsingFlag) {
+//           lpsParsingFlag = false;
+//           _lpsP = true;
         } else if (pixelScaleParsingFlag) {
           pixelScaleParsingFlag = false;
           _pixelScale *= strtod(optarg, &endptr);
@@ -446,9 +430,6 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
 
   // Parse the command line positional arguments:
   const int nPositionalParams = argc - ::optind;
-
-//   if (_slicerXmlModuleDescriptionFlag or _logoFlag) {
-//     if (nPositionalParams != 0) usage();
 
   if (_dontWriteP) {
     if (nPositionalParams != 1) usage();
@@ -524,9 +505,9 @@ convertInputFileToItkFile(CommandLineParser& cl)
   params.wcsP = cl.wcsP();
   params.equiangularP = cl.equiangularP();
   params.northUpP = cl.northUpP();
-  params.eastLeftP = cl.eastLeftP();
+//   params.eastLeftP = cl.eastLeftP();
   params.autoscaleZaxisP = cl.autoscaleZaxisP();
-  params.lpsP = cl.lpsP();
+//   params.lpsP = cl.lpsP();
   params.xAxisScale = cl.xAxisScale();
   params.yAxisScale = cl.yAxisScale();
   params.zAxisScale() = cl.zAxisScale();
@@ -598,9 +579,9 @@ mapRange(const int value,
 // convertInputFileToWcsGridImage(): local function
 //-----------------------------------------------------------------------------
 
-//? This function probably won't work right, as it doesn't support all the
-//? options that we now have, but I'm not sure that it should be removed, as we
-//? may still want it.  Perhaps I should just comment it out, but leave it here.
+// TODO: This function probably won't work right, as it doesn't support all the
+// options that we now have, but I'm not sure that it should be removed, as we
+// may still want it.  Perhaps I should just comment it out, but leave it here.
 
 // local proc int
 // convertInputFileToWcsGridImage(CommandLineParser& cl)
@@ -797,13 +778,6 @@ main(const int argc, const char* const argv[])
   setItkAutoloadPath();
   CommandLineParser cl(argc, argv);
 
-//   if (cl.getSlicerXmlModuleDescriptionFlag()) {
-//     writeSlicerXmlModuleDescription(cout);
-//     return 0;
-//   }
-//
-//   if (cl.getLogoFlag()) usage();
-
   handleOptions(cl);
 
   // This is how we used to register FITSImageIOFactory, before we changed to
@@ -813,6 +787,8 @@ main(const int argc, const char* const argv[])
 
   int status = -666;   // If the following code is correct, this value will
                        // always get overwritten.
+
+// TODO: Make this work again someday, if need be:
 
 //   if (cl.getWcsImageStride() > 0) {
 //     status = convertInputFileToWcsGridImage(cl);

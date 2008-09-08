@@ -26,17 +26,21 @@
 namespace itk {
 namespace fits {
 
-// Typedefs:
+//-----------------------------------------------------------------------------
+// Typedefs
+//-----------------------------------------------------------------------------
+
 typedef Matrix<double, 4, 4> HMatrix;
 
-// Constants:
-enum { e_i = FITSImageIO::c_i,
-       e_j = FITSImageIO::c_j,
-       e_k = FITSImageIO::c_k };
 
-enum 
+//-----------------------------------------------------------------------------
+// Constants
+//-----------------------------------------------------------------------------
 
-
+enum {e_i, e_j, e_k };
+enum {e_x, e_y, e_z}; 
+enum {e_ra, e_dec, e_vel};
+enum {e_left, e_posterior, e_superior};
 
 
 //*****************************************************************************
@@ -44,6 +48,8 @@ enum
 //*****             FITSImage: concrete type                              *****
 //*****                                                                   *****
 //*****************************************************************************
+
+namscape _internal {
 
 template <class ImageType>
 class FITSImage
@@ -63,16 +69,16 @@ public:
 
   struct Params {
     typename ImageType::Pointer           itkImage;
-    bool				  wcsP;  //?
-    bool				  equiangularP; //?
-    bool				  northUpP; //?
-    bool				  eastLeftP; //?
-    bool				  autoscaleZAxisP; //?
-    bool				  lpsP; //?
-    double 				  xAxisScale; //?
-    double			          yAxisScale; //?
-    double				  zAxisScale; //?
-    double				  rotateSky; //?
+    bool				  wcsP;
+    bool				  equiangularP;
+    bool				  northUpP;
+//     bool				  eastLeftP; //?
+    bool				  autoscaleZAxisP;
+//     bool				  lpsP; //?
+    double 				  xAxisScale;
+    double			          yAxisScale;
+    double				  zAxisScale;
+    double				  rotateSky;
 
     Params()
       : itkImage(0)
@@ -101,8 +107,9 @@ private:
 
   // Private methods:
   void	 initializeInstanceVars();
-  HMatrix ijkToEquiangularMatrix();
-  HMatrix xyzToLpsMatrix();
+  HMatrix ijkToEquiangularMatrix() const;
+  HMatrix ijkToWcsMatrix() const;
+  HMatrix ijkToNorthUpMatrix() const;
 
   // Deactivate copy ctor and and assignment:
   FITSImage(const FITSImage&);
@@ -139,7 +146,19 @@ public:
                    { return _raAngularScalingFactor; }
 };
 
-// Inline internal functions:
+} // end _internal
+
+
+//-----------------------------------------------------------------------------
+// Export FITSImage into itk::fits
+//-----------------------------------------------------------------------------
+
+using _internal::FITSImage;
+
+
+//-----------------------------------------------------------------------------
+// Inline functions
+//-----------------------------------------------------------------------------
 
 inline double
 degreesToRadians(double degrees)
@@ -176,11 +195,11 @@ isOdd(size_t num)
 // Functions defined in itk::fits
 //-----------------------------------------------------------------------------
 
-
-void     setNullValue(double nullValue);
-void     fillMatrix(HMatrix& m, const double vals[4][4]);
-HMatrix  rotationMatrix(double degrees);
-HMatrix	 scalingMatrix(double xScale, double yScale, double zScale);
+void           setNullValue(double nullValue);
+void           fillMatrix(HMatrix& m, const double vals[4][4]);
+HMatrix        rotationMatrix(double degrees);
+HMatrix	       scalingMatrix(double xScale, double yScale, double zScale);
+const HMatrix& xyzToLpsMatrix();
 
 template <class ImageT> void
    writeImageInfo(const FITSImage<ImageT>& image, ostream& out);

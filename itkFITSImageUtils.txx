@@ -41,11 +41,9 @@ namespace _internal {
 enum { c_dims = itk::FITSImageIO::c_dims };
 
 using itk::Image;
-
 using std::cout;
 using std::endl;
 using std::ostream;
-
 using std::string;
 
 //-----------------------------------------------------------------------------
@@ -60,8 +58,7 @@ FITSImage<ImageT>::FITSImage(const typename Self::Params& params)
     _wcsTransform(0)
 {
   assert(&_itkImage);
-  initializeInstanceVars();  //? TODO: Evaluate this.  I think that this may
-                             // no longer be good.
+  initializeInstanceVars();
 
   assert(!(params.northUp and (params.wcsP or params.equiangularP)) and
          (params.wcsP or !params.autoscaleZAxisP));
@@ -211,7 +208,8 @@ FITSImage<ImageT>::initializeInstanceVars()
       _ijkNorthVector[v] = 0;
 
       // And finally, with the northward pointing vector in IJK coordinates, we
-      // can determine how much the image is rotated from north:
+      // can determine how much the image is rotated from north
+      // (counterclockwise):
       _rotationOfJFromIjkNorthVectorInDegrees =
         radiansToDegrees(atan2(-1 * _ijkNorthVector[c_i],
                                _ijkNorthVector[c_j]));
@@ -252,6 +250,71 @@ FITSImage<ImageT>::makeWcsTransform()
   } else {
     return 0;
   }
+}
+
+
+//-----------------------------------------------------------------------------
+// ijkToEquiangularMatrix():
+//    private method of FITSImage template class
+//-----------------------------------------------------------------------------
+
+/*method*/
+template <class ImageT>
+HMatrix
+FITSImage<ImageT>::ijkToEquiangularMatrix() const
+{
+  //? TODO: We need to deal with the velocity axis.
+
+  HMatrix retval;
+  retval.setIdentity();
+  retval(e_ra,  e_i) = _unitIInApproximateAngularSpace[e_ra];
+  retval(e_dec, e_i) = _unitIInApproximateAngularSpace[e_dec];
+  retval(e_ra,  e_j) = _unitJInApproximateAngularSpace[e_ra];
+  retval(e_dec, e_j) = _unitJInApproximateAngularSpace[e_dec];
+  return retval;
+}
+
+
+//-----------------------------------------------------------------------------
+// ijkToWcsMatrix():
+//    private method of FITSImage template class
+//-----------------------------------------------------------------------------
+
+/*method*/
+template <class ImageT>
+HMatrix
+FITSImage<ImageT>::ijkToWcsMatrix() const
+{
+  //? TODO: We need to deal with the velocity axis.
+
+  HMatrix retval;
+  retval.setIdentity();
+  retval(e_ra,  e_i) = _unitIInWcs[e_ra];
+  retval(e_dec, e_i) = _unitIInWcs[e_dec];
+  retval(e_ra,  e_j) = _unitJInWcs[e_ra];
+  retval(e_dec, e_j) = _unitJInWcs[e_dec];
+  return retval;
+}
+
+
+//-----------------------------------------------------------------------------
+// northUpMatrix(): template function
+//-----------------------------------------------------------------------------
+
+template <class ImageT>
+HMatrix
+FITSImage<ImageT>::northUpMatrix() const
+{
+  return rotationMatrix(_rotationOfJFromIjkNorthVectorInDegrees);
+}
+
+
+templace <class ImageT>
+HMatrix
+FITSImage<ImageT>::autoscaleZMatrix() const
+{
+  //? Implement this.
+  runtimeError("Not yet implemented");
 }
 
 
@@ -360,10 +423,6 @@ reflectPixels(Image<PixelT, c_dims>& image,
   RegionType allOfImage = image.GetLargestPossibleRegion();
   SizeType imageSize = allOfImage.GetSize();
   IndexType imageOrigin = allOfImage.GetIndex();
-
-  enum { c_i = FITSImageIO::c_i,
-	 c_j = FITSImageIO::c_j,
-	 c_k = FITSImageIO::c_k };
 
   const size_t minRaIndex  = imageOrigin[c_i];
   const size_t minDecIndex = imageOrigin[c_j];
@@ -562,54 +621,6 @@ getCoordinateFrameTransformation(const ImageT& image)
 }
 
 
-//-----------------------------------------------------------------------------
-// ijkToNorthUpEquiangularMatrix():
-//    private method of FITSImage template class
-//-----------------------------------------------------------------------------
-
-/*method*/
-template <class ImageT>
-HMatrix
-FITSImage<ImageT>::ijkToEquiangularMatrix()
-{
-  //?
-  // YOU ARE HERE: I don't think that this is right at all.  Make it right.
-
-  enum {ra, dec};
-  HMatrix retval;
-  retval.setIdentity();
-  retval(0, 0) = _unitIInApproximateAngularSpace()[ra];
-  retval(1, 0) = _unitIInApproximateAngularSpace()[dec];
-  retval(0, 1) = _unitJInApproximateAngularSpace()[ra];
-  retval(1, 1) = _unitJInApproximateAngularSpace()[dec];
-  return retval;
-}
-
-
-// //-----------------------------------------------------------------------------
-// // reorientNorth(): template function
-// //-----------------------------------------------------------------------------
-
-//? This needs to be reimplmented as the northUpMatrix() method.
-
-
-
-// /*proc*/
-// template <class ImageT>
-// void
-// reorientNorth(ImageT& image)
-// {
-//   const FITSImage<ImageT> info(image);
-
-//   // Multiply the direction cosine matrix by a rotation matrix to compensate
-//   // for image rotation:
-//   image.SetDirection(
-//      image.GetDirection() *
-//      rotationMatrix(-1 * info.rotationOfJFromIjkNorthVectorInDegrees())
-//      );
-// }
-
-
 } // END namespace itk::fits::_internal
 
 
@@ -617,19 +628,13 @@ FITSImage<ImageT>::ijkToEquiangularMatrix()
 // Export symbols from _internal into itk::fits
 //-----------------------------------------------------------------------------
 
-using _internal::applyFlipImageFilter;
-using _internal::applyBinomialBlurFilter;
 using _internal::reflectPixels;
 using _internal::scalePixelValues;
 using _internal::writeImageInfo;
-
 using _internal::setCoordinateFrameTransformation;
 using _internal::getCoordinateFrameTransformation;
 using _internal::rightConcatenateTransformation;
 using _internal::leftConcatenateTransformation;
-
-// using _internal::reorientNorth;
-// using _internal::transformToUnreorientedEquiangular;
 
 } } // END namespace itk::fits
 

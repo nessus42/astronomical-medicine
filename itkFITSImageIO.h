@@ -47,8 +47,6 @@ public:
 
   // The number of dimensions in an image:
   enum { c_dims = 3 };
-  enum CelestialCoordinateAxis { c_ra, c_vel, c_dec };
-  enum FitsImageArrayAxis      { c_i,  c_j,   c_k };
 
   // Standard ITK typedefs:
   typedef FITSImageIO         Self;
