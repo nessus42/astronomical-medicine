@@ -24,14 +24,13 @@
 
 // BEGIN
 namespace itk {
-namespace fits {
+  namespace fits {
 
 //-----------------------------------------------------------------------------
 // Typedefs
 //-----------------------------------------------------------------------------
 
 typedef Matrix<double, 4, 4> HMatrix;
-
 
 //-----------------------------------------------------------------------------
 // Constants
@@ -43,13 +42,26 @@ enum {e_ra, e_dec, e_vel};
 enum {e_left, e_posterior, e_superior};
 
 
+//-----------------------------------------------------------------------------
+// Internal definitions
+//-----------------------------------------------------------------------------
+
+// BEGIN
+namespace _internal {
+
+enum { c_dims = FITSImageIO::c_dims };
+
+using std::cout;
+using std::endl;
+using std::ostream;
+using std::string;
+
+
 //*****************************************************************************
 //*****                                                                   *****
 //*****             FITSImage: concrete type                              *****
 //*****                                                                   *****
 //*****************************************************************************
-
-namscape _internal {
 
 template <class ImageType>
 class FITSImage
@@ -110,6 +122,7 @@ private:
   HMatrix ijkToEquiangularMatrix() const;
   HMatrix ijkToWcsMatrix() const;
   HMatrix ijkToNorthUpMatrix() const;
+  HMatrix autoscaleZMatrix() const;
 
   // Deactivate copy ctor and and assignment:
   FITSImage(const FITSImage&);
@@ -146,14 +159,59 @@ public:
                    { return _raAngularScalingFactor; }
 };
 
-} // end _internal
+//-----------------------------------------------------------------------------
+// Functions defined in itk::fits::_internal
+//-----------------------------------------------------------------------------
+
+template <class ImageT> void
+   writeImageInfo(const FITSImage<ImageT>& image, std::ostream& out);
+
+template <class PixelT> void
+   scalePixelValues(Image<PixelT, _internal::c_dims>& image,
+                    double multiplier);
+
+template <class PixelT> void
+   reflectPixels(Image<PixelT, _internal::c_dims>& image,
+                 bool flipRAFlag, bool flipDecFlag, bool flipVFlag);
+
+template <class ImageT> void
+   rightConcatenateTransformation(ImageT& image, const HMatrix& m);
+
+template <class ImageT> void
+   leftConcatenateTransformation(ImageT& image, const HMatrix& m);
+
+template <class ImageT> void
+   setCoordinateFrameTransformation(ImageT& image, const HMatrix& m);
+
+template <class ImageT> HMatrix
+   getCoordinateFrameTransformation(const ImageT& image);
+
+} // END namespace _internal
 
 
 //-----------------------------------------------------------------------------
-// Export FITSImage into itk::fits
+// Export definitions from itk::fits::_internal into itk::fits
 //-----------------------------------------------------------------------------
 
 using _internal::FITSImage;
+using _internal::writeImageInfo;
+using _internal::scalePixelValues;
+using _internal::reflectPixels;
+using _internal::rightConcatenateTransformation;
+using _internal::leftConcatenateTransformation;
+using _internal::setCoordinateFrameTransformation;
+using _internal::getCoordinateFrameTransformation;
+
+
+//-----------------------------------------------------------------------------
+// Functions defined in itk::fits
+//-----------------------------------------------------------------------------
+
+void           setNullValue(double nullValue);
+void           fillMatrix(HMatrix& m, const double vals[4][4]);
+HMatrix        rotationMatrix(double degrees);
+HMatrix	       scalingMatrix(double xScale, double yScale, double zScale);
+const HMatrix& xyzToLpsMatrix();
 
 
 //-----------------------------------------------------------------------------
@@ -191,37 +249,7 @@ isOdd(size_t num)
 }
 
 
-//-----------------------------------------------------------------------------
-// Functions defined in itk::fits
-//-----------------------------------------------------------------------------
-
-void           setNullValue(double nullValue);
-void           fillMatrix(HMatrix& m, const double vals[4][4]);
-HMatrix        rotationMatrix(double degrees);
-HMatrix	       scalingMatrix(double xScale, double yScale, double zScale);
-const HMatrix& xyzToLpsMatrix();
-
-template <class ImageT> void
-   writeImageInfo(const FITSImage<ImageT>& image, ostream& out);
-
-template <class PixelT> void
-   scalePixelValues(Image<PixelT, c_dims>& image, double multiplier);
-
-template <class PixelT> void
-   reflectPixels(Image<PixelT, c_dims>& image,
-                 bool flipRAFlag, bool flipDecFlag, bool flipVFlag);
-
-template <class ImageT> void
-   rightConcatenateTransformation(ImageT& image, const HMatrix& m);
-
-template <class ImageT> void
-   leftConcatenateTransformation(ImageT& image, const HMatrix& m);
-
-template <class ImageT> void
-   setCoordinateFrameTransformation(ImageT& image, const HMatrix& m);
-
-
-} } // END namespaces
+} } // END namespace itk::fits
 
 #ifndef ITK_MANUAL_INSTANTIATION
 #include <itkFITSImageUtils.txx>

@@ -23,8 +23,7 @@
 #include <da_sugar.h>
 
 namespace itk {
-namespace fits {
-
+  namespace fits {
 
 //-----------------------------------------------------------------------------
 // loadFITSImageIO(): local function
@@ -73,10 +72,10 @@ rotationMatrix(double degrees)
   const double c = cos(radians);
   HMatrix retval;
   retval.SetIdentity();
-  retval[c_i][c_i] = c;
-  retval[c_i][c_j] = -s;
-  retval[c_j][c_i] = s;
-  retval[c_j][c_j] = c;
+  retval[e_i][e_i] = c;
+  retval[e_i][e_j] = -s;
+  retval[e_j][e_i] = s;
+  retval[e_j][e_j] = c;
   return retval;
 }
 
@@ -109,7 +108,7 @@ proc const HMatrix&
 xyzToLpsMatrix()
 {
   static HMatrix retval;
-  static firstTime = true;
+  static bool firstTime = true;
   if (firstTime) {
     firstTime = false;
     retval(e_left,       e_x) = 1;
@@ -130,7 +129,7 @@ setNullValue(double nullValue)
 {
   FITSImageIO::NullValueSetter setNullValue =
     reinterpret_cast<FITSImageIO::NullValueSetter>(
-      dlsym(_internal::loadFITSImageIO(), "itkFITSImageIO_setNullValue")
+      dlsym(loadFITSImageIO(), "itkFITSImageIO_setNullValue")
       );
   if (!setNullValue) {
     runTimeError("Could not find function itkFITSImageIO_setNullValue()");
