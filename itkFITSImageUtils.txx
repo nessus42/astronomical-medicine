@@ -27,24 +27,12 @@
 #include <itkFITSImageIO.h>
 #include <itkFITSImageUtils.h>
 
-// BEGIN
+#include <da_usual.h>
+using douglasAlan::runTimeError;
+
 namespace itk {
-namespace fits { 
-
-// BEGIN
-namespace _internal {
-
-//-----------------------------------------------------------------------------
-// Internal definitions
-//-----------------------------------------------------------------------------
-
-enum { c_dims = itk::FITSImageIO::c_dims };
-
-using itk::Image;
-using std::cout;
-using std::endl;
-using std::ostream;
-using std::string;
+  namespace fits {
+    namespace _internal {
 
 //-----------------------------------------------------------------------------
 // Constructor of FITSImage
@@ -60,7 +48,7 @@ FITSImage<ImageT>::FITSImage(const typename Self::Params& params)
   assert(&_itkImage);
   initializeInstanceVars();
 
-  assert(!(params.northUp and (params.wcsP or params.equiangularP)) and
+  assert(!(params.northUpP and (params.wcsP or params.equiangularP)) and
          (params.wcsP or !params.autoscaleZAxisP));
 
   // Set the ITK Image's coordinate transformation parameters:
@@ -130,13 +118,9 @@ FITSImage<ImageT>::initializeInstanceVars()
   typename ImageT::SizeType imageSize = allOfImage.GetSize();
   typename ImageT::IndexType imageOrigin = allOfImage.GetIndex();
 
-  enum { c_i = FITSImageIO::c_i,
- 	 c_j = FITSImageIO::c_j,
- 	 c_k = FITSImageIO::c_k };
-
-  _ijkCenter[c_i] = imageOrigin[c_i] + imageSize[c_i]/2.0 - 0.5;
-  _ijkCenter[c_j] = imageOrigin[c_j] + imageSize[c_j]/2.0 - 0.5;
-  _ijkCenter[c_k] = imageOrigin[c_k] + imageSize[c_k]/2.0 - 0.5;
+  _ijkCenter[e_i] = imageOrigin[e_i] + imageSize[e_i]/2.0 - 0.5;
+  _ijkCenter[e_j] = imageOrigin[e_j] + imageSize[e_j]/2.0 - 0.5;
+  _ijkCenter[e_k] = imageOrigin[e_k] + imageSize[e_k]/2.0 - 0.5;
 
   WcsTransformConstPtr wcs = makeWcsTransform(); 
   if (wcs) {
@@ -154,10 +138,10 @@ FITSImage<ImageT>::initializeInstanceVars()
       IjkPoint ijkRightHalfAPixel = _ijkCenter;
       IjkPoint ijkDownHalfAPixel  = _ijkCenter;
       IjkPoint ijkUpHalfAPixel    = _ijkCenter;
-      ijkLeftHalfAPixel[c_i]  -= .5;
-      ijkRightHalfAPixel[c_i] += .5;
-      ijkDownHalfAPixel[c_j]  -= .5;
-      ijkUpHalfAPixel[c_j]    += .5;
+      ijkLeftHalfAPixel[e_i]  -= .5;
+      ijkRightHalfAPixel[e_i] += .5;
+      ijkDownHalfAPixel[e_j]  -= .5;
+      ijkUpHalfAPixel[e_j]    += .5;
 
       WcsPoint wcsLeftHalfAPixel  = wcs->TransformPoint(ijkLeftHalfAPixel);
       WcsPoint wcsRightHalfAPixel = wcs->TransformPoint(ijkRightHalfAPixel);
@@ -211,8 +195,8 @@ FITSImage<ImageT>::initializeInstanceVars()
       // can determine how much the image is rotated from north
       // (counterclockwise):
       _rotationOfJFromIjkNorthVectorInDegrees =
-        radiansToDegrees(atan2(-1 * _ijkNorthVector[c_i],
-                               _ijkNorthVector[c_j]));
+        radiansToDegrees(atan2(-1 * _ijkNorthVector[e_i],
+                               _ijkNorthVector[e_j]));
     }
   }
 }
@@ -266,7 +250,7 @@ FITSImage<ImageT>::ijkToEquiangularMatrix() const
   //? TODO: We need to deal with the velocity axis.
 
   HMatrix retval;
-  retval.setIdentity();
+  retval.SetIdentity();
   retval(e_ra,  e_i) = _unitIInApproximateAngularSpace[e_ra];
   retval(e_dec, e_i) = _unitIInApproximateAngularSpace[e_dec];
   retval(e_ra,  e_j) = _unitJInApproximateAngularSpace[e_ra];
@@ -288,7 +272,7 @@ FITSImage<ImageT>::ijkToWcsMatrix() const
   //? TODO: We need to deal with the velocity axis.
 
   HMatrix retval;
-  retval.setIdentity();
+  retval.SetIdentity();
   retval(e_ra,  e_i) = _unitIInWcs[e_ra];
   retval(e_dec, e_i) = _unitIInWcs[e_dec];
   retval(e_ra,  e_j) = _unitJInWcs[e_ra];
@@ -298,23 +282,23 @@ FITSImage<ImageT>::ijkToWcsMatrix() const
 
 
 //-----------------------------------------------------------------------------
-// northUpMatrix(): template function
+// ijkToNorthUpMatrix(): template function
 //-----------------------------------------------------------------------------
 
 template <class ImageT>
 HMatrix
-FITSImage<ImageT>::northUpMatrix() const
+FITSImage<ImageT>::ijkToNorthUpMatrix() const
 {
   return rotationMatrix(_rotationOfJFromIjkNorthVectorInDegrees);
 }
 
 
-templace <class ImageT>
+template <class ImageT>
 HMatrix
 FITSImage<ImageT>::autoscaleZMatrix() const
 {
   //? Implement this.
-  runtimeError("Not yet implemented");
+  runTimeError("Not yet implemented");
 }
 
 
@@ -424,17 +408,17 @@ reflectPixels(Image<PixelT, c_dims>& image,
   SizeType imageSize = allOfImage.GetSize();
   IndexType imageOrigin = allOfImage.GetIndex();
 
-  const size_t minRaIndex  = imageOrigin[c_i];
-  const size_t minDecIndex = imageOrigin[c_j];
-  const size_t minVelIndex = imageOrigin[c_k];
+  const size_t minRaIndex  = imageOrigin[e_i];
+  const size_t minDecIndex = imageOrigin[e_j];
+  const size_t minVelIndex = imageOrigin[e_k];
 
-  const size_t maxRaIndex  = minRaIndex  + imageSize[c_i] - 1;
-  const size_t maxDecIndex = minDecIndex + imageSize[c_j] - 1;
-  const size_t maxVelIndex = minVelIndex + imageSize[c_k] - 1;
+  const size_t maxRaIndex  = minRaIndex  + imageSize[e_i] - 1;
+  const size_t maxDecIndex = minDecIndex + imageSize[e_j] - 1;
+  const size_t maxVelIndex = minVelIndex + imageSize[e_k] - 1;
 
-  const size_t middleRaIndex  = minRaIndex  + ((imageSize[c_i] + 1) / 2) - 1;
-  const size_t middleDecIndex = minDecIndex + ((imageSize[c_j] + 1) / 2) - 1;
-  const size_t middleVelIndex = minVelIndex + ((imageSize[c_k] + 1) / 2) - 1;
+  const size_t middleRaIndex  = minRaIndex  + ((imageSize[e_i] + 1) / 2) - 1;
+  const size_t middleDecIndex = minDecIndex + ((imageSize[e_j] + 1) / 2) - 1;
+  const size_t middleVelIndex = minVelIndex + ((imageSize[e_k] + 1) / 2) - 1;
   
   const bool lastFlipIsV = flipVFlag;
   const bool lastFlipIsDec = !lastFlipIsV and flipDecFlag;
@@ -447,8 +431,8 @@ reflectPixels(Image<PixelT, c_dims>& image,
   const size_t velStopIndex = lastFlipIsV   ? middleVelIndex
                                             : maxVelIndex;
 
-  const bool needToWorryAboutMiddleVel = flipVFlag and isOdd(imageSize[c_k]);
-  const bool needToWorryAboutMiddleDec = flipDecFlag and isOdd(imageSize[c_j]);
+  const bool needToWorryAboutMiddleVel = flipVFlag and isOdd(imageSize[e_k]);
+  const bool needToWorryAboutMiddleDec = flipDecFlag and isOdd(imageSize[e_j]);
 
   for (size_t vel_i = minVelIndex, velReverse_i = maxVelIndex;
        vel_i <= velStopIndex;
@@ -481,12 +465,12 @@ reflectPixels(Image<PixelT, c_dims>& image,
 
 	      IndexType thisPixelIndex;
 	      IndexType oppositePixelIndex;
-	      thisPixelIndex[c_i] = ra_i;
-	      thisPixelIndex[c_j] = dec_i;
-	      thisPixelIndex[c_k] = vel_i;
-	      oppositePixelIndex[c_i] = flipRAFlag  ? raReverse_i  : ra_i;
-	      oppositePixelIndex[c_j] = flipDecFlag ? decReverse_i : dec_i;
-	      oppositePixelIndex[c_k] = flipVFlag   ? velReverse_i : vel_i;
+	      thisPixelIndex[e_i] = ra_i;
+	      thisPixelIndex[e_j] = dec_i;
+	      thisPixelIndex[e_k] = vel_i;
+	      oppositePixelIndex[e_i] = flipRAFlag  ? raReverse_i  : ra_i;
+	      oppositePixelIndex[e_j] = flipDecFlag ? decReverse_i : dec_i;
+	      oppositePixelIndex[e_k] = flipVFlag   ? velReverse_i : vel_i;
 	      PixelT tmp = image.GetPixel(thisPixelIndex);
 	      image.SetPixel(thisPixelIndex,
 			      image.GetPixel(oppositePixelIndex));
@@ -620,22 +604,6 @@ getCoordinateFrameTransformation(const ImageT& image)
   return retval;
 }
 
-
-} // END namespace itk::fits::_internal
-
-
-//-----------------------------------------------------------------------------
-// Export symbols from _internal into itk::fits
-//-----------------------------------------------------------------------------
-
-using _internal::reflectPixels;
-using _internal::scalePixelValues;
-using _internal::writeImageInfo;
-using _internal::setCoordinateFrameTransformation;
-using _internal::getCoordinateFrameTransformation;
-using _internal::rightConcatenateTransformation;
-using _internal::leftConcatenateTransformation;
-
-} } // END namespace itk::fits
+} } } // END namespace ::itk::fits::_internal
 
 #endif // _itkFITSImageUtils_txx

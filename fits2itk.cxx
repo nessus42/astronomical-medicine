@@ -55,8 +55,6 @@ using itk::FITSWCSTransform;
 
 #include <itkFITSImageUtils.h>
 using itk::fits::FITSImage;
-using itk::fits::applyFlipImageFilter;
-using itk::fits::applyBinomialBlurFilter;
 using itk::fits::reflectPixels;
 using itk::fits::scalePixelValues;
 using itk::fits::setNullValue;
@@ -182,8 +180,8 @@ namespace {
     CommandLineParser(const int argc, const char* const argv[]);
 
     // Accessor methods:
-    const char* getInputFilepath() const { return _inputFilepath;}
-    const char* getOutputFilepath() const { return _outputFilepath; }
+    const char* inputFilepath() const { return _inputFilepath;}
+    const char* outputFilepath() const { return _outputFilepath; }
 
     bool quietModeP() const { return _quietModeP; }
     bool dontWriteP() const { return _dontWriteP; }
@@ -451,7 +449,7 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
                  "please don't specify both.");
   }
   if (_northUpP and _wcsP) {
-    runTimeError(\""--wcs\" causes north to be oriented up, so please don't "
+    runTimeError("\"--wcs\" causes north to be oriented up, so please don't "
                  "specify both.");
   }
 }
@@ -468,20 +466,20 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
 // convertInputFileToItkFile(): local template function
 //-----------------------------------------------------------------------------
 
-template <class PixelType>
+template <class PixelT>
 local proc int
 convertInputFileToItkFile(CommandLineParser& cl)
 {
-  typedef itk::Image<PixelType, c_dims> ImageType;
-  typedef itk::ImageFileReader<ImageType> ReaderType;
+  typedef itk::Image<PixelT, c_dims> ImageT;
+  typedef itk::ImageFileReader<ImageT> ReaderT;
 
-  typename ReaderType::Pointer reader = ReaderType::New();
-  reader->SetFileName(cl.getInputFilepath());
-  typename ImageType::Pointer image = reader->GetOutput();
+  typename ReaderT::Pointer reader = ReaderT::New();
+  reader->SetFileName(cl.inputFilepath());
+  typename ImageT::Pointer image = reader->GetOutput();
   reflectPixels(*image,
-                cl.getFlipRaFlag(),
-                cl.getFlipDecFlag(),
-                cl.getFlipVFlag());
+                cl.flipxP(),
+                cl.flipyP(),
+                cl.flipzP());
 
   // Note: scalePixelValues() uses a pixel iterator to scale all the pixels.
   // I'm guessing that iterating the pixels can't be done in a streaming
@@ -489,7 +487,7 @@ convertInputFileToItkFile(CommandLineParser& cl)
   // I'd probably want to implement the pixel value scaling using a unary
   // functor filter instead:
 
-  scalePixelValues(*image, cl.getPixelScale());
+  scalePixelValues(*image, cl.pixelScale());
 
   // The call to Update() immediately below causes the image to be read in to
   // ram.  This is not ideal as it may cause more ram to be used that would
@@ -500,31 +498,31 @@ convertInputFileToItkFile(CommandLineParser& cl)
 
   reader->Update();
 
-  typename FITSImage<ImageType>::Params params;
+  typename FITSImage<ImageT>::Params params;
   params.itkImage = image;
   params.wcsP = cl.wcsP();
   params.equiangularP = cl.equiangularP();
   params.northUpP = cl.northUpP();
 //   params.eastLeftP = cl.eastLeftP();
-  params.autoscaleZaxisP = cl.autoscaleZaxisP();
+  params.autoscaleZAxisP = cl.autoscaleZAxisP();
 //   params.lpsP = cl.lpsP();
   params.xAxisScale = cl.xAxisScale();
   params.yAxisScale = cl.yAxisScale();
-  params.zAxisScale() = cl.zAxisScale();
-  params.rotateSky() = cl.rotateSky();
-  FITSImage<ImageType> fitsImage (params);
+  params.zAxisScale = cl.zAxisScale();
+  params.rotateSky = cl.rotateSky();
+  FITSImage<ImageT> fitsImage (params);
 
-  if (cl.getOutputFilepath()) {
-    typedef itk::ImageFileWriter<ImageType> WriterType;
-    typename WriterType::Pointer writer = WriterType::New();
+  if (cl.outputFilepath()) {
+    typedef itk::ImageFileWriter<ImageT> WriterT;
+    typename WriterT::Pointer writer = WriterT::New();
     writer->SetInput(image);
-    writer->SetFileName(cl.getOutputFilepath());
+    writer->SetFileName(cl.outputFilepath());
     writer->Update();
   } else {
     reader->Update();
   }
 
-  if (da::getVerbosityLevel()) writeImageInfo(fitsImage, cout);
+  if (da::getVerbosityLevel()) writeImageInfo<ImageT>(fitsImage, cout);
 
   return EXIT_SUCCESS;
 
@@ -730,8 +728,8 @@ mapRange(const int value,
 local proc void
 handleOptions(const CommandLineParser& cl)
 {
-  setNullValue(cl.getNullValue());
-  da::setDebugLevel(cl.getDebugLevel());
+  setNullValue(cl.nullValue());
+  da::setDebugLevel(cl.debugLevel());
 }
 
 
@@ -794,9 +792,9 @@ main(const int argc, const char* const argv[])
 //     status = convertInputFileToWcsGridImage(cl);
 //   } else 
 
-  if (cl.getCoerceToShorts()) {
+  if (cl.coerceToShortsP()) {
     status = convertInputFileToItkFile<short>(cl);
-  } else if (cl.getCoerceToUnsignedShorts()) {
+  } else if (cl.coerceToUnsignedShortsP()) {
     status = convertInputFileToItkFile<unsigned short>(cl);
   } else {
     status = convertInputFileToItkFile<float>(cl);
