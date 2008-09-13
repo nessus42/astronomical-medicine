@@ -26,7 +26,6 @@
 /*BEGIN*/ namespace itk
 {
 
-
 //*****************************************************************************
 //*****                                                                   *****
 //*****         FITSImageIO: leaf subclass of ImageIOBase                 *****
@@ -61,12 +60,9 @@ public:
 
   // Static setter methods:
   static void SetNullValue(double nullValue) { _cv_nullValue = nullValue; }
-  static void deprecated_SetDebugLevel(int debugLevel)
-                 { _cv_deprecated_debugLevel = debugLevel; }
                  
   // Static getter methods:
   static double GetNullValue() { return _cv_nullValue; }
-                   
 
   // Virtual methods implementing pure virtual methods of ImageIOBase:
   virtual bool CanReadFile(const char* filename);
@@ -78,6 +74,7 @@ public:
 
   // Functions exported for dynamic loading:
   typedef void (*NullValueSetter)(double nullValue);
+  typedef void (*DebugLevelSetter)(int debugLevel);
 
 protected:
 
@@ -99,7 +96,6 @@ private:
 
   // Private class variables:   // TODO
   static double _cv_nullValue;
-  static int    _cv_deprecated_debugLevel;
 
   // Deactivate object copying:
   FITSImageIO(const Self&);      // Intentionally not implemented.

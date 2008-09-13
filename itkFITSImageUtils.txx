@@ -19,6 +19,7 @@
 
 #include <assert.h>
 #include <iostream>
+#include <algorithm>
 
 #include <wcs.h>
 
@@ -43,7 +44,9 @@ template <class ImageT>
 FITSImage<ImageT>::FITSImage(const typename Self::Params& params)
   : _params(params),
     _itkImage(*params.itkImage),
-    _wcsTransform(0)
+    _wcsTransform(0),
+    _rotationOfJFromIjkNorthVectorInDegrees(0),
+    _rotationOfIFromIjkEastVectorInDegrees(0)
 {
   assert(&_itkImage);
   initializeInstanceVars();
@@ -51,57 +54,57 @@ FITSImage<ImageT>::FITSImage(const typename Self::Params& params)
   assert(!(params.northUpP and (params.wcsP or params.equiangularP)) and
          (params.wcsP or !params.autoscaleZAxisP));
 
-  // Set the ITK Image's coordinate transformation parameters:
-  {
-    HMatrix cft =
-      xyzToLpsMatrix()
-      * scalingMatrix(params.xAxisScale,
-                      params.yAxisScale,
-                      params.zAxisScale)
-      * rotationMatrix(params.rotateSky);
-    if (params.autoscaleZAxisP) cft *= this->autoscaleZMatrix();
-    if (params.equiangularP) cft *= this->ijkToEquiangularMatrix();
-    else if (params.wcsP) cft *= this->ijkToWcsMatrix();
-    else if (params.northUpP) cft *= this->ijkToNorthUpMatrix();
-    setCoordinateFrameTransformation(_itkImage, cft);
-  }
+  // TODO: Clean up the comments below.
 
-  // YOU ARE HERE: Figuring out if what you just wrote above is correct, and
-  // also you need to implement the functions that it calls.
+  // These are the coordinate transformations that we need to worry about
+  // below:
 
-  // YOU ARE HERE: xyzToLps() does not invert the x-axis when permuting on the
-  // L-axis.  I'm not sure if this is the right thing or not.  I'll have to
-  // come back to this.
-
-  //? Note to self: These are the transformations that we need to worry about
-  // here:
-
-  //    - North-up rotation
-  //    - WCS rotation and scaling
-  //    -    V axis WCS
+  //    - IJK to North-up rotation
+  //    - IJK-to-WCS transformation
+  //    -    including velocity axis WCS
   //    - Equiangular adjustment to WCS
-  //    - Autoscaling of Z axis
+  //    - Autoscaling of velocity axis
   //    - Specified rotation
   //    - Scaling of X, Y, and Z axis
   //    - Conversion to LPS
   //    - RAS adjustment to LPS  // TODO: Do I really need this?
 
-  // The matrix above is a conversion of the coordinates, not the frame, and
+  // The matrix below is a conversion of the coordinates, not the frame, and
   // therefore, will affect the original coordinates starting from the last
-  // matrix in the product chain first.  Also keep in mind that they are the
-  // inverses of the frame transformations.
+  // matrix in the product chain first.  Also keep in mind that these
+  // transformations are the inverses of the frame transformations.
 
-  // So this should be the order of the transformations (and I'll have to
-  // reverse them via right concatentation):
+  // TODO: Find out from someone what the term is for the transformation that
+  // transforms the coordinates rather than the basis vectors and change any
+  // code and coments (and my little primer) to reflect this terminology.
 
-  // (north-up-rotation or WCS-with-autoscaling-of-Z)
-  // -> Equiangular scaling adjustment
-  // -> X, Y, Z scaling
-  // -> LPS
+  // Set the ITK Image's coordinate transformation parameters:
+  {
+    HMatrix ijkToXyzMatrix;
+    if (params.equiangularP) {
+      ijkToXyzMatrix = this->ijkToEquiangularMatrix();
+    } else if (params.wcsP) {
+      ijkToXyzMatrix = this->ijkToWcsMatrix();
+    } else if (params.northUpP) {
+      ijkToXyzMatrix = this->ijkToNorthUpMatrix();
+    } else {
+      ijkToXyzMatrix.SetIdentity();
+    }
 
-  //? You probably want to suppress reading the WCS information to begin with
-  // if this is the case, as Jens has some FITS images that have no WCS data.
+    HMatrix cft =
+      xyzToLpsMatrix()
+      * scalingMatrix(params.xAxisScale,
+                      params.yAxisScale,
+                      params.zAxisScale)
+      * rotationMatrix(params.rotateSky)
+      * scalingMatrix(1, 1,
+                      this->zAxisAutoscale(
+                         params.autoscaleZAxisP,
+                         ijkToXyzMatrix))
+      * ijkToXyzMatrix;
 
+    setCoordinateFrameTransformation(_itkImage, cft);
+  }
 }
 
 
@@ -118,6 +121,9 @@ FITSImage<ImageT>::initializeInstanceVars()
   typename ImageT::SizeType imageSize = allOfImage.GetSize();
   typename ImageT::IndexType imageOrigin = allOfImage.GetIndex();
 
+  _ijkSize[e_i] = imageSize[e_i];
+  _ijkSize[e_j] = imageSize[e_j];
+  _ijkSize[e_k] = imageSize[e_k];
   _ijkCenter[e_i] = imageOrigin[e_i] + imageSize[e_i]/2.0 - 0.5;
   _ijkCenter[e_j] = imageOrigin[e_j] + imageSize[e_j]/2.0 - 0.5;
   _ijkCenter[e_k] = imageOrigin[e_k] + imageSize[e_k]/2.0 - 0.5;
@@ -125,12 +131,12 @@ FITSImage<ImageT>::initializeInstanceVars()
   WcsTransformConstPtr wcs = makeWcsTransform(); 
   if (wcs) {
     _wcsTransform = wcs;
-    _wcsCenter = wcs->TransformPoint(_ijkCenter);
+    const IjkPoint zeroZeroZero;
+    _wcsImageOrigin = wcs->TransformPoint(zeroZeroZero);
+    _wcsImageCenter = wcs->TransformPoint(_ijkCenter);
 
     // TODO: It's confusing that in some situations V is 1 and dec is 2, and
     // in others, dec is 1 and V is 2.  We need a better way to denote this.
-
-    enum {ra, dec, v};
 
     // Calculate lengths of i and j vectors in RA/Dec space:
     { 
@@ -152,11 +158,11 @@ FITSImage<ImageT>::initializeInstanceVars()
       _unitJInWcs = wcsUpHalfAPixel - wcsDownHalfAPixel;
     }
 
-    _raAngularScalingFactor = cos(degreesToRadians(_wcsCenter[dec]));
+    _raAngularScalingFactor = cos(degreesToRadians(_wcsImageCenter[e_dec]));
     _unitIInApproximateAngularSpace = _unitIInWcs;
     _unitJInApproximateAngularSpace = _unitJInWcs;
-    _unitIInApproximateAngularSpace[ra] *= _raAngularScalingFactor;
-    _unitJInApproximateAngularSpace[ra] *= _raAngularScalingFactor;
+    _unitIInApproximateAngularSpace[e_ra] *= _raAngularScalingFactor;
+    _unitJInApproximateAngularSpace[e_ra] *= _raAngularScalingFactor;
 
     // Calculate the image's rotation by finding a northward-oriented vector in
     // WCS space, and then transforming it into IJK space.  We can then use trig
@@ -171,25 +177,26 @@ FITSImage<ImageT>::initializeInstanceVars()
       // small increment northward, but then it might be too small or it might
       // be too big for the image:
       WcsVector wcsNorthVector =
-        fabs(_unitJInWcs[dec]) > fabs(_unitIInWcs[dec])
+        fabs(_unitJInWcs[e_dec]) > fabs(_unitIInWcs[e_dec])
         ? _unitJInWcs
         : _unitIInWcs;
-      wcsNorthVector[ra] = 0;
-      wcsNorthVector[dec] = fabs(wcsNorthVector[dec]);
+      wcsNorthVector[e_ra] = 0;
+      wcsNorthVector[e_dec] = fabs(wcsNorthVector[e_dec]);
 
       // We now add the northward increment vector to our center point
       // expressed in RA/Dec coordinates.  This gives us a slightly northward
       // point in WCS coordinates, and we then use an inverse WCS transform to
       // get the IJK pixel position (with floating point IJK index values) of
       // this fastidiously calculated northward point:
-      WcsPoint wcsPointNorthOfCenter = _wcsCenter + wcsNorthVector;
+      WcsPoint wcsPointNorthOfCenter = _wcsImageCenter + wcsNorthVector;
       IjkPoint ijkPointNorthOfCenter =
         inverseWcs->TransformPoint(wcsPointNorthOfCenter);
 
       // We then subtract the center point in IJK coordinates from the
       // northward point to get a northward pointing vector in IJK coordinates:
       _ijkNorthVector = ijkPointNorthOfCenter - _ijkCenter;
-      _ijkNorthVector[v] = 0;
+      _ijkNorthVector[e_vel] = 0;
+      _ijkNorthVector.Normalize();
 
       // And finally, with the northward pointing vector in IJK coordinates, we
       // can determine how much the image is rotated from north
@@ -197,6 +204,30 @@ FITSImage<ImageT>::initializeInstanceVars()
       _rotationOfJFromIjkNorthVectorInDegrees =
         radiansToDegrees(atan2(-1 * _ijkNorthVector[e_i],
                                _ijkNorthVector[e_j]));
+
+      // We're now going to do all the same stuff as above, only for east,
+      // rather than north:
+      WcsVector wcsEastVector =
+        fabs(_unitJInWcs[e_ra]) > fabs(_unitIInWcs[e_ra])
+        ? _unitJInWcs
+        : _unitIInWcs;
+      wcsEastVector[e_ra] = fabs(wcsEastVector[e_ra]);
+      wcsEastVector[e_dec] = 0;
+      WcsPoint wcsPointEastOfCenter = _wcsImageCenter + wcsEastVector;
+      IjkPoint ijkPointEastOfCenter =
+        inverseWcs->TransformPoint(wcsPointEastOfCenter);
+      _ijkEastVector = ijkPointEastOfCenter - _ijkCenter;
+      _ijkEastVector[e_vel] = 0;
+      _ijkEastVector.Normalize();
+      _rotationOfIFromIjkEastVectorInDegrees =
+        radiansToDegrees(atan2(-1 * _ijkEastVector[e_j],
+                               -1 * _ijkEastVector[e_i]));
+
+//       // Calculate the rotation of the east unit vector from the north unit
+//       // vector by calculating the dot product:
+//       _rotationOfIjkEastVectorFromIjkNorthVector =
+//         acos(_ijkEastVector[c_i] * _ijkNorthVector[c_i] +
+//              _ijkEastVector[c_j] * _ijkEastVector[c_j]);
     }
   }
 }
@@ -239,7 +270,7 @@ FITSImage<ImageT>::makeWcsTransform()
 
 //-----------------------------------------------------------------------------
 // ijkToEquiangularMatrix():
-//    private method of FITSImage template class
+//    nonvirtual method of FITSImage template class
 //-----------------------------------------------------------------------------
 
 /*method*/
@@ -251,6 +282,7 @@ FITSImage<ImageT>::ijkToEquiangularMatrix() const
 
   HMatrix retval;
   retval.SetIdentity();
+  if (!_wcsTransform) return retval;
   retval(e_ra,  e_i) = _unitIInApproximateAngularSpace[e_ra];
   retval(e_dec, e_i) = _unitIInApproximateAngularSpace[e_dec];
   retval(e_ra,  e_j) = _unitJInApproximateAngularSpace[e_ra];
@@ -261,7 +293,7 @@ FITSImage<ImageT>::ijkToEquiangularMatrix() const
 
 //-----------------------------------------------------------------------------
 // ijkToWcsMatrix():
-//    private method of FITSImage template class
+//    nonvirtual method of FITSImage template class
 //-----------------------------------------------------------------------------
 
 /*method*/
@@ -273,16 +305,23 @@ FITSImage<ImageT>::ijkToWcsMatrix() const
 
   HMatrix retval;
   retval.SetIdentity();
+  if (!_wcsTransform) return retval;
   retval(e_ra,  e_i) = _unitIInWcs[e_ra];
   retval(e_dec, e_i) = _unitIInWcs[e_dec];
+  retval(e_vel, e_i) = _unitIInWcs[e_vel];
   retval(e_ra,  e_j) = _unitJInWcs[e_ra];
   retval(e_dec, e_j) = _unitJInWcs[e_dec];
+  retval(e_vel, e_j) = _unitJInWcs[e_vel];
+  retval(e_ra, c_dims) = _wcsImageCenter[e_ra];
+  retval(e_dec, c_dims) = _wcsImageCenter[e_dec];
+  retval(e_vel, c_dims) = _wcsImageCenter[e_vel];
   return retval;
 }
 
 
 //-----------------------------------------------------------------------------
-// ijkToNorthUpMatrix(): template function
+// ijkToNorthUpMatrix(): 
+//    nonvirtual method of FITSImage tremplace class
 //-----------------------------------------------------------------------------
 
 template <class ImageT>
@@ -293,12 +332,27 @@ FITSImage<ImageT>::ijkToNorthUpMatrix() const
 }
 
 
+//-----------------------------------------------------------------------------
+// zAxisAutoscale():
+//    private method of FITSImage template class
+//-----------------------------------------------------------------------------
+
+/*proc*/ 
 template <class ImageT>
-HMatrix
-FITSImage<ImageT>::autoscaleZMatrix() const
+double
+FITSImage<ImageT>::zAxisAutoscale(bool autoscaleZAxisP,
+                                  const HMatrix& ijkToXyzMatrix)
 {
-  //? Implement this.
-  runTimeError("Not yet implemented");
+  if (!autoscaleZAxisP) return 1;
+  
+  HVector ijkSizeVector;
+  ijkSizeVector[e_i] = _ijkSize[e_i];
+  ijkSizeVector[e_j] = _ijkSize[e_j];
+  ijkSizeVector[e_k] = _ijkSize[e_k];
+
+  HVector xyzSizeVector = ijkToXyzMatrix * ijkSizeVector;
+  double xyMax = std::max(fabs(xyzSizeVector[e_x]), fabs(xyzSizeVector[e_y]));
+  return xyMax / xyzSizeVector[e_z];
 }
 
 
@@ -312,29 +366,95 @@ void
 writeImageInfo(const FITSImage<ImageT>& image, ostream& out)
 {
   const ImageT& itkImage = *image.getITKImage();
-  out << "Image center, in IJK space with (0,0,0) index origin: "
-      << image.ijkCenter() << "\n"
-      << "Image center, in RA/Dec: " << image.wcsCenter() << "\n"
-      << "I vector, in RA/Dec: "
-      << image.unitIInWcs() << "\n"
-      << "J vector, in RA/Dec: "
-      << image.unitJInWcs() << "\n"
-      << "I vector, in approximate angular space: "
-      << image.unitIInApproximateAngularSpace() << "\n"
-      << "J vector, in approximate angular space: "
-      << image.unitJInApproximateAngularSpace() << "\n"
-      << "|I|, in approximate angular space: "
+
+  // YOU ARE HERE, implementing image size in pixels and WCS.
+
+  out << "Image size, in pixels: "
+
+  out << "Image center, in pixel space with (0,0,0) index origin: ("
+      << image.ijkCenter()[e_ra] << ", "
+      << image.ijkCenter()[e_dec] << ", "
+      << image.ijkCenter()[e_vel] << ")\n";
+  
+  if (image.wcsTransform()) {
+    out 
+      << "Image center, in RA/Dec: ("
+      << image.wcsImageCenter()[e_ra] << ", "
+      << image.wcsImageCenter()[e_dec] << ", "
+      << image.wcsImageCenter()[e_vel] << ")\n"
+      << "Image origin, in RA/Dec: ("
+      << image.wcsImageOrigin()[e_ra] << ", "
+      << image.wcsImageOrigin()[e_dec] << ", "
+      << image.wcsImageOrigin()[e_vel] << ")\n"
+      << "Pixel width, in RA/Dec: ("
+      << image.unitIInWcs()[e_ra] << ", "
+      << image.unitIInWcs()[e_dec] << ")\n"
+      << "Pixel height, in RA/Dec: ("
+      << image.unitJInWcs()[e_ra] << ", "
+      << image.unitJInWcs()[e_dec] << ")\n"
+      << "Pixel depth, in km/s: " << "NOT YET IMPLEMENTED\n"
+      << "Pixel width, in approximate angular space: ("
+      << image.unitIInApproximateAngularSpace()[e_ra] << ", "
+      << image.unitIInApproximateAngularSpace()[e_dec] << ")\n"
+      << "Pixel height, in approximate angular space: ("
+      << image.unitJInApproximateAngularSpace()[e_ra] << ", "
+      << image.unitJInApproximateAngularSpace()[e_dec] << "\n"
+      << "Pixel width, in approximate angular distance: "
       << image.unitIInApproximateAngularSpace().GetNorm() << "\n"
-      << "|J|, in approximate angular space: "
+      << "Pixel height, in approximate angular distance: "
       << image.unitJInApproximateAngularSpace().GetNorm() << "\n"
-      << "North vector in IJK space: " << image.ijkNorthVector() << "\n"
-      << "Rotation of J from North:  "
-      << image.rotationOfJFromIjkNorthVectorInDegrees() << "\n"
-      << "Direction cosines:\n"
-      << itkImage.GetDirection()
-      << "Image spacing: " << itkImage.GetSpacing() << "\n"
-      << "Image origin: " << itkImage.GetOrigin() << "\n"
-    ;
+      << "Unit north vector in pixel coordinates: ("
+      << image.ijkNorthVector()[e_i] << ", "
+      << image.ijkNorthVector()[e_j] << ")\n"
+      << "Rotation of unit north vector clockwise:  "
+      << image.rotationOfJFromIjkNorthVectorInDegrees() << " degrees\n"
+      << "Rotation of unit east vector clockwise:  "
+      << image.rotationOfIFromIjkEastVectorInDegrees() << " degrees\n"
+      << "Angle between unit north vector and unit east vector: " 
+      << (image.rotationOfJFromIjkNorthVectorInDegrees()
+          - image.rotationOfIFromIjkEastVectorInDegrees()
+          + 90)
+      << " degrees\n"
+      << "Pixel to WCS coordinate transformation matrix:";
+
+    HMatrix t = image.ijkToWcsMatrix();
+    for (int row = 0; row <= c_dims; ++row) {
+      out << "\n  ";
+      for (int col = 0; col <= c_dims; ++col) {
+        out << " " << t(row, col);
+      }
+    }
+    out << endl;
+
+  } else {
+    out << "There is no WCS information in the input image." << endl;
+  }
+
+//       << "Direction cosines:\n"
+//       << itkImage.GetDirection()
+//       << "Image spacing: " << itkImage.GetSpacing() << "\n"
+//       << "Image origin: " << itkImage.GetOrigin() << "\n"
+
+}
+
+
+//-----------------------------------------------------------------------------
+// writeFitsHeader(): template function
+//-----------------------------------------------------------------------------
+
+/*proc*/
+template <class ImageT>
+void
+writeFitsHeader(const ImageT& image, ostream& out)
+{
+  using itk::MetaDataDictionary;
+  using itk::MetaDataObject;
+  const MetaDataDictionary& mdd = image.GetMetaDataDictionary();
+  string fitsHeader;
+  ExposeMetaData(const_cast<MetaDataDictionary&>(mdd),
+		 "FITS Header",
+		 fitsHeader);
+  out << fitsHeader;
 }
 
 
@@ -352,8 +472,6 @@ scalePixelValues(Image<PixelT, c_dims>& image,
                  double multiplier)
 {
   if (multiplier == 1) return;
-
-  std::cerr << "multiplier=" << multiplier << std::endl; //d
 
   // Make sure that we actually have the pixels loaded into the image:
   image.Update();

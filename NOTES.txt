@@ -11,6 +11,105 @@
     below.
 
 
+- REGRESSION TESTS that need to be done
+
+  - Make sure that Jens use case of needing to register
+    different images in Slicer 3 still works.
+
+  - Make sure that all the different options work with different test
+    images that I have been given in the past.
+
+    x Test with no options
+
+         Worked with region1_xyv.nrrd with no options, which now does not do
+         any WCS interpretation.  Orientation was correct.
+ 
+    x Test --rotate-sky
+
+         Worked with 90 degree rotation.  Rotate the image 90
+         counter-clockwise.
+
+    x Test --x-scale
+    x Test --y-scale
+    x Test --sky-scale
+    x Test --pixel-scale
+    x Test --coerce-to-shorts
+    x Test --coerce-to-unsigned-shorts
+
+    x Test --null-value
+
+         Works and properly checks to make sure that value wasn't set to 0.
+
+         Caveat: Takes effect *before* --pixel-scale, as the null value is set
+         in the reader, as this is a function of cfitsio.
+
+         Caveat: Cannot set the null value to 0, as this is not allowed by
+         cfitsio.
+
+    x Test --flipx, --flipy, --flipz
+
+    x Test --wcs
+
+      Seems to work.
+
+      Note: Without "--x-scale -1", the image will end up flipped, but I think
+      that this might be a feature, not a bug.
+
+      o TODO: Have not implemented velocity WCS.
+
+      o TODO: Need to make sure that origin is preserved when registering
+           multiple images.
+
+    x Test --show-fits-header
+
+      o TODO: Perhaps should preface the output with "FITS HEADER:"
+        or something.
+
+    x Test -n, --no-write
+
+    x --equiangular
+
+    x --autoscale-z-axis
+
+      o TODO: Test this again, since I've messed with the WCS stuff
+
+    x --east-left
+
+      NOTE: I'm not going to implement this unless someone asks for it.
+
+    o Test --verbose
+
+      TODO: Need to add support for velocity info.
+
+    x Test --debug-level
+
+    x -q, --quiet
+
+      NOTE: Not implemented as we don't need it.
+
+    x --lps
+
+      NOTE: Option deleted, as I'm not sure what it was ever supposed to do.
+
+    o Test --north-up.
+
+      x Tested on an image for which north was already up.  Image stayed the
+        same.
+
+    o Find out what the proper term is for the inverse coordinate frame
+      transformation.
+
+    o Make sure that cfitsio extended filename syntax still works.
+
+    o Test to make sure that program works on FITS file that does not have WCS
+      information.
+
+
+
+
+  - Make sure that fits2itk runs on an Intel CPU.
+
+
 - IMPORTANT
 
   - I have marked code that I need to make work again with "//?"
@@ -20,6 +119,12 @@
     - A description of the changes that have been made in each clone
       (e.g., *this* one!), but not yet pushed up to the the .mainline
       repository.
+
+- TODO
+
+  - Update the "--help" output to reflect reality.
+
+
 
 - Notes about refactoring work on fits2itk
 

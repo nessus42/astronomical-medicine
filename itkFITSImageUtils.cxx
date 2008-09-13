@@ -138,4 +138,21 @@ setNullValue(double nullValue)
 }
 
 
+//-----------------------------------------------------------------------------
+// setFITSImageIODebugLevel(): function
+//-----------------------------------------------------------------------------
+
+proc void
+setFITSImageIODebugLevel(int debugLevel)
+{
+  FITSImageIO::DebugLevelSetter setDebugLevel =
+    reinterpret_cast<FITSImageIO::DebugLevelSetter>(
+      dlsym(loadFITSImageIO(), "itkFITSImageIO_setDebugLevel")
+      );
+  if (!setDebugLevel) {
+    runTimeError("Could not find function itkFITSImageIO_setDebugLevel()");
+  }
+  (*setDebugLevel)(debugLevel);
+}
+
 } } // END namespaces
