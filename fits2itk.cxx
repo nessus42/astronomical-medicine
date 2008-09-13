@@ -58,7 +58,9 @@ using itk::fits::FITSImage;
 using itk::fits::reflectPixels;
 using itk::fits::scalePixelValues;
 using itk::fits::setNullValue;
+using itk::fits::setFITSImageIODebugLevel;
 using itk::fits::writeImageInfo;
+using itk::fits::writeFitsHeader;
 
 #include <pathToExecutable.h>
 #include <da_util.h>
@@ -148,7 +150,7 @@ namespace {
     const char*    _inputFilepath;
     const char*    _outputFilepath;
 
-    bool	   _quietModeP;          // Set with -q, --quiet //?
+//     bool	   _quietModeP;          // Set with -q, --quiet //?
     bool           _dontWriteP;          // Set with -n, --no-write //?
     bool	   _wcsP;                // Set with --wcs
     bool	   _equiangularP;        // Set with --equiangular
@@ -158,7 +160,10 @@ namespace {
     bool	   _flipxP;		 // Set with --flipx
     bool	   _flipyP;		 // Set with --flipy
     bool	   _flipzP;		 // Set with --flipz
-    bool	   _verboseP;		 // Set with --verbose //?
+    bool	   _verboseP;		 // Set with --verbose
+
+    //? I don't think that we need both --quiet and --verbose, do we?
+
     bool	   _showFitsHeaderP;     // Set with --show-fits-header //?
     bool	   _coerceToShortsP;	 // Set with --coerce-to-shorts
     bool	   _coerceToUnsignedShortsP;
@@ -183,7 +188,7 @@ namespace {
     const char* inputFilepath() const { return _inputFilepath;}
     const char* outputFilepath() const { return _outputFilepath; }
 
-    bool quietModeP() const { return _quietModeP; }
+//     bool quietModeP() const { return _quietModeP; }
     bool dontWriteP() const { return _dontWriteP; }
     bool wcsP() const { return _wcsP; }
     bool equiangularP() const { return _equiangularP; }
@@ -214,7 +219,7 @@ ctor
 CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
   : _inputFilepath(0),
     _outputFilepath(0),
-    _quietModeP(false),
+//     _quietModeP(false),
     _dontWriteP(false),
     _wcsP(false),
     _equiangularP(false),
@@ -244,53 +249,54 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
   char optionChar;
   const int c_base10 = 10;
 
-  int verboseHelpParsingFlag;
-  int quietModeParsingFlag;
-  int dontWriteParsingFlag;
-  int wcsParsingFlag;
-  int equiangularParsingFlag;
-  int northUpParsingFlag;
-//   int eastLeftParsingFlag;
-  int autoscaleZAxisParsingFlag;
-  int flipxParsingFlag;
-  int flipyParsingFlag;
-  int flipzParsingFlag;
-  int verboseParsingFlag;
-  int showFitsHeaderParsingFlag;
-  int coerceToShortsParsingFlag;
-  int coerceToUnsignedShortsParsingFlag;
-//   int lpsParsingFlag;
-  int pixelScaleParsingFlag;
-  int xAxisScaleParsingFlag;
-  int yAxisScaleParsingFlag;
-  int zAxisScaleParsingFlag;
-  int skyScaleParsingFlag;
-  int nullValueParsingFlag;
-  int debugLevelParsingFlag;
-  int rotateSkyParsingFlag;
-//   int wcsGridStrideParsingFlag;
+  int verboseHelpParsingFlag = false;
+//   int quietModeParsingFlag = false;
+  int wcsParsingFlag = false;
+  int equiangularParsingFlag = false;
+  int northUpParsingFlag = false;
+//int eastLeftParsingFlag  = false;
+  int autoscaleZAxisParsingFlag = false;
+  int flipxParsingFlag = false;
+  int flipyParsingFlag = false;
+  int flipzParsingFlag  = false;
+  int verboseParsingFlag  = false;
+  int showFitsHeaderParsingFlag  = false;
+  int coerceToShortsParsingFlag  = false;
+  int coerceToUnsignedShortsParsingFlag  = false;
+//int lpsParsingFlag  = false;
+  int pixelScaleParsingFlag  = false;
+  int xAxisScaleParsingFlag  = false;
+  int yAxisScaleParsingFlag  = false;
+  int zAxisScaleParsingFlag  = false;
+  int skyScaleParsingFlag  = false;
+  int nullValueParsingFlag  = false;
+  int debugLevelParsingFlag  = false;
+  int rotateSkyParsingFlag  = false;
+//int wcsGridStrideParsingFlag  = false;
 
   // Specify the allowed short options:
-  const char shortopts[] = "nq";
+  const char shortopts[] = "hnq?";
 
   // Specify the allowed long options:
   struct option longopts[] = {
     { "help",             no_argument,       &verboseHelpParsingFlag,    true },
-    { "quiet",		  no_argument,       &quietModeParsingFlag,      'q' },
-    { "no-write",	  no_argument,       &dontWriteParsingFlag,      'n' },
+//     { "quiet",		  no_argument,       &quietModeParsingFlag,      'q' },
+    { "no-write",	  no_argument,       null,      		 'n' },
     { "wcs",              no_argument,       &wcsParsingFlag,            true },
     { "equiangular",      no_argument,       &equiangularParsingFlag,    true },
     { "north-up",         no_argument,       &northUpParsingFlag,        true },
-//     { "east-left",        no_argument,       &eastLeftParsingFlag,       true },
-    { "autoscale-z-axis", no_argument,       &zAxisScaleParsingFlag,     true },
+//  { "east-left",        no_argument,       &eastLeftParsingFlag,       true },
+    { "autoscale-z-axis", no_argument,       &autoscaleZAxisParsingFlag, true },
     { "flipx",            no_argument,       &flipxParsingFlag,          true },
     { "flipy",            no_argument,       &flipyParsingFlag,          true },
     { "flipz",            no_argument,       &flipzParsingFlag,          true },
     { "verbose",          no_argument,       &verboseParsingFlag,        true },
     { "show-fits-header", no_argument,       &showFitsHeaderParsingFlag, true },
     { "coerce-to-shorts", no_argument,       &coerceToShortsParsingFlag, true },
-    { "lps",              no_argument,       &coerceToUnsignedShortsParsingFlag,
-                                                                         true },
+    { "coerce-to-unsigned-shorts",
+                          no_argument,       &coerceToUnsignedShortsParsingFlag,
+      									 true },
+//  { "lps",              no_argument,       &lpsParsingFlag,            true },
     { "pixel-scale",      required_argument, &pixelScaleParsingFlag,     true },
     { "x-scale",          required_argument, &xAxisScaleParsingFlag,     true },
     { "y-scale",          required_argument, &yAxisScaleParsingFlag,     true },
@@ -299,7 +305,7 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
     { "null-value",       required_argument, &nullValueParsingFlag,      true },
     { "debug-level",      required_argument, &debugLevelParsingFlag,     true },
     { "rotate-sky",       required_argument, &rotateSkyParsingFlag,      true },
-//     { "wcs-grid-stride",  required_argument, &wcsGridStrideParsingFlag,  true },
+//  { "wcs-grid-stride",  required_argument, &wcsGridStrideParsingFlag,  true },
     { null, 0, null, 0 }
   };
 
@@ -313,13 +319,16 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
     {
       switch (optionChar) {
 
+      case 'h':
+        usage();
+
       case 'n':
         _dontWriteP = true;
         break;
 
-      case 'q':
-        _quietModeP = true;
-        break;
+//       case 'q':
+//         _quietModeP = true;
+//         break;
 
       case '?': 
         // On BSD (e.g., OS X), we end up here for unknown long options.
@@ -352,7 +361,7 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
 //           _eastLeftP = true;
         } else if (autoscaleZAxisParsingFlag) {
           autoscaleZAxisParsingFlag = false;
-          _zAxisScale = true;
+          _autoscaleZAxisP = true;
         } else if (flipxParsingFlag) {
           flipxParsingFlag = false;
           _flipxP = true;
@@ -403,6 +412,7 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
           nullValueParsingFlag = false;
           _nullValue = strtod(optarg, &endptr);
           checkEndptr(endptr);
+          if (_nullValue == 0) runTimeError("Cannot set the null value to 0.");
         } else if (debugLevelParsingFlag) {
           debugLevelParsingFlag = false;
           _debugLevel = strtol(optarg, &endptr, c_base10);
@@ -440,6 +450,10 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
 
   // Do some sanity checking to make sure that the options specified are
   // consistent with each other:
+
+  if (_wcsP and (_flipxP or _flipyP or _flipzP)) {
+    runTimeError("You cannot use any of the flip options if WCS is turned on.");
+  }
 
   if (_autoscaleZAxisP and !_wcsP) {
     runTimeError("Velocity axis auto-scaling does not work without WCS on.\n");
@@ -512,6 +526,11 @@ convertInputFileToItkFile(CommandLineParser& cl)
   params.rotateSky = cl.rotateSky();
   FITSImage<ImageT> fitsImage (params);
 
+
+  // We actually only write an output file if we were given the name of an
+  // output file.  If we weren't, then we just read in the image for the
+  // purposes of outputing any information to stdout that has been requested:
+
   if (cl.outputFilepath()) {
     typedef itk::ImageFileWriter<ImageT> WriterT;
     typename WriterT::Pointer writer = WriterT::New();
@@ -523,6 +542,7 @@ convertInputFileToItkFile(CommandLineParser& cl)
   }
 
   if (da::getVerbosityLevel()) writeImageInfo<ImageT>(fitsImage, cout);
+  if (cl.showFitsHeaderP()) writeFitsHeader<ImageT>(*image, cout);
 
   return EXIT_SUCCESS;
 
@@ -730,6 +750,8 @@ handleOptions(const CommandLineParser& cl)
 {
   setNullValue(cl.nullValue());
   da::setDebugLevel(cl.debugLevel());
+  setFITSImageIODebugLevel(cl.debugLevel());
+  da::setVerbosityLevel(cl.verboseP());
 }
 
 

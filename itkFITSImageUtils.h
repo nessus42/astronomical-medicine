@@ -31,6 +31,7 @@ namespace itk {
 //-----------------------------------------------------------------------------
 
 typedef Matrix<double, 4, 4> HMatrix;
+typedef Vector<double, 4> HVector;
 
 //-----------------------------------------------------------------------------
 // Constants
@@ -63,14 +64,14 @@ using std::string;
 //*****                                                                   *****
 //*****************************************************************************
 
-template <class ImageType>
+template <class ImageT>
 class FITSImage
 {
 
-  typedef FITSWCSTransform<double, ImageType::ImageDimension> WCS;
+  typedef FITSWCSTransform<double, ImageT::ImageDimension> WCS;
 
 public:
-  typedef          FITSImage<ImageType>     Self;
+  typedef          FITSImage<ImageT>        Self;
   typedef typename WCS::InputPointType      IjkPoint;
   typedef typename IjkPoint::VectorType     IjkVector;
   typedef typename WCS::OutputPointType     WcsPoint;
@@ -80,7 +81,7 @@ public:
 
 
   struct Params {
-    typename ImageType::Pointer           itkImage;
+    typename ImageT::Pointer           itkImage;
     bool				  wcsP;
     bool				  equiangularP;
     bool				  northUpP;
@@ -102,16 +103,20 @@ private:
 
   // Instance variables:
   const Params		  _params;
-  ImageType&	          _itkImage;
+  ImageT&	          _itkImage;
   WcsTransformConstPtr    _wcsTransform;
   IjkPoint                _ijkCenter;
-  WcsPoint                _wcsCenter;
+  IjkPoint       	  _ijkSize;
+  WcsPoint		  _wcsImageOrigin;
+  WcsPoint                _wcsImageCenter;
   WcsVector               _unitIInWcs;
   WcsVector               _unitJInWcs;
   WcsVector               _unitIInApproximateAngularSpace;
   WcsVector               _unitJInApproximateAngularSpace;
   IjkVector            	  _ijkNorthVector;
+  IjkVector		  _ijkEastVector;
   double               	  _rotationOfJFromIjkNorthVectorInDegrees;
+  double		  _rotationOfIFromIjkEastVectorInDegrees;
   double               	  _raAngularScalingFactor;
 
   // Private static methods:
@@ -119,10 +124,7 @@ private:
 
   // Private methods:
   void	 initializeInstanceVars();
-  HMatrix ijkToEquiangularMatrix() const;
-  HMatrix ijkToWcsMatrix() const;
-  HMatrix ijkToNorthUpMatrix() const;
-  HMatrix autoscaleZMatrix() const;
+  double  zAxisAutoscale(bool, const HMatrix&);
 
   // Deactivate copy ctor and and assignment:
   FITSImage(const FITSImage&);
@@ -134,18 +136,19 @@ public:
   explicit FITSImage(const Params& params);
 
   // Accessor methods::
-  typename ImageType::Pointer
+  typename ImageT::Pointer
      getITKImage() { return _params.itkImage; }
 
-  typename ImageType::ConstPointer 
+  typename ImageT::ConstPointer 
      getITKImage() const
-        { return typename ImageType::ConstPointer(_params.itkImage); }
+        { return typename ImageT::ConstPointer(_params.itkImage); }
 
-  IjkPoint                ijkCenter() const    { return _ijkCenter; }
-  WcsPoint                wcsCenter() const    { return _wcsCenter; }
-  WcsVector               unitIInWcs() const   { return _unitIInWcs; }
-  WcsVector               unitJInWcs() const   { return _unitJInWcs; }
-  WcsTransformConstPtr    wcsTransform() const { return _wcsTransform; }
+  IjkPoint                ijkCenter() const      { return _ijkCenter; }
+  WcsPoint	          wcsImageOrigin() const { return _wcsImageOrigin; }
+  WcsPoint                wcsImageCenter() const { return _wcsImageCenter; }
+  WcsVector               unitIInWcs() const     { return _unitIInWcs; }
+  WcsVector               unitJInWcs() const     { return _unitJInWcs; }
+  WcsTransformConstPtr    wcsTransform() const   { return _wcsTransform; }
 
   WcsVector     unitIInApproximateAngularSpace() const
                    { return _unitIInApproximateAngularSpace; }
@@ -153,10 +156,21 @@ public:
                    { return _unitJInApproximateAngularSpace; }
   IjkVector     ijkNorthVector() const
                    { return _ijkNorthVector; }
+  IjkVector     ijkEastVector() const
+                   { return _ijkEastVector; }
   double        rotationOfJFromIjkNorthVectorInDegrees() const
                    { return _rotationOfJFromIjkNorthVectorInDegrees; }
+  double        rotationOfIFromIjkEastVectorInDegrees() const
+                   { return _rotationOfIFromIjkEastVectorInDegrees; }
   double        raAngularScalingFactor() const
                    { return _raAngularScalingFactor; }
+
+
+  // Nonvirtual methods:
+  HMatrix ijkToEquiangularMatrix() const;
+  HMatrix ijkToWcsMatrix() const;
+  HMatrix ijkToNorthUpMatrix() const;
+  HMatrix autoscaleZMatrix() const;
 };
 
 //-----------------------------------------------------------------------------
@@ -165,6 +179,9 @@ public:
 
 template <class ImageT> void
    writeImageInfo(const FITSImage<ImageT>& image, std::ostream& out);
+
+template <class ImageT> void
+   writeFitsHeader(const ImageT& image, ostream& out);
 
 template <class PixelT> void
    scalePixelValues(Image<PixelT, _internal::c_dims>& image,
@@ -186,6 +203,7 @@ template <class ImageT> void
 template <class ImageT> HMatrix
    getCoordinateFrameTransformation(const ImageT& image);
 
+
 } // END namespace _internal
 
 
@@ -195,6 +213,7 @@ template <class ImageT> HMatrix
 
 using _internal::FITSImage;
 using _internal::writeImageInfo;
+using _internal::writeFitsHeader;
 using _internal::scalePixelValues;
 using _internal::reflectPixels;
 using _internal::rightConcatenateTransformation;
@@ -208,6 +227,7 @@ using _internal::getCoordinateFrameTransformation;
 //-----------------------------------------------------------------------------
 
 void           setNullValue(double nullValue);
+void	       setFITSImageIODebugLevel(int debugLevel);
 void           fillMatrix(HMatrix& m, const double vals[4][4]);
 HMatrix        rotationMatrix(double degrees);
 HMatrix	       scalingMatrix(double xScale, double yScale, double zScale);

@@ -98,8 +98,6 @@ double FITSImageIO::_cv_nullValue = 0; // The default of 0 causes NaN's
                                        // converted to 0, as one would
                                        // naively expect.
 
-int FITSImageIO::_cv_deprecated_debugLevel = 0;
-
 
 //=============================================================================
 //                    Private methods                                   
@@ -199,7 +197,7 @@ FITSImageIO::ReadImageInformation()
   }
 
   debugPrint("NAXIS=" << numOfAxes);
-  if (_cv_deprecated_debugLevel) {
+  if (da::getDebugLevel()) {
     cerr << "DIMS=";
     for (long i = 0; i < numOfAxes; ++i) {
       cerr << " " << lengthsOfAxesInPixels[i];
@@ -429,5 +427,16 @@ itkFITSImageIO_setNullValue(double nullValue)
 { 
   FITSImageIO::SetNullValue(nullValue);
 }
+
+//-----------------------------------------------------------------------------
+// itkFITSImageIO_setNullValue(): function exported for dynamic loading
+//-----------------------------------------------------------------------------
+
+proc extern "C" void 
+itkFITSImageIO_setDebugLevel(int debugLevel)
+{ 
+  da::setDebugLevel(debugLevel);
+}
+
 
 } // namespace itk
