@@ -113,6 +113,8 @@ private:
   WcsVector               _unitJInWcs;
   WcsVector               _unitIInApproximateAngularSpace;
   WcsVector               _unitJInApproximateAngularSpace;
+  double		  _unitKInVelocity;         // In km/sec
+  double		  _velocityAtIjkOrigin;     // In km/sec
   IjkVector            	  _ijkNorthVector;
   IjkVector		  _ijkEastVector;
   double               	  _rotationOfJFromIjkNorthVectorInDegrees;
@@ -123,7 +125,8 @@ private:
   WcsTransformConstPtr    makeWcsTransform();
 
   // Private methods:
-  void	 initializeInstanceVars();
+  void	  initializeInstanceVars();
+  void    setVelocityInstanceVars();
   double  zAxisAutoscale(bool, const HMatrix&);
 
   // Deactivate copy ctor and and assignment:
@@ -143,6 +146,7 @@ public:
      getITKImage() const
         { return typename ImageT::ConstPointer(_params.itkImage); }
 
+  IjkPoint		  ijkSize() const        { return _ijkSize; }
   IjkPoint                ijkCenter() const      { return _ijkCenter; }
   WcsPoint	          wcsImageOrigin() const { return _wcsImageOrigin; }
   WcsPoint                wcsImageCenter() const { return _wcsImageCenter; }
@@ -154,6 +158,9 @@ public:
                    { return _unitIInApproximateAngularSpace; }
   WcsVector     unitJInApproximateAngularSpace() const
                    { return _unitJInApproximateAngularSpace; }
+  double	unitKInVelocity() const          { return _unitKInVelocity; }
+  double	velocityAtIjkOrigin() const      { return _velocityAtIjkOrigin;}
+
   IjkVector     ijkNorthVector() const
                    { return _ijkNorthVector; }
   IjkVector     ijkEastVector() const

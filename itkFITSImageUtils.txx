@@ -45,6 +45,8 @@ FITSImage<ImageT>::FITSImage(const typename Self::Params& params)
   : _params(params),
     _itkImage(*params.itkImage),
     _wcsTransform(0),
+    _unitKInVelocity(1),
+    _velocityAtIjkOrigin(0),
     _rotationOfJFromIjkNorthVectorInDegrees(0),
     _rotationOfIFromIjkEastVectorInDegrees(0)
 {
@@ -116,6 +118,8 @@ template <class ImageT>
 void 
 FITSImage<ImageT>::initializeInstanceVars()
 {
+  this->setVelocityInstanceVars();
+
   typename ImageT::RegionType
     allOfImage = _itkImage.GetLargestPossibleRegion();
   typename ImageT::SizeType imageSize = allOfImage.GetSize();
@@ -133,7 +137,10 @@ FITSImage<ImageT>::initializeInstanceVars()
     _wcsTransform = wcs;
     const IjkPoint zeroZeroZero;
     _wcsImageOrigin = wcs->TransformPoint(zeroZeroZero);
+    _wcsImageOrigin[e_vel] = _velocityAtIjkOrigin;
     _wcsImageCenter = wcs->TransformPoint(_ijkCenter);
+    _wcsImageCenter[e_vel] = 
+      _velocityAtIjkOrigin + _ijkCenter[e_k] * _unitKInVelocity;
 
     // TODO: It's confusing that in some situations V is 1 and dec is 2, and
     // in others, dec is 1 and V is 2.  We need a better way to denote this.
@@ -269,6 +276,37 @@ FITSImage<ImageT>::makeWcsTransform()
 
 
 //-----------------------------------------------------------------------------
+// setVelocityInstanceVars(): private method of FITSImage template class
+//-----------------------------------------------------------------------------
+
+/*proc*/
+template <class ImageT>
+void
+FITSImage<ImageT>::setVelocityInstanceVars()
+{
+  using itk::MetaDataDictionary;
+  using itk::MetaDataObject;
+  const MetaDataDictionary& mdd = _itkImage.GetMetaDataDictionary();
+
+  // Fetch the velocity information out of the metadata dictionary.  We cast
+  // away const here conly because ExposeMetaData() is unfortunately not const
+  // correct:
+  double velocityAtIndexOrigin;
+  double velocityDelta = 0;
+  ExposeMetaData(const_cast<MetaDataDictionary&>(mdd),
+		 "fits2itk.velocityAtIndexOrigin",
+                 velocityAtIndexOrigin);
+  ExposeMetaData(const_cast<MetaDataDictionary&>(mdd),
+                 "fits2itk.velocityDelta",
+                 velocityDelta);
+  if (velocityDelta != 0) {
+    _unitKInVelocity = velocityDelta;
+    _velocityAtIjkOrigin = velocityAtIndexOrigin;
+  }
+}
+
+
+//-----------------------------------------------------------------------------
 // ijkToEquiangularMatrix():
 //    nonvirtual method of FITSImage template class
 //-----------------------------------------------------------------------------
@@ -367,50 +405,56 @@ writeImageInfo(const FITSImage<ImageT>& image, ostream& out)
 {
   const ImageT& itkImage = *image.getITKImage();
 
-  // YOU ARE HERE, implementing image size in pixels and WCS.
-
-  out << "Image size, in pixels: "
-
-  out << "Image center, in pixel space with (0,0,0) index origin: ("
+  out << "Pixel coordinates:\n";
+  out << "   Image size ("
+      << image.ijkSize()[e_i] << ", "
+      << image.ijkSize()[e_j] << ", "
+      << image.ijkSize()[e_k] << ")\n"
+      << "   Image origin: (0, 0, 0)\n"
+      << "   Center pixel: ("
       << image.ijkCenter()[e_ra] << ", "
       << image.ijkCenter()[e_dec] << ", "
       << image.ijkCenter()[e_vel] << ")\n";
   
   if (image.wcsTransform()) {
     out 
-      << "Image center, in RA/Dec: ("
-      << image.wcsImageCenter()[e_ra] << ", "
-      << image.wcsImageCenter()[e_dec] << ", "
-      << image.wcsImageCenter()[e_vel] << ")\n"
-      << "Image origin, in RA/Dec: ("
+      << "RA/Dec/Velocity:\n"
+      << "   Image origin: ("
       << image.wcsImageOrigin()[e_ra] << ", "
       << image.wcsImageOrigin()[e_dec] << ", "
       << image.wcsImageOrigin()[e_vel] << ")\n"
-      << "Pixel width, in RA/Dec: ("
+      << "   Center pixel: ("
+      << image.wcsImageCenter()[e_ra] << ", "
+      << image.wcsImageCenter()[e_dec] << ", "
+      << image.wcsImageCenter()[e_vel] << ")\n"
+      << "   Pixel width: ("
       << image.unitIInWcs()[e_ra] << ", "
       << image.unitIInWcs()[e_dec] << ")\n"
-      << "Pixel height, in RA/Dec: ("
+      << "   Pixel height: ("
       << image.unitJInWcs()[e_ra] << ", "
       << image.unitJInWcs()[e_dec] << ")\n"
-      << "Pixel depth, in km/s: " << "NOT YET IMPLEMENTED\n"
-      << "Pixel width, in approximate angular space: ("
+      << "   Pixel depth: " << image.unitKInVelocity() << " km/s\n"
+      << "Approximate Angular Space:\n"
+      << "   Pixel width: ("
       << image.unitIInApproximateAngularSpace()[e_ra] << ", "
       << image.unitIInApproximateAngularSpace()[e_dec] << ")\n"
-      << "Pixel height, in approximate angular space: ("
+      << "   Pixel height: ("
       << image.unitJInApproximateAngularSpace()[e_ra] << ", "
       << image.unitJInApproximateAngularSpace()[e_dec] << "\n"
-      << "Pixel width, in approximate angular distance: "
+      << "Approximate Angular Distance:\n"
+      << "   Pixel width: "
       << image.unitIInApproximateAngularSpace().GetNorm() << "\n"
-      << "Pixel height, in approximate angular distance: "
+      << "   Pixel height: "
       << image.unitJInApproximateAngularSpace().GetNorm() << "\n"
-      << "Unit north vector in pixel coordinates: ("
+      << "Orientation of image:\n"
+      << "   Unit north vector in pixel coordinates: ("
       << image.ijkNorthVector()[e_i] << ", "
       << image.ijkNorthVector()[e_j] << ")\n"
-      << "Rotation of unit north vector clockwise:  "
+      << "   Rotation of unit north vector clockwise:  "
       << image.rotationOfJFromIjkNorthVectorInDegrees() << " degrees\n"
-      << "Rotation of unit east vector clockwise:  "
+      << "   Rotation of unit east vector clockwise:  "
       << image.rotationOfIFromIjkEastVectorInDegrees() << " degrees\n"
-      << "Angle between unit north vector and unit east vector: " 
+      << "   Angle between unit north vector and unit east vector: " 
       << (image.rotationOfJFromIjkNorthVectorInDegrees()
           - image.rotationOfIFromIjkEastVectorInDegrees()
           + 90)
