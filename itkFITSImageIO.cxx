@@ -242,25 +242,27 @@ FITSImageIO::ReadImageInformation()
 		  dummyComment, &status);
     fits_read_key(m_fitsFile, TDOUBLE, "CDELT3", &velocityDelta,
 		  dummyComment, &status);
-    if (status) {
-      itkExceptionMacro("FITSImageIO could not read velocity WCS info from"
-			" FITS file \""
-			<< this->GetFileName() << "\": "
-			<< ::getAllFitsErrorMessages(status) << '.');
+//     if (status) {
+//       itkExceptionMacro("FITSImageIO could not read velocity WCS info from"
+// 			" FITS file \""
+// 			<< this->GetFileName() << "\": "
+// 			<< ::getAllFitsErrorMessages(status) << '.');
+//      }
+
+    if (!status) {
+
+      // Convert from m/s to km/s:
+      referenceVelocity /= 1000; 
+      velocityDelta /= 1000; 
+      velocityAtIndexOrigin = 
+        referenceVelocity - velocityDelta * ( 1 - referenceVelocityIndex);
+      debugPrint(
+                 "velocityAtIndexOrigin=" << velocityAtIndexOrigin << "\n"
+                 "indexOfZeroVelocity="
+                 << referenceVelocityIndex - (referenceVelocity / velocityDelta)
+      );
     }
-
-    // Convert from m/s to km/s:
-    referenceVelocity /= 1000; 
-    velocityDelta /= 1000; 
-    velocityAtIndexOrigin = 
-      referenceVelocity - velocityDelta * ( 1 - referenceVelocityIndex);
-    debugPrint(
-      "velocityAtIndexOrigin=" << velocityAtIndexOrigin << "\n"
-      "indexOfZeroVelocity="
-         << referenceVelocityIndex - (referenceVelocity / velocityDelta)
-    );
   }
-
 
   // Set up the ITK image:
   { 
@@ -310,7 +312,6 @@ FITSImageIO::ReadImageInformation()
 			  velocityAtIndexOrigin);
       EncapsulateMetaData(dict, "fits2itk.velocityDelta", velocityDelta);
     }
-
     // TODO: Making separate MDD entries for the above velocites is a bit
     // gross, and perhaps it would just be better to grab them out of the ITK
     // Image spacing and origin information.  The problem with doing that,
@@ -323,7 +324,6 @@ FITSImageIO::ReadImageInformation()
 
     // TODO: Check status and raise exception.
   }
-
 } // end namespace fitsio
 
 

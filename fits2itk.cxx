@@ -67,6 +67,7 @@ using itk::fits::writeFitsHeader;
 
 #include <da_sugar.h>
 using da::setDebugLevel;
+using da::endMatchesP;
 
 extern const char fits2itkVersion[];
 const int c_dims = FITSImageIO::c_dims;
@@ -167,6 +168,7 @@ namespace {
     bool	   _showFitsHeaderP;     // Set with --show-fits-header //?
     bool	   _coerceToShortsP;	 // Set with --coerce-to-shorts
     bool	   _coerceToUnsignedShortsP;
+    bool	   _outputFileIsInAnalyzeFormat;
 //     bool	   _lpsP;		 // Set with --lps //?
     
     double	   _pixelScale;	         // Set with --pixel-scale
@@ -176,6 +178,9 @@ namespace {
     double	   _nullValue;		 // Set with --null-value //?
     double	   _debugLevel;		 // Set with --debug-level
     double	   _rotateSky;		 // Set with --rotate-sky
+
+
+
 
 //     unsigned       _wcsGridStride;	 // Set with --wcs-grid-stride //?
 
@@ -202,7 +207,10 @@ namespace {
     bool showFitsHeaderP() const { return _showFitsHeaderP; }
     bool coerceToShortsP() const { return _coerceToShortsP; }
     bool coerceToUnsignedShortsP() const { return _coerceToUnsignedShortsP; }
+    bool outputFileIsInAnalyzeFormat() const
+            { return _outputFileIsInAnalyzeFormat; }
 //     bool lpsP() const { return _lpsP	 }
+
 
     double pixelScale() const { return _pixelScale; }
     double xAxisScale() const { return _xAxisScale; }
@@ -233,6 +241,7 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
     _showFitsHeaderP(false),
     _coerceToShortsP(false),
     _coerceToUnsignedShortsP(false),
+    _outputFileIsInAnalyzeFormat(false),
 //     _lpsP(false),
     _pixelScale(1),
     _xAxisScale(1),
@@ -447,12 +456,21 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
   }
   _inputFilepath = argv[::optind];
 
-
+  if (da::endMatchesP(_outputFilepath, ".hdr") or
+      da::endMatchesP(_outputFilepath, ".img"))
+    {
+      _outputFileIsInAnalyzeFormat = true;
+    } 
+    
   // Do some sanity checking to make sure that the options specified are
   // consistent with each other:
 
   if (_wcsP and (_flipxP or _flipyP or _flipzP)) {
     runTimeError("You cannot use any of the flip options if WCS is turned on.");
+  }
+
+  if (_wcsP and _outputFileIsInAnalyzeFormat) {
+    runTimeError("You cannot turn on WCS when writing file in Analyze format.");
   }
 
   if (_autoscaleZAxisP and !_wcsP) {
@@ -524,8 +542,10 @@ convertInputFileToItkFile(CommandLineParser& cl)
   params.yAxisScale = cl.yAxisScale();
   params.zAxisScale = cl.zAxisScale();
   params.rotateSky = cl.rotateSky();
-  FITSImage<ImageT> fitsImage (params);
 
+  if (cl.outputFileIsInAnalyzeFormat()) params.zAxisScale *= -1;
+
+  FITSImage<ImageT> fitsImage (params);
 
   // We actually only write an output file if we were given the name of an
   // output file.  If we weren't, then we just read in the image for the
@@ -597,9 +617,11 @@ mapRange(const int value,
 // convertInputFileToWcsGridImage(): local function
 //-----------------------------------------------------------------------------
 
-// TODO: This function probably won't work right, as it doesn't support all the
-// options that we now have, but I'm not sure that it should be removed, as we
-// may still want it.  Perhaps I should just comment it out, but leave it here.
+// TODO: This function probably won't work right in the current version of
+// fits2itk, as it doesn't support all the options that we now have, but I'm
+// not sure that it should be removed, as we may still want it someday.  I
+// think I'll just comment it out for now, but leave it here for future
+// reference.
 
 // local proc int
 // convertInputFileToWcsGridImage(CommandLineParser& cl)

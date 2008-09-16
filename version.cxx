@@ -11,7 +11,7 @@
 // See LICENSE.txt for for details.
 //=============================================================================
 
-extern const char fits2itkVersion[] = "0.4dev.12pending.11";
+extern const char fits2itkVersion[] = "0.4dev.12";
 
 //=============================================================================
 // Change Log
@@ -605,27 +605,47 @@ extern const char fits2itkVersion[] = "0.4dev.12pending.11";
 
 // Implemented the "fexstrude" script.
 
+//----------------------------------------------------
+// Version 0.4dev.12
+//----------------------------------------------------
+
+// The ultimate 0.4 release will embody a major effort in refactoring the code
+// to be simpler, more elegant, and more maintainable.  The 0.4 release will
+// also do its WCS linear interpolation based on just a few pixels at the
+// center of the image.  This will allow it to be usable closer to the poles.
+
+// This version is most of the way there.  It should just need a bit of
+// polishing and a few bug fixes.
+
+// I merged changes from fits2itk.fixes into this version.  I also
+// reimplementing most of the features that were lost when I refactored the
+// code.
+
+// I revamped the command line options completely.
+
+// I revamped the verbose output completely.
+
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
 //----------------------------------------------------------------------
 
-//----------------------------------------------------
-// Version 0.4dev.12pending.11
-//----------------------------------------------------
-
-// Beginning work on merging changes from fits2itk.fixes into this version.
-// Also reimplementing the features that were lost when I refactored the code.
-
 // Things that I need to do soon:
 
-// o Reimplementation of features lost during my major refactoring effort.
+// o Detailed notes about the current state of things is in NOTES.txt.
 
-// o To see the options that are going to be in the next released version, see
-//   NOTES.txt.
-
-// o Replace debug-level in FITSImageIO with an environment variable lookup.
+// o If we ever want the FITSImageIO DLL to actually work as a plugin with
+//   something, then we'll have to pass it its settings (e.g., debug level and
+//   null value) via an environment variable (or somesuch), rather than via
+//   extern "C" calls.
 
 // o Change CMake config to not dependent libraries being built by my CMake.
 //   Instead do it the more normal way of telling CMake that my stuff depends
 //   on other stuff outside of the CMake directory.  Then also write a build
 //   script that will build everything.  (*Maybe* use scons to do this.)
+
+// o Need to update the shell script wrapper that provides the GUI interface to
+//   Slicer 3.
+
+// o Need to rewrite the help output as it is now completely inaccurate.
+
+// o Make grid image output work again if we ever need it.

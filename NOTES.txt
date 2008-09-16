@@ -77,9 +77,7 @@
 
       NOTE: I'm not going to implement this unless someone asks for it.
 
-    o Test --verbose
-
-      TODO: Need to add support for velocity info.
+    x Test --verbose
 
     x Test --debug-level
 
@@ -91,6 +89,12 @@
 
       NOTE: Option deleted, as I'm not sure what it was ever supposed to do.
 
+    x Make sure that cfitsio extended filename syntax still works.
+
+    x Make program work for .hdr and .img files.
+
+    x Make sure that fits2itk runs on an Intel CPU.
+
     o Test --north-up.
 
       x Tested on an image for which north was already up.  Image stayed the
@@ -99,15 +103,10 @@
     o Find out what the proper term is for the inverse coordinate frame
       transformation.
 
-    o Make sure that cfitsio extended filename syntax still works.
-
     o Test to make sure that program works on FITS file that does not have WCS
       information.
 
-
-
-
-  - Make sure that fits2itk runs on an Intel CPU.
+    o --tiff-output
 
 
 - IMPORTANT
@@ -123,7 +122,6 @@
 - TODO
 
   - Update the "--help" output to reflect reality.
-
 
 
 - Notes about refactoring work on fits2itk
