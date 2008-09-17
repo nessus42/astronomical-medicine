@@ -316,8 +316,6 @@ template <class ImageT>
 HMatrix
 FITSImage<ImageT>::ijkToEquiangularMatrix() const
 {
-  //? TODO: We need to deal with the velocity axis.
-
   HMatrix retval;
   retval.SetIdentity();
   if (!_wcsTransform) return retval;
@@ -339,8 +337,6 @@ template <class ImageT>
 HMatrix
 FITSImage<ImageT>::ijkToWcsMatrix() const
 {
-  //? TODO: We need to deal with the velocity axis.
-
   HMatrix retval;
   retval.SetIdentity();
   if (!_wcsTransform) return retval;
