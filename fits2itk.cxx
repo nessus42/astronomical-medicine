@@ -151,38 +151,27 @@ namespace {
     const char*    _inputFilepath;
     const char*    _outputFilepath;
 
-//     bool	   _quietModeP;          // Set with -q, --quiet //?
-    bool           _dontWriteP;          // Set with -n, --no-write //?
+    bool           _dontWriteP;          // Set with -n, --no-write
     bool	   _wcsP;                // Set with --wcs
     bool	   _equiangularP;        // Set with --equiangular
     bool	   _northUpP;            // Set with --north-up
-//     bool	   _eastLeftP;           // Set with --east-left
     bool	   _autoscaleZAxisP;	 // Set with --autoscale-z-axis
     bool	   _flipxP;		 // Set with --flipx
     bool	   _flipyP;		 // Set with --flipy
     bool	   _flipzP;		 // Set with --flipz
     bool	   _verboseP;		 // Set with --verbose
-
-    //? I don't think that we need both --quiet and --verbose, do we?
-
-    bool	   _showFitsHeaderP;     // Set with --show-fits-header //?
+    bool	   _showFitsHeaderP;     // Set with --show-fits-header
     bool	   _coerceToShortsP;	 // Set with --coerce-to-shorts
     bool	   _coerceToUnsignedShortsP;
     bool	   _outputFileIsInAnalyzeFormat;
-//     bool	   _lpsP;		 // Set with --lps //?
-    
     double	   _pixelScale;	         // Set with --pixel-scale
     double         _xAxisScale;		 // Set with --x-scale
     double 	   _yAxisScale;		 // Set with --y-scale
     double	   _zAxisScale; 	 // Set with --z-scale
-    double	   _nullValue;		 // Set with --null-value //?
+    double	   _nullValue;		 // Set with --null-value
     double	   _debugLevel;		 // Set with --debug-level
     double	   _rotateSky;		 // Set with --rotate-sky
-
-
-
-
-//     unsigned       _wcsGridStride;	 // Set with --wcs-grid-stride //?
+//  unsigned       _wcsGridStride;	 // Set with --wcs-grid-stride
 
   public:
     
@@ -193,12 +182,10 @@ namespace {
     const char* inputFilepath() const { return _inputFilepath;}
     const char* outputFilepath() const { return _outputFilepath; }
 
-//     bool quietModeP() const { return _quietModeP; }
     bool dontWriteP() const { return _dontWriteP; }
     bool wcsP() const { return _wcsP; }
     bool equiangularP() const { return _equiangularP; }
     bool northUpP() const { return _northUpP; }
-//     bool eastLeftP() const { return _eastLeftP; }
     bool autoscaleZAxisP() const { return _autoscaleZAxisP; }
     bool flipxP() const { return _flipxP; }
     bool flipyP() const { return _flipyP; }
@@ -209,9 +196,6 @@ namespace {
     bool coerceToUnsignedShortsP() const { return _coerceToUnsignedShortsP; }
     bool outputFileIsInAnalyzeFormat() const
             { return _outputFileIsInAnalyzeFormat; }
-//     bool lpsP() const { return _lpsP	 }
-
-
     double pixelScale() const { return _pixelScale; }
     double xAxisScale() const { return _xAxisScale; }
     double yAxisScale() const { return _yAxisScale; }
@@ -219,20 +203,18 @@ namespace {
     double nullValue() const { return _nullValue; }
     double debugLevel() const { return _debugLevel; }
     double rotateSky() const { return _rotateSky; }
+//  unsigned wcsGridStride() const { return _wcsGridStride; }
 
-//     unsigned wcsGridStride() const { return _wcsGridStride; }
   };
 
 ctor
 CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
   : _inputFilepath(0),
     _outputFilepath(0),
-//     _quietModeP(false),
     _dontWriteP(false),
     _wcsP(false),
     _equiangularP(false),
     _northUpP(false),
-//     _eastLeftP(false),
     _autoscaleZAxisP(false),
     _flipxP(false),
     _flipyP(false),
@@ -242,7 +224,6 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
     _coerceToShortsP(false),
     _coerceToUnsignedShortsP(false),
     _outputFileIsInAnalyzeFormat(false),
-//     _lpsP(false),
     _pixelScale(1),
     _xAxisScale(1),
     _yAxisScale(1),
@@ -250,7 +231,7 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
     _nullValue(0),  // 0 means "leave alone", not set to 0
     _debugLevel(0),
     _rotateSky(0)
-//     _wcsGridStride(0)
+//  _wcsGridStride(0)
 {
   opterr = true;
   char* endptr;
@@ -259,11 +240,9 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
   const int c_base10 = 10;
 
   int verboseHelpParsingFlag = false;
-//   int quietModeParsingFlag = false;
   int wcsParsingFlag = false;
   int equiangularParsingFlag = false;
   int northUpParsingFlag = false;
-//int eastLeftParsingFlag  = false;
   int autoscaleZAxisParsingFlag = false;
   int flipxParsingFlag = false;
   int flipyParsingFlag = false;
@@ -272,7 +251,6 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
   int showFitsHeaderParsingFlag  = false;
   int coerceToShortsParsingFlag  = false;
   int coerceToUnsignedShortsParsingFlag  = false;
-//int lpsParsingFlag  = false;
   int pixelScaleParsingFlag  = false;
   int xAxisScaleParsingFlag  = false;
   int yAxisScaleParsingFlag  = false;
@@ -289,12 +267,10 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
   // Specify the allowed long options:
   struct option longopts[] = {
     { "help",             no_argument,       &verboseHelpParsingFlag,    true },
-//     { "quiet",		  no_argument,       &quietModeParsingFlag,      'q' },
     { "no-write",	  no_argument,       null,      		 'n' },
     { "wcs",              no_argument,       &wcsParsingFlag,            true },
     { "equiangular",      no_argument,       &equiangularParsingFlag,    true },
     { "north-up",         no_argument,       &northUpParsingFlag,        true },
-//  { "east-left",        no_argument,       &eastLeftParsingFlag,       true },
     { "autoscale-z-axis", no_argument,       &autoscaleZAxisParsingFlag, true },
     { "flipx",            no_argument,       &flipxParsingFlag,          true },
     { "flipy",            no_argument,       &flipyParsingFlag,          true },
@@ -305,7 +281,6 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
     { "coerce-to-unsigned-shorts",
                           no_argument,       &coerceToUnsignedShortsParsingFlag,
       									 true },
-//  { "lps",              no_argument,       &lpsParsingFlag,            true },
     { "pixel-scale",      required_argument, &pixelScaleParsingFlag,     true },
     { "x-scale",          required_argument, &xAxisScaleParsingFlag,     true },
     { "y-scale",          required_argument, &yAxisScaleParsingFlag,     true },
@@ -335,10 +310,6 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
         _dontWriteP = true;
         break;
 
-//       case 'q':
-//         _quietModeP = true;
-//         break;
-
       case '?': 
         // On BSD (e.g., OS X), we end up here for unknown long options.
         // In this case, it seems next to impossible to tell the difference
@@ -365,9 +336,6 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
         } else if (northUpParsingFlag) {
           northUpParsingFlag = false;
           _northUpP = true;
-//         } else if (eastLeftParsingFlag) {
-//           eastLeftParsingFlag = false;
-//           _eastLeftP = true;
         } else if (autoscaleZAxisParsingFlag) {
           autoscaleZAxisParsingFlag = false;
           _autoscaleZAxisP = true;
@@ -392,9 +360,6 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
         } else if (coerceToUnsignedShortsParsingFlag) {
           coerceToUnsignedShortsParsingFlag = false;
           _coerceToUnsignedShortsP = true;
-//         } else if (lpsParsingFlag) {
-//           lpsParsingFlag = false;
-//           _lpsP = true;
         } else if (pixelScaleParsingFlag) {
           pixelScaleParsingFlag = false;
           _pixelScale *= strtod(optarg, &endptr);
@@ -430,7 +395,7 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
           rotateSkyParsingFlag = false;
           _rotateSky = strtod(optarg, &endptr);
           checkEndptr(endptr);
-//         } else if (wcsGridStrideParsingFlag) {
+//      } else if (wcsGridStrideParsingFlag) {
 //           wcsGridStrideParsingFlag = false;
 //           _debugLevel = strtol(optarg, &endptr, c_base10);
 //           checkEndptr(endptr);
@@ -535,9 +500,7 @@ convertInputFileToItkFile(CommandLineParser& cl)
   params.wcsP = cl.wcsP();
   params.equiangularP = cl.equiangularP();
   params.northUpP = cl.northUpP();
-//   params.eastLeftP = cl.eastLeftP();
   params.autoscaleZAxisP = cl.autoscaleZAxisP();
-//   params.lpsP = cl.lpsP();
   params.xAxisScale = cl.xAxisScale();
   params.yAxisScale = cl.yAxisScale();
   params.zAxisScale = cl.zAxisScale();

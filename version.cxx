@@ -11,7 +11,7 @@
 // See LICENSE.txt for for details.
 //=============================================================================
 
-extern const char fits2itkVersion[] = "0.4dev.12";
+extern const char fits2itkVersion[] = "0.4dev.13pending";
 
 //=============================================================================
 // Change Log
@@ -628,6 +628,10 @@ extern const char fits2itkVersion[] = "0.4dev.12";
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
 //----------------------------------------------------------------------
+
+//----------------------------------------------------
+// Version 0.4dev.13pending
+//----------------------------------------------------
 
 // Things that I need to do soon:
 

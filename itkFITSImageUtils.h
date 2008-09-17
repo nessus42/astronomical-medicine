@@ -85,9 +85,7 @@ public:
     bool				  wcsP;
     bool				  equiangularP;
     bool				  northUpP;
-//     bool				  eastLeftP; //?
     bool				  autoscaleZAxisP;
-//     bool				  lpsP; //?
     double 				  xAxisScale;
     double			          yAxisScale;
     double				  zAxisScale;

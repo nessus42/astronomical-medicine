@@ -10,10 +10,17 @@
   - Make sure that you don't forget the IMPORTANT section immediately
     below.
 
+- IMPORTANT
 
-- REGRESSION TESTS that need to be done
+  - There are other important notes in ../README.txt
 
-  - Make sure that Jens use case of needing to register
+    - E.g., a description of the changes that have been made in each clone
+      (e.g., *this* one!), but not yet pushed up to the the .mainline
+      repository.
+
+- Current TODO list
+
+  - TODO: Make sure that Jens use case of needing to register
     different images in Slicer 3 still works.
 
   - Make sure that all the different options work with different test
@@ -55,8 +62,6 @@
       Note: Without "--x-scale -1", the image will end up flipped, but I think
       that this might be a feature, not a bug.
 
-      o TODO: Have not implemented velocity WCS.
-
       o TODO: Need to make sure that origin is preserved when registering
            multiple images.
 
@@ -64,6 +69,8 @@
 
       o TODO: Perhaps should preface the output with "FITS HEADER:"
         or something.
+
+      o TODO: Insert a <CR> every 80 characters, or the equivalent.
 
     x Test -n, --no-write
 
@@ -108,135 +115,8 @@
 
     o --tiff-output
 
+    o Update the "--help" output to reflect reality.
 
-- IMPORTANT
-
-  - I have marked code that I need to make work again with "//?"
-
-  - There are other important notes in ../README.txt
-
-    - A description of the changes that have been made in each clone
-      (e.g., *this* one!), but not yet pushed up to the the .mainline
-      repository.
-
-- TODO
-
-  - Update the "--help" output to reflect reality.
-
-
-- Notes about refactoring work on fits2itk
-
-  - Jens says that he thinks the default behavior should be to not use
-    the WCS information, and to just leave it in pixel space.
-
-  - In the latest dev version --no-wcs doesn't work because the
-    communication channel (static class variables of the reader)
-    was severed when moving the reader into a DLL.  It also means
-    that there is no way to read in a FITS file that doesn't have
-    velocity headers, as the code that does this no longer checks
-    for a the no-wcs flag.
-
-- The options that are supported by fits2itk.fixes:
-
-  - The non-dev version
-
-    - Documented
-
-      -h: help message
-      -A: auto-scale velocity axis
-      -S: coerce pixel values to shorts
-      -U: coerce pixel values to unsigned shorts
-      -a: axes-scale
-      -D: debug-level
-      -N null-value
-      -r: RA-scale
-      -s: pixel-scale
-      -v: velocity-scale
-
-      --typical: shortcut for -A -a 1000 -r -1 -s 1000
-
-	   The above command auto-scales the velocity axis, and then
-	   scales all of the axes by 1000.  The right ascension axis
-	   is then flipped in order to present it in the orientation
-	   to which astronomers are accustomed.  The pixel values of
-	   the image are then all multiplied by 1000.
-
-      --help
-
-    - Undocumented
-
-      -f: Bug!
-      -n: Don't accept output file on command line (used for displaying info)
-      -o: Obsolete way of supporting long option names
-          These are the options supported:
-	     derivativeImageFilter
-             flipImageFilter
-	     binomialBlur
-	     suppressMetaDataDictionary
-	     identityFlip
-      -R: Bug!
-
-      --equiangular
-      --reorient-north
-
-        These two options do three different things depending on
-        whether they are used alone or together
-
-      --flip-dec
-      --flip-ra
-      --flip-v
-
-        These three options cause pixels to actually be shuffled about.
-
-      --no-wcs
-
-        This option suppresses WCS so that the physical coordinates
-        are merely the pixel coordinates.
-
-      --rotate-sky degrees
-
-        This option applies a rotation matrix to the image to rotate
-        it *counter* clockwise.  TODO: Determine what this means under
-        the influence of other options.
-
-      --RIP
-
-        This option forces the output to be in RIP orientation so that
-        you won't get a warning message about Analyze files being
-        malformatted.
-
-      --scale-dec
-
-        Just like -r, only for decliation, rather than RA.
-
-      --verbose: Provides informational info
-
-    - Options provided by the Slicer GUI plugin
-
-      --xml: Provides the GUI XML
-      --logo: Outputs a logo, but this doesn't work
-      --dont_autoscale_velocity:
-           Suppresses the -A option
-      --pixel_type
-           Sets either the -S or the -U flag, depending on how this is set
-      --cfitsio_extended_filename
-           Appends the extended part onto the input filename
-      --no_wcs
-           Adds the --no-wcs option
-
-    - Options used by the Slicer GUI plugin
-
-      -A
-      -S
-      -U
-      --no-wcs
-      Extended filename syntax
-
-- What I was working on "right now" a long time ago when I originally
-  wrote this note:
-
-  - Trying to figure out why reorient-north is deactivated in the dev
-    version of fits2itk.
 
 - Known bugs:
 
@@ -245,9 +125,7 @@
     - If you make a new build directory, you have to run make several
       times, the first time, before it will compile.
 
-- New mockup of future help output (This also serves to document the output)
-
-  Note: "XXX" means that the feature has been implemented
+- Use this old proposal as the basis for the new version of help text
 
   usage:
 
@@ -428,8 +306,8 @@
 	    rather, rather than an image of data values.
 
 
-- Old notes (but read them over at some point to make sure that they
-  have all been accounted for)
+- TODO: Read over these old notes to make sure that everything has
+  been accounted for.
 
   These are the options that should be supported in the next version:
 
@@ -574,37 +452,11 @@
     that compensates for Slicer's conversion to RAS.
 
 
-- Options to remove
-
-  --RIP
-
-    Replace this with noticing that the output file format is ".hdr" or
-    ".dat" and set the option automatically.
-
-
-- Other things to consider
+- TODO: Other things to consider
 
   - BUNITS is the FITS header that describes the units for the intensity
     scale.  We may want to output it, if it is present, but it doesn't
     occur in all FITS files.
-
-  - Here is an exemplar of the velocity information for a data cube.  This
-    one is just a bunch of slices with a linear delta between slices:
-
-       CRVAL3  =       -9970.58488358 /
-       CRPIX3  =              1.00000 /
-       CDELT3  =        63.5021900000 /
-       CTYPE3  = 'VELO-LSR'           /
-
-    VELO-LSR here means Local Standard Region, which means that the
-    doppler shifts have been adjusted to the average velocity of a
-    canonical area of the galaxy around our sun.  Notice, however, that
-    there are no units.  Jens says that there is a standard default
-    units.  I should look this up in the FITS standards document to see
-    what it has to say on the issue.
-
-- Design notes
-
 
 - Features that I added a while back:
 
@@ -727,3 +579,135 @@
 
 	This would be a big win for everyone, saving Michelle and Jens the
 	trouble of doing this stuff by hand.
+
+- OLD NOTES (i.e., have already been dealth with, or are no longer relevant)
+
+  - Notes about refactoring work on fits2itk
+
+    - Jens says that he thinks the default behavior should be to not use
+      the WCS information, and to just leave it in pixel space.
+
+    - In the latest dev version --no-wcs doesn't work because the
+      communication channel (static class variables of the reader)
+      was severed when moving the reader into a DLL.  It also means
+      that there is no way to read in a FITS file that doesn't have
+      velocity headers, as the code that does this no longer checks
+      for a the no-wcs flag.
+
+  - The options that are supported by fits2itk.fixes:
+
+    - The non-dev version
+
+      - Documented
+
+	-h: help message
+	-A: auto-scale velocity axis
+	-S: coerce pixel values to shorts
+	-U: coerce pixel values to unsigned shorts
+	-a: axes-scale
+	-D: debug-level
+	-N null-value
+	-r: RA-scale
+	-s: pixel-scale
+	-v: velocity-scale
+
+	--typical: shortcut for -A -a 1000 -r -1 -s 1000
+
+	     The above command auto-scales the velocity axis, and then
+	     scales all of the axes by 1000.  The right ascension axis
+	     is then flipped in order to present it in the orientation
+	     to which astronomers are accustomed.  The pixel values of
+	     the image are then all multiplied by 1000.
+
+	--help
+
+      - Undocumented
+
+	-f: Bug!
+	-n: Don't accept output file on command line (used for displaying info)
+	-o: Obsolete way of supporting long option names
+	    These are the options supported:
+	       derivativeImageFilter
+	       flipImageFilter
+	       binomialBlur
+	       suppressMetaDataDictionary
+	       identityFlip
+	-R: Bug!
+
+	--equiangular
+	--reorient-north
+
+	  These two options do three different things depending on
+	  whether they are used alone or together
+
+	--flip-dec
+	--flip-ra
+	--flip-v
+
+	  These three options cause pixels to actually be shuffled about.
+
+	--no-wcs
+
+	  This option suppresses WCS so that the physical coordinates
+	  are merely the pixel coordinates.
+
+	--rotate-sky degrees
+
+	  This option applies a rotation matrix to the image to rotate
+	  it *counter* clockwise.  TODO: Determine what this means under
+	  the influence of other options.
+
+	--RIP
+
+	  This option forces the output to be in RIP orientation so that
+	  you won't get a warning message about Analyze files being
+	  malformatted.
+
+	--scale-dec
+
+	  Just like -r, only for decliation, rather than RA.
+
+	--verbose: Provides informational info
+
+      - Options provided by the Slicer GUI plugin
+
+	--xml: Provides the GUI XML
+	--logo: Outputs a logo, but this doesn't work
+	--dont_autoscale_velocity:
+	     Suppresses the -A option
+	--pixel_type
+	     Sets either the -S or the -U flag, depending on how this is set
+	--cfitsio_extended_filename
+	     Appends the extended part onto the input filename
+	--no_wcs
+	     Adds the --no-wcs option
+
+      - Options used by the Slicer GUI plugin
+
+	-A
+	-S
+	-U
+	--no-wcs
+	Extended filename syntax
+
+
+  - What I was working on "right now" a long time ago when I originally
+    wrote this note:
+
+    - Trying to figure out why reorient-north is deactivated in the dev
+      version of fits2itk.
+
+  - Here is an exemplar of the velocity information for a data cube.  This
+    one is just a bunch of slices with a linear delta between slices:
+
+       CRVAL3  =       -9970.58488358 /
+       CRPIX3  =              1.00000 /
+       CDELT3  =        63.5021900000 /
+       CTYPE3  = 'VELO-LSR'           /
+
+    VELO-LSR here means Local Standard Region, which means that the
+    doppler shifts have been adjusted to the average velocity of a
+    canonical area of the galaxy around our sun.  Notice, however, that
+    there are no units.  Jens says that there is a standard default
+    units.  I should look this up in the FITS standards document to see
+    what it has to say on the issue.
