@@ -18,16 +18,23 @@
 
 #include <libgen.h>                        // For basename()
 #include <getopt.h>
-#include <stdlib.h>                        // For getenv(), setenv()
-#include <sys/param.h>                     // For MAXPATHLEN
+#include <stdlib.h>                        // For getenv(), setenv()m
+
 #include <cassert>
 #include <cmath>
 
-#include <fstream>
+#include <iostream>
 using std::ifstream;
 using std::istream;
 using std::ostream;
 using std::ios;
+
+#include <iomanip>
+using std::setw;
+using std::setfill;
+
+#include <sstream>
+using std::ostringstream;
 
 #include <memory>
 using std::auto_ptr;
@@ -45,6 +52,7 @@ using itk::MetaDataObjectBase;
 
 #include <itkImageFileReader.h>
 #include <itkImageFileWriter.h>
+#include <itkExtractImageFilter.h>
 #include <itkVector.h>
 
 #include <itkFITSImageIO.h>
@@ -61,6 +69,7 @@ using itk::fits::setNullValue;
 using itk::fits::setFITSImageIODebugLevel;
 using itk::fits::writeImageInfo;
 using itk::fits::writeFitsHeader;
+using itk::fits::e_k;
 
 #include <pathToExecutable.h>
 #include <da_util.h>
@@ -163,7 +172,11 @@ namespace {
     bool	   _showFitsHeaderP;     // Set with --show-fits-header
     bool	   _coerceToShortsP;	 // Set with --coerce-to-shorts
     bool	   _coerceToUnsignedShortsP;
-    bool	   _outputFileIsInAnalyzeFormat;
+                                         // Set with --coerce-to-unsigned-shorts
+    bool	   _isOutputFileInAnalyzeFormat;
+                                         // Set by specifying an output file
+                                         // that ends in either ".hdr" or ".img"
+    bool	   _isOutputTiffSeries;  // Set with --tiff-output
     double	   _pixelScale;	         // Set with --pixel-scale
     double         _xAxisScale;		 // Set with --x-scale
     double 	   _yAxisScale;		 // Set with --y-scale
@@ -194,8 +207,9 @@ namespace {
     bool showFitsHeaderP() const { return _showFitsHeaderP; }
     bool coerceToShortsP() const { return _coerceToShortsP; }
     bool coerceToUnsignedShortsP() const { return _coerceToUnsignedShortsP; }
-    bool outputFileIsInAnalyzeFormat() const
-            { return _outputFileIsInAnalyzeFormat; }
+    bool isOutputFileInAnalyzeFormat() const
+            { return _isOutputFileInAnalyzeFormat; }
+    bool isOutputTiffSeries() const { return _isOutputTiffSeries; }
     double pixelScale() const { return _pixelScale; }
     double xAxisScale() const { return _xAxisScale; }
     double yAxisScale() const { return _yAxisScale; }
@@ -223,7 +237,8 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
     _showFitsHeaderP(false),
     _coerceToShortsP(false),
     _coerceToUnsignedShortsP(false),
-    _outputFileIsInAnalyzeFormat(false),
+    _isOutputFileInAnalyzeFormat(false),
+    _isOutputTiffSeries(false),
     _pixelScale(1),
     _xAxisScale(1),
     _yAxisScale(1),
@@ -259,6 +274,7 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
   int nullValueParsingFlag  = false;
   int debugLevelParsingFlag  = false;
   int rotateSkyParsingFlag  = false;
+  int tiffOutputParsingFlag = false;
 //int wcsGridStrideParsingFlag  = false;
 
   // Specify the allowed short options:
@@ -277,6 +293,7 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
     { "flipz",            no_argument,       &flipzParsingFlag,          true },
     { "verbose",          no_argument,       &verboseParsingFlag,        true },
     { "show-fits-header", no_argument,       &showFitsHeaderParsingFlag, true },
+    { "tiff-output",      no_argument,       &tiffOutputParsingFlag,     true },
     { "coerce-to-shorts", no_argument,       &coerceToShortsParsingFlag, true },
     { "coerce-to-unsigned-shorts",
                           no_argument,       &coerceToUnsignedShortsParsingFlag,
@@ -395,6 +412,9 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
           rotateSkyParsingFlag = false;
           _rotateSky = strtod(optarg, &endptr);
           checkEndptr(endptr);
+        } else if (tiffOutputParsingFlag) {
+          tiffOutputParsingFlag = false;
+          _isOutputTiffSeries = true;
 //      } else if (wcsGridStrideParsingFlag) {
 //           wcsGridStrideParsingFlag = false;
 //           _debugLevel = strtol(optarg, &endptr, c_base10);
@@ -421,10 +441,11 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
   }
   _inputFilepath = argv[::optind];
 
-  if (da::endMatchesP(_outputFilepath, ".hdr") or
-      da::endMatchesP(_outputFilepath, ".img"))
+  if (_outputFilepath and
+      (da::endMatchesP(_outputFilepath, ".hdr") or
+       da::endMatchesP(_outputFilepath, ".img")))
     {
-      _outputFileIsInAnalyzeFormat = true;
+      _isOutputFileInAnalyzeFormat = true;
     } 
     
   // Do some sanity checking to make sure that the options specified are
@@ -434,7 +455,7 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
     runTimeError("You cannot use any of the flip options if WCS is turned on.");
   }
 
-  if (_wcsP and _outputFileIsInAnalyzeFormat) {
+  if (_wcsP and _isOutputFileInAnalyzeFormat) {
     runTimeError("You cannot turn on WCS when writing file in Analyze format.");
   }
 
@@ -442,13 +463,18 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
     runTimeError("Velocity axis auto-scaling does not work without WCS on.\n");
   }
   if (_northUpP and _equiangularP) {
-    runTimeError("\"--equiangular causes north to be oriented up, so "
+    runTimeError("\"--equiangular\" causes north to be oriented up, so "
                  "please don't specify both.");
   }
   if (_northUpP and _wcsP) {
     runTimeError("\"--wcs\" causes north to be oriented up, so please don't "
                  "specify both.");
   }
+  if (_isOutputTiffSeries and !(_coerceToShortsP or _coerceToUnsignedShortsP)) {
+    runTimeError("For TIFF series output, you need to also specify either "
+                 "\"--coerce-to-shorts\" or \"--coerce-to-unsigned-shorts\"");
+  }
+
 }
 
 
@@ -467,12 +493,14 @@ template <class PixelT>
 local proc int
 convertInputFileToItkFile(CommandLineParser& cl)
 {
-  typedef itk::Image<PixelT, c_dims> ImageT;
-  typedef itk::ImageFileReader<ImageT> ReaderT;
+  typedef itk::Image<PixelT, c_dims> Image;
+  typedef itk::ImageFileReader<Image> Reader;
+  typedef typename Reader::Pointer ReaderPtr;
+  typedef typename Image::Pointer ImagePtr;
 
-  typename ReaderT::Pointer reader = ReaderT::New();
+  ReaderPtr reader = Reader::New();
   reader->SetFileName(cl.inputFilepath());
-  typename ImageT::Pointer image = reader->GetOutput();
+  ImagePtr image = reader->GetOutput();
   reflectPixels(*image,
                 cl.flipxP(),
                 cl.flipyP(),
@@ -495,7 +523,8 @@ convertInputFileToItkFile(CommandLineParser& cl)
 
   reader->Update();
 
-  typename FITSImage<ImageT>::Params params;
+  typedef typename FITSImage<Image>::Params Params;
+  Params params;
   params.itkImage = image;
   params.wcsP = cl.wcsP();
   params.equiangularP = cl.equiangularP();
@@ -506,26 +535,80 @@ convertInputFileToItkFile(CommandLineParser& cl)
   params.zAxisScale = cl.zAxisScale();
   params.rotateSky = cl.rotateSky();
 
-  if (cl.outputFileIsInAnalyzeFormat()) params.zAxisScale *= -1;
+  if (cl.isOutputFileInAnalyzeFormat()) params.zAxisScale *= -1;
 
-  FITSImage<ImageT> fitsImage (params);
+  FITSImage<Image> fitsImage (params);
 
   // We actually only write an output file if we were given the name of an
   // output file.  If we weren't, then we just read in the image for the
   // purposes of outputing any information to stdout that has been requested:
 
   if (cl.outputFilepath()) {
-    typedef itk::ImageFileWriter<ImageT> WriterT;
-    typename WriterT::Pointer writer = WriterT::New();
-    writer->SetInput(image);
-    writer->SetFileName(cl.outputFilepath());
-    writer->Update();
+    if (cl.isOutputTiffSeries()) {
+      reader->Update();
+
+      typedef typename Image::RegionType Region;
+      typedef typename Image::SizeType Size;
+      typedef typename Image::IndexType Index;
+
+      const Region inputImage = reader->GetOutput()->GetLargestPossibleRegion();
+      Size sliceSize = inputImage.GetSize();
+      const unsigned nSlices = sliceSize[e_k];
+      sliceSize[e_k] = 0;
+
+      Region sliceRegion;
+      Index sliceIndex = inputImage.GetIndex();
+      sliceRegion.SetSize(sliceSize);
+
+      // Calculate number of digits needed to encode all the slice numbers into
+      // filenames:
+      const int nDigits = floor(log10(nSlices - 1)) + 1;
+      
+//       // Make a buffer big enough to hold a string representation of these
+//       // digits:
+//       char digits[nDigits + 1];
+
+      for (int k = 0; k < nSlices; ++k) {
+        sliceIndex[e_k] = k;
+        sliceRegion.SetIndex(sliceIndex);
+        
+        typedef itk::Image<PixelT, c_dims - 1> SliceImage;
+        typedef itk::ExtractImageFilter<Image, SliceImage> ExtractionFilter;
+        typedef typename ExtractionFilter::Pointer ExtractionFilterPtr;
+        typedef itk::ImageFileWriter<SliceImage> Writer;
+        typedef typename Writer::Pointer WriterPtr;
+        
+        ExtractionFilterPtr filter = ExtractionFilter::New();
+        filter->SetExtractionRegion(sliceRegion);
+        filter->SetInput(image);
+        
+        WriterPtr writer = Writer::New();
+        writer->SetInput(filter->GetOutput());
+
+        // Construct the filename for the slice:
+        ostringstream outputFilepath;
+        outputFilepath << cl.outputFilepath()
+                       << setw(nDigits)
+                       << setfill('0')
+                       << k
+                       << ".tiff";
+        writer->SetFileName(outputFilepath.str());
+        writer->Update();
+      }
+    } else {
+      typedef itk::ImageFileWriter<Image> Writer;
+      typedef typename Writer::Pointer WriterPtr;
+      WriterPtr writer = Writer::New();
+      writer->SetInput(image);
+      writer->SetFileName(cl.outputFilepath());
+      writer->Update();
+    }
   } else {
     reader->Update();
   }
 
-  if (da::getVerbosityLevel()) writeImageInfo<ImageT>(fitsImage, cout);
-  if (cl.showFitsHeaderP()) writeFitsHeader<ImageT>(*image, cout);
+  if (da::getVerbosityLevel()) writeImageInfo<Image>(fitsImage, cout);
+  if (cl.showFitsHeaderP()) writeFitsHeader<Image>(*image, cout);
 
   return EXIT_SUCCESS;
 
@@ -784,6 +867,7 @@ main(const int argc, const char* const argv[])
   CommandLineParser cl(argc, argv);
 
   handleOptions(cl);
+  debugPrint("ITK_AUTOLOAD_PATH=" << getenv("ITK_AUTOLOAD_PATH"));
 
   // This is how we used to register FITSImageIOFactory, before we changed to
   // dynamic loading:
