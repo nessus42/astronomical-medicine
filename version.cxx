@@ -11,7 +11,7 @@
 // See LICENSE.txt for for details.
 //=============================================================================
 
-extern const char fits2itkVersion[] = "0.4dev.13pending";
+extern const char fits2itkVersion[] = "0.4dev.13";
 
 //=============================================================================
 // Change Log
@@ -625,13 +625,18 @@ extern const char fits2itkVersion[] = "0.4dev.13pending";
 
 // I revamped the verbose output completely.
 
+//----------------------------------------------------
+// Version 0.4dev.13
+//----------------------------------------------------
+
+// Added the --tiff-output option.  I'm not sure that it works quite right,
+// though.  Also, I think I need to come up with separate coercion options for
+// input and output.
+
+
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
 //----------------------------------------------------------------------
-
-//----------------------------------------------------
-// Version 0.4dev.13pending
-//----------------------------------------------------
 
 // Things that I need to do soon:
 

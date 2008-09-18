@@ -23,6 +23,10 @@
   - TODO: Make sure that Jens use case of needing to register
     different images in Slicer 3 still works.
 
+  - TODO: The coerce modes take effect before pixel value scaling, which
+    means that a lot of information can be lost.  This will need to be
+    fixed in a future version.
+
   - Make sure that all the different options work with different test
     images that I have been given in the past.
 
@@ -107,13 +111,20 @@
       x Tested on an image for which north was already up.  Image stayed the
         same.
 
-    o Find out what the proper term is for the inverse coordinate frame
+    x Find out what the proper term is for the inverse coordinate frame
       transformation.
 
-    o Test to make sure that program works on FITS file that does not have WCS
-      information.
+      Note: I asked on sci.math, but it seems like a lost cause.
+      There doesn't seem to a be a term for this.
+
+    o Test to make sure that the program works on FITS file that do
+      not have WCS information.
 
     o --tiff-output
+
+      TODO: I have implemented, but I'm not sure how to get Slicer to
+      load in the files.  Also, see the above note re pixel scaling.
+      Also, things don't seem to be quite right in OsiriX.
 
     o Update the "--help" output to reflect reality.
 

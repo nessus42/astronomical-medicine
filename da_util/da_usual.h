@@ -15,6 +15,7 @@
 
 #include <assert.h>
 #include <iostream>
+#include <sstream>
 #include <string>
 
 // BEGIN
@@ -187,7 +188,7 @@ getVerbosityLevel()
 
 
 //=============================================================================
-// daCheckHeap(): inline template function
+// checkHeap(): inline template function
 //=============================================================================
 
 //# This template function is kind of like the 'assert' macro, except that the
@@ -200,6 +201,22 @@ checkHeap(T arg)
 {
   if (DA_NDEBUG && !arg) heapError();
   return arg;
+}
+
+
+//=============================================================================
+// toStr(): template function
+//=============================================================================
+
+//# Coverts the argument into its string representation
+
+template <class T>
+std::string
+toStr(const T& arg)
+{
+  std::ostringstream ss;
+  ss << arg;
+  return ss.str();
 }
 
 
