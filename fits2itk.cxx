@@ -1072,28 +1072,28 @@ transformToNorthOrientedEquiangular(ImageType& image)
 // transformToUnreorientedEquiangular(): local template proc
 //-----------------------------------------------------------------------------
 
-template <class ImageType>
-local proc void
-transformToUnreorientedEquiangular(ImageType& image)
-{
+// template <class ImageType>
+// local proc void
+// transformToUnreorientedEquiangular(ImageType& image)
+// {
   
-  // TODO: We should stop making an ImageInfo inside every function that needs
-  // it, and instead subclass ImageType, or something, and calculate the
-  // information once.
+//   // TODO: We should stop making an ImageInfo inside every function that needs
+//   // it, and instead subclass ImageType, or something, and calculate the
+//   // information once.
 
-  enum {ra, dec};
-  const ImageInfo<ImageType> info(image);
-  const double iAngleLen = info.unitIInApproximateAngularSpace().GetNorm();
-  const double jAngleLen = info.unitJInApproximateAngularSpace().GetNorm();
-  const double flipFactor = info.isImageFlipped() ? -1 : 1;
-  const double angularScale = 1000 * 1000;
+//   enum {ra, dec};
+//   const ImageInfo<ImageType> info(image);
+//   const double iAngleLen = info.unitIInApproximateAngularSpace().GetNorm();
+//   const double jAngleLen = info.unitJInApproximateAngularSpace().GetNorm();
+//   const double flipFactor = info.isImageFlipped() ? -1 : 1;
+//   const double angularScale = 1000 * 1000;
 
-  rightConcatinateTransformation(
-     image,
-     scalingMatrix(iAngleLen * angularScale * flipFactor,
-		   jAngleLen * angularScale,
-		   (iAngleLen + jAngleLen) * .5 * angularScale));
-}
+//   rightConcatinateTransformation(
+//      image,
+//      scalingMatrix(iAngleLen * angularScale * flipFactor,
+// 		   jAngleLen * angularScale,
+// 		   (iAngleLen + jAngleLen) * .5 * angularScale));
+// }
 
 
 //-----------------------------------------------------------------------------
@@ -1154,7 +1154,10 @@ convertInputFileToItkFile(const char* const inputFilepath,
   if (Cl::getTransformToEquiangular() and Cl::getReorientNorth()) {
     ::transformToNorthOrientedEquiangular(*image);
   } else if (Cl::getTransformToEquiangular()) {
-    ::transformToUnreorientedEquiangular(*image);
+    da::runTimeError(
+       "\"--equiangular\" can only be used with \"--reorient-north\""
+       );
+    // ::transformToUnreorientedEquiangular(*image);
   } else if (Cl::getReorientNorth()) {
     ::reorientNorth(*image);
   }

@@ -11,7 +11,7 @@
 // See LICENSE.txt for for details.
 //=============================================================================
 
-extern const char fits2itkVersion[] = "Version 0.4dev.10.3velocity.1pending.2";
+extern const char fits2itkVersion[] = "Version 0.4dev.10.3velocity.1";
 
 //=============================================================================
 // Change Log
@@ -434,6 +434,10 @@ extern const char fits2itkVersion[] = "Version 0.4dev.10.3velocity.1pending.2";
 // Version 0.4dev.10.3
 //---------------------------
 
+// *** Mon Sep 17, 2007 ***
+
+// We now disallow --equiangular unless also combined with --reorient-north.
+
 // *** Tue Sep 18, 2007 ***
 
 // Make compile under Linux.
@@ -457,10 +461,6 @@ extern const char fits2itkVersion[] = "Version 0.4dev.10.3velocity.1pending.2";
 //
 // These options have not be really tested yet, however, so who knows if they
 // actually work?
-
-//----------------------------------------------------------------------
-// *** Changes described above this line are checked in to Mercurial ***
-//----------------------------------------------------------------------
 
 //-------------------------------------
 // Version 0.4dev.10.3velocity.1pending
@@ -488,3 +488,17 @@ extern const char fits2itkVersion[] = "Version 0.4dev.10.3velocity.1pending.2";
 // during scaling operations, and also found a typo where I had "c_vel", rather
 // than "c_ra".  (Or was that the other way around?  In any case, it should be
 // fixed now.)
+
+//------------------------------
+// Version 0.4dev.10.3velocity.1
+//------------------------------
+
+// *** Jun 18, 2009 ***
+
+// Merged two slightly divergent versions of 0.4dev.10.3 together.
+
+
+//----------------------------------------------------------------------
+// *** Changes described above this line are checked in to Mercurial ***
+//----------------------------------------------------------------------
+
