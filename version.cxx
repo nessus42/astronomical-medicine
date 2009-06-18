@@ -11,8 +11,7 @@
 // See LICENSE.txt for for details.
 //=============================================================================
 
-
-extern const char fits2itkVersion[] = "Version 0.4dev.10.2";
+extern const char fits2itkVersion[] = "Version 0.4dev.10.3";
 
 //=============================================================================
 // Change Log
@@ -430,6 +429,14 @@ extern const char fits2itkVersion[] = "Version 0.4dev.10.2";
 // unit I vector from west to the "--verbose" outout.  If this is not equal to
 // the rotation of the unit J vector from north, then the pixels are
 // parallelograms.
+
+//---------------------------
+// Version 0.4dev.10.3
+//---------------------------
+
+// *** Sep 17, 2007 ***
+
+// We now disallow --equiangular unless also combined with --reorient-north.
 
 //----------------------------------------------------------------------
 // *** Changes described above this line are checked in to Mercurial ***
