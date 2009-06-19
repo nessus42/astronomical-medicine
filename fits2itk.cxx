@@ -434,7 +434,10 @@ CommandLineParser::CommandLineParser(const int argc, const char* const argv[])
   const int nPositionalParams = argc - ::optind;
 
   if (_dontWriteP) {
-    if (nPositionalParams != 1) usage();
+    if (nPositionalParams != 1) {
+      runTimeError("You must not specify an output file if you use the "
+                   "no-write option.");
+    }
   } else {
     if (nPositionalParams != 2) usage();
     _outputFilepath = argv[::optind + 1];
@@ -545,6 +548,9 @@ convertInputFileToItkFile(CommandLineParser& cl)
 
   if (cl.outputFilepath()) {
     if (cl.isOutputTiffSeries()) {
+
+      // We are here if we are writing out a series of 2D TIFF output files.
+
       reader->Update();
 
       typedef typename Image::RegionType Region;
@@ -564,10 +570,6 @@ convertInputFileToItkFile(CommandLineParser& cl)
       // filenames:
       const int nDigits = floor(log10(nSlices - 1)) + 1;
       
-//       // Make a buffer big enough to hold a string representation of these
-//       // digits:
-//       char digits[nDigits + 1];
-
       for (int k = 0; k < nSlices; ++k) {
         sliceIndex[e_k] = k;
         sliceRegion.SetIndex(sliceIndex);
@@ -596,6 +598,9 @@ convertInputFileToItkFile(CommandLineParser& cl)
         writer->Update();
       }
     } else {
+
+      // We are here if we are writing out a single 3D output file.
+
       typedef itk::ImageFileWriter<Image> Writer;
       typedef typename Writer::Pointer WriterPtr;
       WriterPtr writer = Writer::New();

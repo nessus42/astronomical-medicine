@@ -2,9 +2,6 @@
 
 - WHAT YOU ARE DOING RIGHT NOW
 
-  - Review the stuff below stating the previous future direction of
-    fits2itk.
-
   - Search for all the TODO tags and resolve them.
 
   - Make sure that you don't forget the IMPORTANT section immediately
@@ -71,10 +68,8 @@
 
     x Test --show-fits-header
 
-      o TODO: Perhaps should preface the output with "FITS HEADER:"
-        or something.
-
-      o TODO: Insert a <CR> every 80 characters, or the equivalent.
+      x Perhaps should preface the output with "FITS HEADER:" or something.
+      x Insert a <CR> every 80 characters, or the equivalent.
 
     x Test -n, --no-write
 
@@ -117,16 +112,42 @@
       Note: I asked on sci.math, but it seems like a lost cause.
       There doesn't seem to a be a term for this.
 
-    o Test to make sure that the program works on FITS file that do
+    o TODO: Test to make sure that the program works on FITS file that do
       not have WCS information.
 
     o --tiff-output
 
-      TODO: I have implemented, but I'm not sure how to get Slicer to
-      load in the files.  Also, see the above note re pixel scaling.
-      Also, things don't seem to be quite right in OsiriX.
+      TODO: I have implemented it, but I'm not sure how to get Slicer
+      to load in the files.  Also, see the above note re pixel
+      scaling.  Also, things don't seem to be quite right in OsiriX.
 
-    o Update the "--help" output to reflect reality.
+    o TODO: Add --all-axes-scale
+
+    o TODO: Update the "--help" output to reflect reality.
+
+
+    o TODO: This is an old proposal for the new verbose output:
+
+	   New format:
+
+	   Input file: foo.fits
+	   Output file: foo.nrrd
+	   Image center, in pixels: (86, 41.5, 314.5)
+	   Image center, in RA/Dec/V: (56.5541, 32.9725, 0)
+	   Pixel size in degrees: 0.0127778 x 0.0127778
+	   Pixel size in arcseconds: #@$@#$ x #@#$#@#
+	   Pixel size in km/s:
+
+      You may want to incorporate some of the ideas from the above in
+      the verbose output.  E.g., putting in the input files and output
+      files.  Also, putting in information in arcseconds too, etc.
+
+    o TODO: Perhaps implement abbreviations for long options, like
+      --cts for --coerce-to-shorts, etc.
+
+    o TODO: BUNITS is the FITS header that describes the units for the
+      intensity scale.  We may want to output it, if it is present,
+      but it doesn't occur in all FITS files.
 
 
 - Known bugs:
@@ -135,6 +156,10 @@
 
     - If you make a new build directory, you have to run make several
       times, the first time, before it will compile.
+
+      TODO: Perhaps fix this, though it is not high priority.  For our
+      source release we can just document the "feature".
+
 
 - Use this old proposal as the basis for the new version of help text
 
@@ -317,158 +342,6 @@
 	    rather, rather than an image of data values.
 
 
-- TODO: Read over these old notes to make sure that everything has
-  been accounted for.
-
-  These are the options that should be supported in the next version:
-
-  TODO: I think that "XXX" may mean options that have already been
-  added to the dev version, but I'm not sure.
-
-  TODO: Reconcile this information with the information that is in the
-  version above.
-
-  XXX The DLL:
-
-     XXX This should just load the data cube and do nothing related to WCS with
-     it.  I.e., it should be just like --no-wcs.
-
-  {default}
-
-     Does what "--reorient-north --equiangular" does now.  The axes are in
-     microdegrees.  The pixel values should also be scaled by 1000 (for
-     floating point images, but not for integer images), and the
-     velocity axis should be auto-scaled.
-
-     Should output some of what is currently output for the verbose
-     option should be output:
-
-	Current format:
-
-	Image center, in IJK space with (0,0,0) index origin: [86, 41.5, 314.5]
-	Image center, in RA/Dec: [56.5541, 32.9725, 0]
-	I vector, in RA/Dec: [-0.015231, -1.84831e-06, 0]
-	J vector, in RA/Dec: [-2.20355e-06, 0.0127778, 0]
-	I vector, in approximate angular space: [-0.0127778, -1.84831e-06, 0]
-	J vector, in approximate angular space: [-1.84863e-06, 0.0127778, 0]
-	|I|, in approximate angular space: 0.0127778
-	|J|, in approximate angular space: 0.0127778
-	North vector in IJK space: [-0.0001447, 1, 0]
-	Rotation of J from North:  0.00829069
-	Direction cosines:
-	-1 0.0146564 0
-	0 0 1
-	-0.000121346 0.999893 0
-	Image spacing: [0.01514, 0.0127782, 1]
-	Image origin: [57.8563, 0, 32.4356]
-
-
-	New format:
-
-	Input file: foo.fits
-	Output file: foo.nrrd
-	Image center, in pixels: (86, 41.5, 314.5)
-	Image center, in RA/Dec/V: (56.5541, 32.9725, 0)
-	Pixel size in degrees: 0.0127778 x 0.0127778
-	Pixel size in arcseconds: #@$@#$ x #@#$#@#
-	Pixel size in km/s:
-
-
-
-	 NOTE: Put the comments in the help text, rather than here.
-	 Also for velocity, may have to instead do something like:
-
-	 Pixel size in velocity: $#@$@$#@
-	 Velocity units: km/s
-
-
-  --quiet, -q
-
-    Suppress the above mentioned output.
-
-  XXX -h
-
-     Outputs the terse usage message.
-
-  XXX -n
-
-     Don't actually do anything.
-
-  XXX --help
-     Outputs the verbose usage message.
-
-  --no-wcs, --nw
-     Leaves the image alone.
-
-     --north-up
-       Rotates the image so that north is up.  Only works in conjunction
-       with --no-wcs.
-
-     --west-right
-       Rotates the image so thata west is to the right.  Only works in
-       conjunction with --no-wcs.
-
-  --force-ra-dec, --frd
-     Forces the axes to be RA and Dec, rather than angular degrees.
-
-  --west-axis-scale NUM, --was NUM
-    Sets the x-axis scale to be NUM microdegrees.  The default value is 1.
-    TODO: Figure out what this should do if --no-wcs is set.
-
-  --north-axis-scale NUM, --nas NUM
-    Sets the y-axis scale to be NUM microdegrees.  The default value is 1.
-    TODO: Figure out what this should do if --no-wcs is set.
-
-  --v-axis-scale NUM, --vas NUM
-    TODO: Figure out what this should do.
-
-  --scale-all-axes {x}, --saa NUM, -a NUM
-    TODO: Figure out precisely what this should do.
-
-  --null-value NUM, -N NUM
-    Sets the null value.  The default value is NaN.  (TODO: Find out
-    what it is for integer FITS types.)  You can't set this to 0, due to
-    a limitation in CFITSIO.  (TODO: Post to fitsbits or something to
-    see if this is really true.)
-
-  --debug-level INT, -D INT
-    Sets the debug level to INT.  The default value is 0.
-
-  --pixel-scale {x}, --ps
-    Every pixel will be multiplied by x upon converting from FITS to ITK.  The
-    default value is 1000.
-
-  --flip-west, --fw
-  --flip-north, --fn
-  --flip-v, --fv
-
-  --rotate-sky {x}, --rs
-    Rotates the image by x degrees counter-clockwise.
-
-  --verbose
-
-  --show-fits-header
-
-  --derivative-image-filter
-  --flip-image-filter
-  --binomial-blur-filter
-  --suppress-metadata-dictionary
-  --identity-flip
-
-  --coerce-to-shorts, --cts
-  --coerce-to-unsigned-shorts, --ctus
-
-  --lps
-    For use with programs other than Slicer that do not need the kludge
-    that compensates for Slicer's conversion to RAS.
-
-
-- TODO: Other things to consider
-
-  - BUNITS is the FITS header that describes the units for the intensity
-    scale.  We may want to output it, if it is present, but it doesn't
-    occur in all FITS files.
-
 - Features that I added a while back:
 
   - New features requested by Mike:
@@ -592,6 +465,9 @@
 	trouble of doing this stuff by hand.
 
 - OLD NOTES (i.e., have already been dealth with, or are no longer relevant)
+
+  TODO: Read over these old notes to make sure that everything has
+  been accounted for.
 
   - Notes about refactoring work on fits2itk
 
