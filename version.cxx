@@ -11,7 +11,7 @@
 // See LICENSE.txt for for details.
 //=============================================================================
 
-extern const char fits2itkVersion[] = "0.4dev.13";
+extern const char fits2itkVersion[] = "Version 0.4dev.14";
 
 //=============================================================================
 // Change Log
@@ -632,6 +632,16 @@ extern const char fits2itkVersion[] = "0.4dev.13";
 // Added the --tiff-output option.  I'm not sure that it works quite right,
 // though.  Also, I think I need to come up with separate coercion options for
 // input and output.
+
+
+//----------------------------------------------------
+// Version 0.4dev.14
+//----------------------------------------------------
+
+// Fixed --show-fits-header to insert a newline every 80 chars.
+
+// Fixed the sign error that existed in calculating the velocities of pixels.
+// This bug was only noticeable if the reference pixel was not at index 1.
 
 
 //----------------------------------------------------------------------

@@ -469,12 +469,6 @@ writeImageInfo(const FITSImage<ImageT>& image, ostream& out)
   } else {
     out << "There is no WCS information in the input image." << endl;
   }
-
-//       << "Direction cosines:\n"
-//       << itkImage.GetDirection()
-//       << "Image spacing: " << itkImage.GetSpacing() << "\n"
-//       << "Image origin: " << itkImage.GetOrigin() << "\n"
-
 }
 
 
@@ -494,7 +488,13 @@ writeFitsHeader(const ImageT& image, ostream& out)
   ExposeMetaData(const_cast<MetaDataDictionary&>(mdd),
 		 "FITS Header",
 		 fitsHeader);
-  out << fitsHeader;
+  out << "The FITS Image Header:";
+  const int nChars = fitsHeader.length();
+  for (int i = 0; i < nChars; ++i) {
+    if (i % 80 == 0) out << '\n';
+    out << fitsHeader[i];
+  }
+  out << '\n';
 }
 
 

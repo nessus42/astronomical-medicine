@@ -255,7 +255,7 @@ FITSImageIO::ReadImageInformation()
       referenceVelocity /= 1000; 
       velocityDelta /= 1000; 
       velocityAtIndexOrigin = 
-        referenceVelocity - velocityDelta * ( 1 - referenceVelocityIndex);
+        referenceVelocity - velocityDelta * (referenceVelocityIndex - 1);
       debugPrint(
                  "velocityAtIndexOrigin=" << velocityAtIndexOrigin << "\n"
                  "indexOfZeroVelocity="
